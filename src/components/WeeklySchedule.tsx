@@ -294,7 +294,9 @@ const WeeklySchedule = () => {
                       </div>
                     </td>
                     {DAYS.map((day) => {
-                      const shiftData = scheduleData[dept.id]?.[day] || { A: [], B: [] };
+                      const rawShiftData = scheduleData[dept.id]?.[day];
+                      const shiftA = rawShiftData?.A || [];
+                      const shiftB = rawShiftData?.B || [];
                       const isWeekend = day === "토" || day === "일";
                       return (
                         <td
@@ -313,8 +315,8 @@ const WeeklySchedule = () => {
                                 <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
                               </div>
                               <div className="flex flex-col gap-0.5">
-                                {shiftData.A.length > 0 ? (
-                                  shiftData.A.map((worker, idx) => (
+                                {shiftA.length > 0 ? (
+                                  shiftA.map((worker, idx) => (
                                     <span
                                       key={idx}
                                       className="text-xs text-foreground"
@@ -338,8 +340,8 @@ const WeeklySchedule = () => {
                                 <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
                               </div>
                               <div className="flex flex-col gap-0.5">
-                                {shiftData.B.length > 0 ? (
-                                  shiftData.B.map((worker, idx) => (
+                                {shiftB.length > 0 ? (
+                                  shiftB.map((worker, idx) => (
                                     <span
                                       key={idx}
                                       className="text-xs text-foreground"

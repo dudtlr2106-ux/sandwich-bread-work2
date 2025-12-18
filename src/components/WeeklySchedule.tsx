@@ -63,39 +63,44 @@ const departments: Department[] = [
   },
 ];
 
+type ShiftData = {
+  A: string[]; // A조: 06:00-14:00
+  B: string[]; // B조: 14:00-22:00
+};
+
 type ScheduleData = {
-  [key: string]: {
-    [key: string]: string[];
+  [deptId: string]: {
+    [day: string]: ShiftData;
   };
 };
 
 const initialScheduleData: ScheduleData = {
   equipment: {
-    월: ["김철수", "이영희", "박민수"],
-    화: ["김철수", "이영희", "박민수"],
-    수: ["김철수", "이영희", "박민수"],
-    목: ["김철수", "이영희", "박민수"],
-    금: ["김철수", "이영희", "박민수"],
-    토: ["김철수"],
-    일: [],
+    월: { A: ["김철수", "이영희"], B: ["박민수"] },
+    화: { A: ["김철수", "이영희"], B: ["박민수"] },
+    수: { A: ["김철수", "이영희"], B: ["박민수"] },
+    목: { A: ["김철수", "이영희"], B: ["박민수"] },
+    금: { A: ["김철수", "이영희"], B: ["박민수"] },
+    토: { A: ["김철수"], B: [] },
+    일: { A: [], B: [] },
   },
   inspection: {
-    월: ["최지은", "정현우"],
-    화: ["최지은", "정현우"],
-    수: ["최지은", "정현우"],
-    목: ["최지은", "정현우"],
-    금: ["최지은", "정현우"],
-    토: ["최지은"],
-    일: [],
+    월: { A: ["최지은"], B: ["정현우"] },
+    화: { A: ["최지은"], B: ["정현우"] },
+    수: { A: ["최지은"], B: ["정현우"] },
+    목: { A: ["최지은"], B: ["정현우"] },
+    금: { A: ["최지은"], B: ["정현우"] },
+    토: { A: ["최지은"], B: [] },
+    일: { A: [], B: [] },
   },
   logistics: {
-    월: ["한승민"],
-    화: ["한승민"],
-    수: ["한승민"],
-    목: ["한승민"],
-    금: ["한승민"],
-    토: [],
-    일: [],
+    월: { A: ["한승민"], B: [] },
+    화: { A: [], B: ["한승민"] },
+    수: { A: ["한승민"], B: [] },
+    목: { A: [], B: ["한승민"] },
+    금: { A: ["한승민"], B: [] },
+    토: { A: [], B: [] },
+    일: { A: [], B: [] },
   },
 };
 
@@ -108,6 +113,7 @@ const WeeklySchedule = () => {
   const [editingCell, setEditingCell] = useState<{
     deptId: string;
     day: string;
+    shift: "A" | "B";
   } | null>(null);
   const [editingWorkers, setEditingWorkers] = useState<string[]>([]);
   const [newWorkerName, setNewWorkerName] = useState("");
@@ -139,9 +145,9 @@ const WeeklySchedule = () => {
     return "text-foreground font-semibold";
   };
 
-  const openEditDialog = (deptId: string, day: string) => {
-    setEditingCell({ deptId, day });
-    setEditingWorkers([...(scheduleData[deptId]?.[day] || [])]);
+  const openEditDialog = (deptId: string, day: string, shift: "A" | "B") => {
+    setEditingCell({ deptId, day, shift });
+    setEditingWorkers([...(scheduleData[deptId]?.[day]?.[shift] || [])]);
     setNewWorkerName("");
     setEditDialogOpen(true);
   };
@@ -163,12 +169,19 @@ const WeeklySchedule = () => {
         ...prev,
         [editingCell.deptId]: {
           ...prev[editingCell.deptId],
-          [editingCell.day]: editingWorkers,
+          [editingCell.day]: {
+            ...prev[editingCell.deptId][editingCell.day],
+            [editingCell.shift]: editingWorkers,
+          },
         },
       }));
     }
     setEditDialogOpen(false);
     setEditingCell(null);
+  };
+
+  const getShiftLabel = (shift: "A" | "B") => {
+    return shift === "A" ? "A조 (06-14시)" : "B조 (14-22시)";
   };
 
   const getDeptName = (deptId: string) => {
@@ -281,32 +294,64 @@ const WeeklySchedule = () => {
                       </div>
                     </td>
                     {DAYS.map((day) => {
-                      const workers = scheduleData[dept.id]?.[day] || [];
+                      const shiftData = scheduleData[dept.id]?.[day] || { A: [], B: [] };
                       const isWeekend = day === "토" || day === "일";
                       return (
                         <td
                           key={day}
-                          className={`schedule-cell border-b cursor-pointer group ${isWeekend ? "bg-muted/30" : ""}`}
-                          onClick={() => openEditDialog(dept.id, day)}
+                          className={`schedule-cell border-b p-0 ${isWeekend ? "bg-muted/30" : ""}`}
                         >
-                          <div className="flex flex-col gap-1 relative">
-                            <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Edit2 className="h-3 w-3 text-muted-foreground" />
+                          <div className="flex flex-col divide-y divide-border">
+                            {/* A조 */}
+                            <div
+                              className="p-2 cursor-pointer group hover:bg-primary/5 transition-colors min-h-[60px]"
+                              onClick={() => openEditDialog(dept.id, day, "A")}
+                            >
+                              <div className="flex items-center gap-1 mb-1">
+                                <span className="text-xs font-semibold text-primary">A</span>
+                                <span className="text-[10px] text-muted-foreground">06-14</span>
+                                <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
+                              </div>
+                              <div className="flex flex-col gap-0.5">
+                                {shiftData.A.length > 0 ? (
+                                  shiftData.A.map((worker, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="text-xs text-foreground"
+                                    >
+                                      {worker}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">-</span>
+                                )}
+                              </div>
                             </div>
-                            {workers.length > 0 ? (
-                              workers.map((worker, idx) => (
-                                <span
-                                  key={idx}
-                                  className="text-sm text-foreground px-2 py-1 rounded bg-card shadow-sm inline-block"
-                                >
-                                  {worker}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-sm text-muted-foreground italic">
-                                휴무
-                              </span>
-                            )}
+                            {/* B조 */}
+                            <div
+                              className="p-2 cursor-pointer group hover:bg-secondary/50 transition-colors min-h-[60px]"
+                              onClick={() => openEditDialog(dept.id, day, "B")}
+                            >
+                              <div className="flex items-center gap-1 mb-1">
+                                <span className="text-xs font-semibold text-secondary-foreground">B</span>
+                                <span className="text-[10px] text-muted-foreground">14-22</span>
+                                <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
+                              </div>
+                              <div className="flex flex-col gap-0.5">
+                                {shiftData.B.length > 0 ? (
+                                  shiftData.B.map((worker, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="text-xs text-foreground"
+                                    >
+                                      {worker}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">-</span>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </td>
                       );
@@ -337,7 +382,7 @@ const WeeklySchedule = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingCell && `${getDeptName(editingCell.deptId)} - ${editingCell.day}요일 근무자 편집`}
+              {editingCell && `${getDeptName(editingCell.deptId)} - ${editingCell.day}요일 ${getShiftLabel(editingCell.shift)}`}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">

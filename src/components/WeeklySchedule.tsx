@@ -189,6 +189,37 @@ const WeeklySchedule = () => {
     return weeksDiff % 2 !== 0;
   };
 
+  // 주차에 따른 부서 로테이션 계산
+  // 짝수 주차: 원래대로 (설비→설비, 검사→검사, 물류→물류)
+  // 홀수 주차: 설비→검사/물류, 검사+물류→설비
+  const getRotatedWorkers = (deptId: string, day: string, shift: "A" | "B"): string[] => {
+    const swapped = isSwappedWeek();
+    const rawData = scheduleData;
+    
+    if (!swapped) {
+      // 짝수 주차: 원래 부서의 인원
+      return rawData[deptId]?.[day]?.[shift] || [];
+    }
+    
+    // 홀수 주차: 부서 로테이션
+    if (deptId === "equipment") {
+      // 설비에는 검사 + 물류 인원이 감
+      const inspectionWorkers = rawData["inspection"]?.[day]?.[shift] || [];
+      const logisticsWorkers = rawData["logistics"]?.[day]?.[shift] || [];
+      return [...inspectionWorkers, ...logisticsWorkers];
+    } else if (deptId === "inspection") {
+      // 검사에는 설비 인원 중 앞 2명이 감
+      const equipmentWorkers = rawData["equipment"]?.[day]?.[shift] || [];
+      return equipmentWorkers.slice(0, 2);
+    } else if (deptId === "logistics") {
+      // 물류에는 설비 인원 중 나머지 1명이 감
+      const equipmentWorkers = rawData["equipment"]?.[day]?.[shift] || [];
+      return equipmentWorkers.slice(2);
+    }
+    
+    return [];
+  };
+
   const getShiftLabel = (shift: "A" | "B") => {
     const swapped = isSwappedWeek();
     if (shift === "A") {
@@ -319,17 +350,18 @@ const WeeklySchedule = () => {
                       </div>
                     </td>
                     {DAYS.map((day) => {
-                      const rawShiftData = scheduleData[dept.id]?.[day];
-                      const shiftA = rawShiftData?.A || [];
-                      const shiftB = rawShiftData?.B || [];
                       const isWeekend = day === "토" || day === "일";
                       const swapped = isSwappedWeek();
                       
-                      // 주차에 따라 표시 순서와 인원 교대
-                      const firstShiftWorkers = swapped ? shiftB : shiftA;
-                      const secondShiftWorkers = swapped ? shiftA : shiftB;
-                      const firstShiftKey = swapped ? "B" : "A";
-                      const secondShiftKey = swapped ? "A" : "B";
+                      // 로테이션된 인원 가져오기
+                      const rotatedA = getRotatedWorkers(dept.id, day, "A");
+                      const rotatedB = getRotatedWorkers(dept.id, day, "B");
+                      
+                      // 주차에 따라 표시 순서와 인원 교대 (초반/중반 swap)
+                      const firstShiftWorkers = swapped ? rotatedB : rotatedA;
+                      const secondShiftWorkers = swapped ? rotatedA : rotatedB;
+                      const firstShiftKey: "A" | "B" = swapped ? "B" : "A";
+                      const secondShiftKey: "A" | "B" = swapped ? "A" : "B";
                       
                       return (
                         <td

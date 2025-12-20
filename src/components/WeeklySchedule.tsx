@@ -11,6 +11,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Calendar,
   Users,
   Wrench,
@@ -21,9 +28,21 @@ import {
   Plus,
   X,
   Edit2,
+  Clock,
+  Palmtree,
 } from "lucide-react";
 import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks } from "date-fns";
 import { ko } from "date-fns/locale";
+
+// 잔업/휴가 상태 타입
+type WorkerStatus = "normal" | "overtime" | "vacation";
+
+// 직원별 일별 상태 데이터
+type WorkerStatusData = {
+  [dateKey: string]: {
+    [workerName: string]: WorkerStatus;
+  };
+};
 
 // 기준 주차 (이번 주가 짝수 주차인지 홀수 주차인지 판단용)
 const BASE_WEEK_START = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -120,6 +139,14 @@ const WeeklySchedule = () => {
   } | null>(null);
   const [editingWorkers, setEditingWorkers] = useState<string[]>([]);
   const [newWorkerName, setNewWorkerName] = useState("");
+  
+  // 잔업/휴가 상태 관리
+  const [workerStatusData, setWorkerStatusData] = useState<WorkerStatusData>({});
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [editingStatus, setEditingStatus] = useState<{
+    worker: string;
+    dateKey: string;
+  } | null>(null);
 
   const goToPreviousWeek = () => {
     setCurrentWeekStart((prev) => subWeeks(prev, 1));
@@ -242,6 +269,51 @@ const WeeklySchedule = () => {
 
   const getDeptName = (deptId: string) => {
     return departments.find((d) => d.id === deptId)?.name || deptId;
+  };
+
+  // 날짜 키 생성 (yyyy-MM-dd 형식)
+  const getDateKey = (dayIndex: number) => {
+    return format(getDateForDay(dayIndex), "yyyy-MM-dd");
+  };
+
+  // 직원 상태 가져오기
+  const getWorkerStatus = (worker: string, dateKey: string): WorkerStatus => {
+    return workerStatusData[dateKey]?.[worker] || "normal";
+  };
+
+  // 상태 다이얼로그 열기
+  const openStatusDialog = (worker: string, dayIndex: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const dateKey = getDateKey(dayIndex);
+    setEditingStatus({ worker, dateKey });
+    setStatusDialogOpen(true);
+  };
+
+  // 상태 저장
+  const saveWorkerStatus = (status: WorkerStatus) => {
+    if (editingStatus) {
+      setWorkerStatusData((prev) => ({
+        ...prev,
+        [editingStatus.dateKey]: {
+          ...prev[editingStatus.dateKey],
+          [editingStatus.worker]: status,
+        },
+      }));
+    }
+    setStatusDialogOpen(false);
+    setEditingStatus(null);
+  };
+
+  // 상태별 아이콘 및 스타일
+  const getStatusStyle = (status: WorkerStatus) => {
+    switch (status) {
+      case "overtime":
+        return { icon: <Clock className="h-3 w-3 text-orange-500" />, className: "text-orange-600 font-medium" };
+      case "vacation":
+        return { icon: <Palmtree className="h-3 w-3 text-green-500" />, className: "text-green-600 line-through" };
+      default:
+        return { icon: null, className: "" };
+    }
   };
 
   return (
@@ -381,14 +453,24 @@ const WeeklySchedule = () => {
                               </div>
                               <div className="flex flex-col gap-0.5">
                                 {firstShiftWorkers.length > 0 ? (
-                                  firstShiftWorkers.map((worker, idx) => (
-                                    <span
-                                      key={idx}
-                                      className="text-xs text-foreground"
-                                    >
-                                      {worker}
-                                    </span>
-                                  ))
+                                  firstShiftWorkers.map((worker, idx) => {
+                                    const dayIndex = DAYS.indexOf(day);
+                                    const dateKey = getDateKey(dayIndex);
+                                    const status = getWorkerStatus(worker, dateKey);
+                                    const statusStyle = getStatusStyle(status);
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5 -mx-0.5"
+                                        onClick={(e) => openStatusDialog(worker, dayIndex, e)}
+                                      >
+                                        {statusStyle.icon}
+                                        <span className={`text-xs ${statusStyle.className || "text-foreground"}`}>
+                                          {worker}
+                                        </span>
+                                      </div>
+                                    );
+                                  })
                                 ) : (
                                   <span className="text-xs text-muted-foreground italic">-</span>
                                 )}
@@ -406,14 +488,24 @@ const WeeklySchedule = () => {
                               </div>
                               <div className="flex flex-col gap-0.5">
                                 {secondShiftWorkers.length > 0 ? (
-                                  secondShiftWorkers.map((worker, idx) => (
-                                    <span
-                                      key={idx}
-                                      className="text-xs text-foreground"
-                                    >
-                                      {worker}
-                                    </span>
-                                  ))
+                                  secondShiftWorkers.map((worker, idx) => {
+                                    const dayIndex = DAYS.indexOf(day);
+                                    const dateKey = getDateKey(dayIndex);
+                                    const status = getWorkerStatus(worker, dateKey);
+                                    const statusStyle = getStatusStyle(status);
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5 -mx-0.5"
+                                        onClick={(e) => openStatusDialog(worker, dayIndex, e)}
+                                      >
+                                        {statusStyle.icon}
+                                        <span className={`text-xs ${statusStyle.className || "text-foreground"}`}>
+                                          {worker}
+                                        </span>
+                                      </div>
+                                    );
+                                  })
                                 ) : (
                                   <span className="text-xs text-muted-foreground italic">-</span>
                                 )}
@@ -439,6 +531,16 @@ const WeeklySchedule = () => {
                   <span className="text-foreground">{dept.name}</span>
                 </div>
               ))}
+              <div className="border-l border-border pl-4 ml-2 flex items-center gap-4">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3 text-orange-500" />
+                  <span className="text-foreground">잔업</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Palmtree className="h-3 w-3 text-green-500" />
+                  <span className="text-foreground">휴가</span>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -513,6 +615,43 @@ const WeeklySchedule = () => {
             </Button>
             <Button onClick={saveWorkers}>저장</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Status Dialog - 잔업/휴가 선택 */}
+      <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>
+              {editingStatus && `${editingStatus.worker} - 상태 변경`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-2"
+              onClick={() => saveWorkerStatus("normal")}
+            >
+              <Users className="h-4 w-4" />
+              정상 근무
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+              onClick={() => saveWorkerStatus("overtime")}
+            >
+              <Clock className="h-4 w-4" />
+              잔업
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+              onClick={() => saveWorkerStatus("vacation")}
+            >
+              <Palmtree className="h-4 w-4" />
+              휴가
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </>

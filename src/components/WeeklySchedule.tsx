@@ -276,9 +276,22 @@ const WeeklySchedule = () => {
     return format(getDateForDay(dayIndex), "yyyy-MM-dd");
   };
 
-  // 직원 상태 가져오기
-  const getWorkerStatus = (worker: string, dateKey: string): WorkerStatus => {
-    return workerStatusData[dateKey]?.[worker] || "normal";
+  // 화수목 체크 (기본 잔업일)
+  const isOvertimeDay = (day: string) => {
+    return day === "화" || day === "수" || day === "목";
+  };
+
+  // 직원 상태 가져오기 (화수목은 기본 잔업)
+  const getWorkerStatus = (worker: string, dateKey: string, day: string): WorkerStatus => {
+    // 수동으로 설정한 상태가 있으면 그것을 우선
+    if (workerStatusData[dateKey]?.[worker]) {
+      return workerStatusData[dateKey][worker];
+    }
+    // 화수목은 기본 잔업
+    if (isOvertimeDay(day)) {
+      return "overtime";
+    }
+    return "normal";
   };
 
   // 상태 다이얼로그 열기
@@ -302,6 +315,18 @@ const WeeklySchedule = () => {
     }
     setStatusDialogOpen(false);
     setEditingStatus(null);
+  };
+
+  // 잔업 시간 정보 가져오기 (화수목 전용)
+  const getOvertimeInfo = (day: string, isFirstShift: boolean) => {
+    if (!isOvertimeDay(day)) return null;
+    if (isFirstShift) {
+      // 초반조: 06-14 + 14-18 잔업
+      return "→18시";
+    } else {
+      // 중반조: 10-22 (10시부터 시작)
+      return "10시→";
+    }
   };
 
   // 상태별 아이콘 및 스타일
@@ -449,6 +474,9 @@ const WeeklySchedule = () => {
                               <div className="flex items-center gap-1 mb-1">
                                 <span className="text-xs font-semibold text-primary">초반</span>
                                 <span className="text-[10px] text-muted-foreground">06-14</span>
+                                {isOvertimeDay(day) && (
+                                  <span className="text-[10px] text-orange-500 font-medium">{getOvertimeInfo(day, true)}</span>
+                                )}
                                 <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
                               </div>
                               <div className="flex flex-col gap-0.5">
@@ -456,7 +484,7 @@ const WeeklySchedule = () => {
                                   firstShiftWorkers.map((worker, idx) => {
                                     const dayIndex = DAYS.indexOf(day);
                                     const dateKey = getDateKey(dayIndex);
-                                    const status = getWorkerStatus(worker, dateKey);
+                                    const status = getWorkerStatus(worker, dateKey, day);
                                     const statusStyle = getStatusStyle(status);
                                     return (
                                       <div
@@ -476,14 +504,18 @@ const WeeklySchedule = () => {
                                 )}
                               </div>
                             </div>
-                            {/* 중반 (항상 14-22) */}
+                            {/* 중반 (항상 14-22, 화수목은 10-22) */}
                             <div
                               className="p-2 cursor-pointer group hover:bg-secondary/50 transition-colors min-h-[60px]"
                               onClick={() => openEditDialog(dept.id, day, secondShiftKey)}
                             >
                               <div className="flex items-center gap-1 mb-1">
                                 <span className="text-xs font-semibold text-secondary-foreground">중반</span>
-                                <span className="text-[10px] text-muted-foreground">14-22</span>
+                                {isOvertimeDay(day) ? (
+                                  <span className="text-[10px] text-orange-500 font-medium">10-22</span>
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground">14-22</span>
+                                )}
                                 <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
                               </div>
                               <div className="flex flex-col gap-0.5">
@@ -491,7 +523,7 @@ const WeeklySchedule = () => {
                                   secondShiftWorkers.map((worker, idx) => {
                                     const dayIndex = DAYS.indexOf(day);
                                     const dateKey = getDateKey(dayIndex);
-                                    const status = getWorkerStatus(worker, dateKey);
+                                    const status = getWorkerStatus(worker, dateKey, day);
                                     const statusStyle = getStatusStyle(status);
                                     return (
                                       <div

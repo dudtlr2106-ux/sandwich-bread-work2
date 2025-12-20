@@ -64,8 +64,8 @@ const departments: Department[] = [
 ];
 
 type ShiftData = {
-  A: string[]; // A조: 06:00-14:00
-  B: string[]; // B조: 14:00-22:00
+  A: string[]; // 초반: 06:00-14:00
+  B: string[]; // 중반: 14:00-22:00
 };
 
 type ScheduleData = {
@@ -181,7 +181,7 @@ const WeeklySchedule = () => {
   };
 
   const getShiftLabel = (shift: "A" | "B") => {
-    return shift === "A" ? "A조 (06-14시)" : "B조 (14-22시)";
+    return shift === "A" ? "초반 (06-14시)" : "중반 (14-22시)";
   };
 
   const getDeptName = (deptId: string) => {
@@ -304,13 +304,13 @@ const WeeklySchedule = () => {
                           className={`schedule-cell border-b p-0 ${isWeekend ? "bg-muted/30" : ""}`}
                         >
                           <div className="flex flex-col divide-y divide-border">
-                            {/* A조 */}
+                            {/* 초반 */}
                             <div
                               className="p-2 cursor-pointer group hover:bg-primary/5 transition-colors min-h-[60px]"
                               onClick={() => openEditDialog(dept.id, day, "A")}
                             >
                               <div className="flex items-center gap-1 mb-1">
-                                <span className="text-xs font-semibold text-primary">A</span>
+                                <span className="text-xs font-semibold text-primary">초반</span>
                                 <span className="text-[10px] text-muted-foreground">06-14</span>
                                 <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
                               </div>
@@ -329,13 +329,13 @@ const WeeklySchedule = () => {
                                 )}
                               </div>
                             </div>
-                            {/* B조 */}
+                            {/* 중반 */}
                             <div
                               className="p-2 cursor-pointer group hover:bg-secondary/50 transition-colors min-h-[60px]"
                               onClick={() => openEditDialog(dept.id, day, "B")}
                             >
                               <div className="flex items-center gap-1 mb-1">
-                                <span className="text-xs font-semibold text-secondary-foreground">B</span>
+                                <span className="text-xs font-semibold text-secondary-foreground">중반</span>
                                 <span className="text-[10px] text-muted-foreground">14-22</span>
                                 <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
                               </div>

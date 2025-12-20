@@ -22,8 +22,11 @@ import {
   X,
   Edit2,
 } from "lucide-react";
-import { format, addWeeks, subWeeks, startOfWeek, addDays } from "date-fns";
+import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks } from "date-fns";
 import { ko } from "date-fns/locale";
+
+// 기준 주차 (이번 주가 짝수 주차인지 홀수 주차인지 판단용)
+const BASE_WEEK_START = startOfWeek(new Date(), { weekStartsOn: 1 });
 
 const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
 
@@ -180,8 +183,30 @@ const WeeklySchedule = () => {
     setEditingCell(null);
   };
 
+  // 주차에 따른 조 교대 여부 계산 (홀수 주차면 swap)
+  const isSwappedWeek = () => {
+    const weeksDiff = differenceInWeeks(currentWeekStart, BASE_WEEK_START);
+    return weeksDiff % 2 !== 0;
+  };
+
   const getShiftLabel = (shift: "A" | "B") => {
-    return shift === "A" ? "초반 (06-14시)" : "중반 (14-22시)";
+    const swapped = isSwappedWeek();
+    if (shift === "A") {
+      return swapped ? "중반 (14-22시)" : "초반 (06-14시)";
+    }
+    return swapped ? "초반 (06-14시)" : "중반 (14-22시)";
+  };
+
+  const getDisplayShiftName = (shift: "A" | "B") => {
+    const swapped = isSwappedWeek();
+    if (shift === "A") return swapped ? "중반" : "초반";
+    return swapped ? "초반" : "중반";
+  };
+
+  const getDisplayShiftTime = (shift: "A" | "B") => {
+    const swapped = isSwappedWeek();
+    if (shift === "A") return swapped ? "14-22" : "06-14";
+    return swapped ? "06-14" : "14-22";
   };
 
   const getDeptName = (deptId: string) => {
@@ -298,16 +323,24 @@ const WeeklySchedule = () => {
                       const shiftA = rawShiftData?.A || [];
                       const shiftB = rawShiftData?.B || [];
                       const isWeekend = day === "토" || day === "일";
+                      const swapped = isSwappedWeek();
+                      
+                      // 주차에 따라 표시 순서와 인원 교대
+                      const firstShiftWorkers = swapped ? shiftB : shiftA;
+                      const secondShiftWorkers = swapped ? shiftA : shiftB;
+                      const firstShiftKey = swapped ? "B" : "A";
+                      const secondShiftKey = swapped ? "A" : "B";
+                      
                       return (
                         <td
                           key={day}
                           className={`schedule-cell border-b p-0 ${isWeekend ? "bg-muted/30" : ""}`}
                         >
                           <div className="flex flex-col divide-y divide-border">
-                            {/* 초반 */}
+                            {/* 초반 (항상 06-14) */}
                             <div
                               className="p-2 cursor-pointer group hover:bg-primary/5 transition-colors min-h-[60px]"
-                              onClick={() => openEditDialog(dept.id, day, "A")}
+                              onClick={() => openEditDialog(dept.id, day, firstShiftKey)}
                             >
                               <div className="flex items-center gap-1 mb-1">
                                 <span className="text-xs font-semibold text-primary">초반</span>
@@ -315,8 +348,8 @@ const WeeklySchedule = () => {
                                 <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
                               </div>
                               <div className="flex flex-col gap-0.5">
-                                {shiftA.length > 0 ? (
-                                  shiftA.map((worker, idx) => (
+                                {firstShiftWorkers.length > 0 ? (
+                                  firstShiftWorkers.map((worker, idx) => (
                                     <span
                                       key={idx}
                                       className="text-xs text-foreground"
@@ -329,10 +362,10 @@ const WeeklySchedule = () => {
                                 )}
                               </div>
                             </div>
-                            {/* 중반 */}
+                            {/* 중반 (항상 14-22) */}
                             <div
                               className="p-2 cursor-pointer group hover:bg-secondary/50 transition-colors min-h-[60px]"
-                              onClick={() => openEditDialog(dept.id, day, "B")}
+                              onClick={() => openEditDialog(dept.id, day, secondShiftKey)}
                             >
                               <div className="flex items-center gap-1 mb-1">
                                 <span className="text-xs font-semibold text-secondary-foreground">중반</span>
@@ -340,8 +373,8 @@ const WeeklySchedule = () => {
                                 <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
                               </div>
                               <div className="flex flex-col gap-0.5">
-                                {shiftB.length > 0 ? (
-                                  shiftB.map((worker, idx) => (
+                                {secondShiftWorkers.length > 0 ? (
+                                  secondShiftWorkers.map((worker, idx) => (
                                     <span
                                       key={idx}
                                       className="text-xs text-foreground"

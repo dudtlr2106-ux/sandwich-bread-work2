@@ -30,7 +30,7 @@ import {
   Clock,
   Palmtree,
 } from "lucide-react";
-import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks } from "date-fns";
+import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
 
 // 잔업/휴가 상태 타입
@@ -163,9 +163,36 @@ const WeeklySchedule = () => {
     return `${format(currentWeekStart, "yyyy년 M월 d일", { locale: ko })} ~ ${format(weekEnd, "M월 d일", { locale: ko })}`;
   };
 
-  const getDayHeaderClass = (day: string) => {
+  // 공휴일 목록 (2024-2025)
+  const holidays: { date: Date; name: string }[] = [
+    { date: new Date(2024, 11, 25), name: "크리스마스" },
+    { date: new Date(2025, 0, 1), name: "신정" },
+    { date: new Date(2025, 0, 28), name: "설날" },
+    { date: new Date(2025, 0, 29), name: "설날" },
+    { date: new Date(2025, 0, 30), name: "설날" },
+    { date: new Date(2025, 2, 1), name: "삼일절" },
+    { date: new Date(2025, 4, 5), name: "어린이날" },
+    { date: new Date(2025, 5, 6), name: "현충일" },
+    { date: new Date(2025, 7, 15), name: "광복절" },
+    { date: new Date(2025, 9, 3), name: "개천절" },
+    { date: new Date(2025, 9, 9), name: "한글날" },
+    { date: new Date(2025, 11, 25), name: "크리스마스" },
+  ];
+
+  // 공휴일 체크
+  const getHoliday = (date: Date) => {
+    return holidays.find(h => isSameDay(h.date, date));
+  };
+
+  // 토요일 특근 체크
+  const isSpecialWorkDay = (date: Date, day: string) => {
+    return day === "토";
+  };
+
+  const getDayHeaderClass = (day: string, date: Date) => {
+    const holiday = getHoliday(date);
+    if (holiday || day === "일") return "text-sunday font-semibold";
     if (day === "토") return "text-saturday font-semibold";
-    if (day === "일") return "text-sunday font-semibold";
     return "text-foreground font-semibold";
   };
 
@@ -392,13 +419,27 @@ const WeeklySchedule = () => {
                   </th>
                   {DAYS.map((day, index) => {
                     const date = getDateForDay(index);
+                    const holiday = getHoliday(date);
+                    const isSpecialWork = isSpecialWorkDay(date, day);
                     return (
                       <th
                         key={day}
-                        className={`p-4 text-center border-b border-r border-border min-w-[100px] ${getDayHeaderClass(day)}`}
+                        className={`p-4 text-center border-b border-r border-border min-w-[100px] ${getDayHeaderClass(day, date)}`}
                       >
                         <div className="flex flex-col items-center gap-1">
-                          <span className="text-lg">{day}</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-lg">{day}</span>
+                            {holiday && (
+                              <span className="text-[10px] bg-red-500 text-white px-1 rounded">
+                                {holiday.name}
+                              </span>
+                            )}
+                            {isSpecialWork && !holiday && (
+                              <span className="text-[10px] bg-blue-500 text-white px-1 rounded">
+                                특근
+                              </span>
+                            )}
+                          </div>
                           <span className="text-xs text-muted-foreground font-normal">
                             {format(date, "M/d")}
                           </span>

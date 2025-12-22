@@ -158,6 +158,19 @@ const WeeklySchedule = () => {
   
   // 잔업/휴가 상태 관리
   const [workerStatusData, setWorkerStatusData] = useState<WorkerStatusData>({});
+  
+  // 드래그 앤 드롭 상태
+  const [draggedWorker, setDraggedWorker] = useState<{
+    worker: string;
+    fromDeptId: string;
+    fromDay: string;
+    fromShift: "A" | "B";
+  } | null>(null);
+  const [dropTarget, setDropTarget] = useState<{
+    deptId: string;
+    day: string;
+    shift: "A" | "B";
+  } | null>(null);
 
   const goToPreviousWeek = () => {
     setCurrentWeekStart((prev) => subWeeks(prev, 1));
@@ -349,6 +362,77 @@ const WeeklySchedule = () => {
     }));
   };
 
+  // 드래그 시작
+  const handleDragStart = (worker: string, deptId: string, day: string, shift: "A" | "B") => {
+    setDraggedWorker({ worker, fromDeptId: deptId, fromDay: day, fromShift: shift });
+  };
+
+  // 드래그 종료
+  const handleDragEnd = () => {
+    setDraggedWorker(null);
+    setDropTarget(null);
+  };
+
+  // 드롭 영역에 들어왔을 때
+  const handleDragOver = (e: React.DragEvent, deptId: string, day: string, shift: "A" | "B") => {
+    e.preventDefault();
+    setDropTarget({ deptId, day, shift });
+  };
+
+  // 드롭 영역을 벗어났을 때
+  const handleDragLeave = () => {
+    setDropTarget(null);
+  };
+
+  // 드롭 처리
+  const handleDrop = (e: React.DragEvent, toDeptId: string, toDay: string, toShift: "A" | "B") => {
+    e.preventDefault();
+    if (!draggedWorker) return;
+    
+    const { worker, fromDeptId, fromDay, fromShift } = draggedWorker;
+    
+    // 같은 위치면 무시
+    if (fromDeptId === toDeptId && fromDay === toDay && fromShift === toShift) {
+      handleDragEnd();
+      return;
+    }
+    
+    setScheduleData((prev) => {
+      const newData = { ...prev };
+      
+      // 원래 위치에서 제거
+      const fromWorkers = [...(newData[fromDeptId]?.[fromDay]?.[fromShift] || [])];
+      const workerIndex = fromWorkers.indexOf(worker);
+      if (workerIndex > -1) {
+        fromWorkers.splice(workerIndex, 1);
+        newData[fromDeptId] = {
+          ...newData[fromDeptId],
+          [fromDay]: {
+            ...newData[fromDeptId][fromDay],
+            [fromShift]: fromWorkers,
+          },
+        };
+      }
+      
+      // 새 위치에 추가
+      const toWorkers = [...(newData[toDeptId]?.[toDay]?.[toShift] || [])];
+      if (!toWorkers.includes(worker)) {
+        toWorkers.push(worker);
+        newData[toDeptId] = {
+          ...newData[toDeptId],
+          [toDay]: {
+            ...newData[toDeptId][toDay],
+            [toShift]: toWorkers,
+          },
+        };
+      }
+      
+      return newData;
+    });
+    
+    handleDragEnd();
+  };
+
   // 잔업 시간 정보 가져오기 (화수목 전용)
   const getOvertimeInfo = (day: string, isFirstShift: boolean) => {
     if (!isOvertimeDay(day)) return null;
@@ -514,8 +598,15 @@ const WeeklySchedule = () => {
                           <div className="flex flex-col divide-y divide-border">
                             {/* 초반 (항상 06-14) */}
                             <div
-                              className="p-2 cursor-pointer group hover:bg-primary/5 transition-colors min-h-[60px]"
+                              className={`p-2 cursor-pointer group hover:bg-primary/5 transition-colors min-h-[60px] ${
+                                dropTarget?.deptId === dept.id && dropTarget?.day === day && dropTarget?.shift === firstShiftKey
+                                  ? "bg-primary/20 ring-2 ring-primary ring-inset"
+                                  : ""
+                              }`}
                               onClick={() => openEditDialog(dept.id, day, firstShiftKey)}
+                              onDragOver={(e) => handleDragOver(e, dept.id, day, firstShiftKey)}
+                              onDragLeave={handleDragLeave}
+                              onDrop={(e) => handleDrop(e, dept.id, day, firstShiftKey)}
                             >
                               <div className="flex items-center gap-1 mb-1">
                                 <span className="text-xs font-semibold text-primary">초반</span>
@@ -534,7 +625,14 @@ const WeeklySchedule = () => {
                                     return (
                                       <DropdownMenu key={idx}>
                                         <DropdownMenuTrigger asChild>
-                                          <div className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5 -mx-0.5">
+                                          <div
+                                            draggable
+                                            onDragStart={() => handleDragStart(worker, dept.id, day, firstShiftKey)}
+                                            onDragEnd={handleDragEnd}
+                                            className={`flex items-center gap-1 cursor-grab hover:bg-muted/50 rounded px-0.5 -mx-0.5 ${
+                                              draggedWorker?.worker === worker ? "opacity-50" : ""
+                                            }`}
+                                          >
                                             {statusStyle.icon}
                                             <span className={`text-xs ${statusStyle.className || "text-foreground"}`}>
                                               {worker}
@@ -565,8 +663,15 @@ const WeeklySchedule = () => {
                             </div>
                             {/* 중반 (항상 14-22, 화수목은 10-22) */}
                             <div
-                              className="p-2 cursor-pointer group hover:bg-secondary/50 transition-colors min-h-[60px]"
+                              className={`p-2 cursor-pointer group hover:bg-secondary/50 transition-colors min-h-[60px] ${
+                                dropTarget?.deptId === dept.id && dropTarget?.day === day && dropTarget?.shift === secondShiftKey
+                                  ? "bg-secondary/40 ring-2 ring-secondary ring-inset"
+                                  : ""
+                              }`}
                               onClick={() => openEditDialog(dept.id, day, secondShiftKey)}
+                              onDragOver={(e) => handleDragOver(e, dept.id, day, secondShiftKey)}
+                              onDragLeave={handleDragLeave}
+                              onDrop={(e) => handleDrop(e, dept.id, day, secondShiftKey)}
                             >
                               <div className="flex items-center gap-1 mb-1">
                                 <span className="text-xs font-semibold text-secondary-foreground">중반</span>
@@ -587,7 +692,14 @@ const WeeklySchedule = () => {
                                     return (
                                       <DropdownMenu key={idx}>
                                         <DropdownMenuTrigger asChild>
-                                          <div className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5 -mx-0.5">
+                                          <div
+                                            draggable
+                                            onDragStart={() => handleDragStart(worker, dept.id, day, secondShiftKey)}
+                                            onDragEnd={handleDragEnd}
+                                            className={`flex items-center gap-1 cursor-grab hover:bg-muted/50 rounded px-0.5 -mx-0.5 ${
+                                              draggedWorker?.worker === worker ? "opacity-50" : ""
+                                            }`}
+                                          >
                                             {statusStyle.icon}
                                             <span className={`text-xs ${statusStyle.className || "text-foreground"}`}>
                                               {worker}

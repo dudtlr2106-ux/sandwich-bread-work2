@@ -204,10 +204,11 @@ const WeeklySchedule = () => {
     setEditingCell(null);
   };
 
-  // 주차에 따른 조 교대 여부 계산 (홀수 주차면 swap)
+  // 주차에 따른 조 교대 여부 계산 (이번주 기준으로 swap 상태)
   const isSwappedWeek = () => {
     const weeksDiff = differenceInWeeks(currentWeekStart, BASE_WEEK_START);
-    return weeksDiff % 2 !== 0;
+    // 이번주는 설비→검사/물류 로테이션이므로 짝수주가 swap
+    return weeksDiff % 2 === 0;
   };
 
   // 주차에 따른 부서 로테이션 계산

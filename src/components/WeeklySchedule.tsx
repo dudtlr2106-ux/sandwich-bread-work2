@@ -59,6 +59,14 @@ interface Department {
 
 const departments: Department[] = [
   {
+    id: "foreman",
+    name: "반장",
+    count: 1,
+    icon: <Users className="h-4 w-4" />,
+    colorClass: "department-foreman",
+    badgeClass: "bg-primary text-primary-foreground",
+  },
+  {
     id: "equipment",
     name: "설비",
     count: 3,
@@ -96,6 +104,15 @@ type ScheduleData = {
 };
 
 const initialScheduleData: ScheduleData = {
+  foreman: {
+    월: { A: ["박노일"], B: ["김영식"] },
+    화: { A: ["박노일"], B: ["김영식"] },
+    수: { A: ["박노일"], B: ["김영식"] },
+    목: { A: ["박노일"], B: ["김영식"] },
+    금: { A: ["박노일"], B: ["김영식"] },
+    토: { A: ["박노일"], B: ["김영식"] },
+    일: { A: [], B: [] },
+  },
   equipment: {
     월: { A: ["이상민", "연명옥", "장영광"], B: ["오세홍", "김순기", "김용주"] },
     화: { A: ["이상민", "연명옥", "장영광"], B: ["오세홍", "김순기", "김용주"] },
@@ -244,6 +261,11 @@ const WeeklySchedule = () => {
   const getRotatedWorkers = (deptId: string, day: string, shift: "A" | "B"): string[] => {
     const swapped = isSwappedWeek();
     const rawData = scheduleData;
+    
+    // 반장은 로테이션 없이 그대로
+    if (deptId === "foreman") {
+      return rawData[deptId]?.[day]?.[shift] || [];
+    }
     
     if (!swapped) {
       // 짝수 주차: 원래 부서의 인원

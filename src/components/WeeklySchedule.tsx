@@ -11,12 +11,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Calendar,
   Users,
@@ -142,11 +141,6 @@ const WeeklySchedule = () => {
   
   // 잔업/휴가 상태 관리
   const [workerStatusData, setWorkerStatusData] = useState<WorkerStatusData>({});
-  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
-  const [editingStatus, setEditingStatus] = useState<{
-    worker: string;
-    dateKey: string;
-  } | null>(null);
 
   const goToPreviousWeek = () => {
     setCurrentWeekStart((prev) => subWeeks(prev, 1));
@@ -294,27 +288,15 @@ const WeeklySchedule = () => {
     return "normal";
   };
 
-  // 상태 다이얼로그 열기
-  const openStatusDialog = (worker: string, dayIndex: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const dateKey = getDateKey(dayIndex);
-    setEditingStatus({ worker, dateKey });
-    setStatusDialogOpen(true);
-  };
-
   // 상태 저장
-  const saveWorkerStatus = (status: WorkerStatus) => {
-    if (editingStatus) {
-      setWorkerStatusData((prev) => ({
-        ...prev,
-        [editingStatus.dateKey]: {
-          ...prev[editingStatus.dateKey],
-          [editingStatus.worker]: status,
-        },
-      }));
-    }
-    setStatusDialogOpen(false);
-    setEditingStatus(null);
+  const setWorkerStatus = (worker: string, dateKey: string, status: WorkerStatus) => {
+    setWorkerStatusData((prev) => ({
+      ...prev,
+      [dateKey]: {
+        ...prev[dateKey],
+        [worker]: status,
+      },
+    }));
   };
 
   // 잔업 시간 정보 가져오기 (화수목 전용)
@@ -486,16 +468,30 @@ const WeeklySchedule = () => {
                                     const status = getWorkerStatus(worker, dateKey, day);
                                     const statusStyle = getStatusStyle(status);
                                     return (
-                                      <div
-                                        key={idx}
-                                        className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5 -mx-0.5"
-                                        onClick={(e) => openStatusDialog(worker, dayIndex, e)}
-                                      >
-                                        {statusStyle.icon}
-                                        <span className={`text-xs ${statusStyle.className || "text-foreground"}`}>
-                                          {worker}
-                                        </span>
-                                      </div>
+                                      <DropdownMenu key={idx}>
+                                        <DropdownMenuTrigger asChild>
+                                          <div className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5 -mx-0.5">
+                                            {statusStyle.icon}
+                                            <span className={`text-xs ${statusStyle.className || "text-foreground"}`}>
+                                              {worker}
+                                            </span>
+                                          </div>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
+                                            <Users className="h-4 w-4 mr-2" />
+                                            정상 근무
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "overtime")} className="text-orange-600">
+                                            <Clock className="h-4 w-4 mr-2" />
+                                            잔업
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "vacation")} className="text-green-600">
+                                            <Palmtree className="h-4 w-4 mr-2" />
+                                            휴가
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
                                     );
                                   })
                                 ) : (
@@ -525,16 +521,30 @@ const WeeklySchedule = () => {
                                     const status = getWorkerStatus(worker, dateKey, day);
                                     const statusStyle = getStatusStyle(status);
                                     return (
-                                      <div
-                                        key={idx}
-                                        className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5 -mx-0.5"
-                                        onClick={(e) => openStatusDialog(worker, dayIndex, e)}
-                                      >
-                                        {statusStyle.icon}
-                                        <span className={`text-xs ${statusStyle.className || "text-foreground"}`}>
-                                          {worker}
-                                        </span>
-                                      </div>
+                                      <DropdownMenu key={idx}>
+                                        <DropdownMenuTrigger asChild>
+                                          <div className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5 -mx-0.5">
+                                            {statusStyle.icon}
+                                            <span className={`text-xs ${statusStyle.className || "text-foreground"}`}>
+                                              {worker}
+                                            </span>
+                                          </div>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
+                                            <Users className="h-4 w-4 mr-2" />
+                                            정상 근무
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "overtime")} className="text-orange-600">
+                                            <Clock className="h-4 w-4 mr-2" />
+                                            잔업
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "vacation")} className="text-green-600">
+                                            <Palmtree className="h-4 w-4 mr-2" />
+                                            휴가
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
                                     );
                                   })
                                 ) : (
@@ -649,42 +659,6 @@ const WeeklySchedule = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Status Dialog - 잔업/휴가 선택 */}
-      <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
-        <DialogContent className="sm:max-w-xs">
-          <DialogHeader>
-            <DialogTitle>
-              {editingStatus && `${editingStatus.worker} - 상태 변경`}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-4">
-            <Button
-              variant="outline"
-              className="w-full justify-start gap-2"
-              onClick={() => saveWorkerStatus("normal")}
-            >
-              <Users className="h-4 w-4" />
-              정상 근무
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-              onClick={() => saveWorkerStatus("overtime")}
-            >
-              <Clock className="h-4 w-4" />
-              잔업
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
-              onClick={() => saveWorkerStatus("vacation")}
-            >
-              <Palmtree className="h-4 w-4" />
-              휴가
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

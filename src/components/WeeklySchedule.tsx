@@ -29,6 +29,7 @@ import {
   Edit2,
   Clock,
   Palmtree,
+  ArrowRightLeft,
 } from "lucide-react";
 import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -159,17 +160,13 @@ const WeeklySchedule = () => {
   // 잔업/휴가 상태 관리
   const [workerStatusData, setWorkerStatusData] = useState<WorkerStatusData>({});
   
-  // 드래그 앤 드롭 상태
-  const [draggedWorker, setDraggedWorker] = useState<{
+  // 인원 이동 다이얼로그 상태
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [movingWorker, setMovingWorker] = useState<{
     worker: string;
     fromDeptId: string;
     fromDay: string;
     fromShift: "A" | "B";
-  } | null>(null);
-  const [dropTarget, setDropTarget] = useState<{
-    deptId: string;
-    day: string;
-    shift: "A" | "B";
   } | null>(null);
 
   const goToPreviousWeek = () => {
@@ -362,38 +359,22 @@ const WeeklySchedule = () => {
     }));
   };
 
-  // 드래그 시작
-  const handleDragStart = (worker: string, deptId: string, day: string, shift: "A" | "B") => {
-    setDraggedWorker({ worker, fromDeptId: deptId, fromDay: day, fromShift: shift });
+  // 인원 이동 다이얼로그 열기
+  const openMoveDialog = (worker: string, deptId: string, day: string, shift: "A" | "B") => {
+    setMovingWorker({ worker, fromDeptId: deptId, fromDay: day, fromShift: shift });
+    setMoveDialogOpen(true);
   };
 
-  // 드래그 종료
-  const handleDragEnd = () => {
-    setDraggedWorker(null);
-    setDropTarget(null);
-  };
-
-  // 드롭 영역에 들어왔을 때
-  const handleDragOver = (e: React.DragEvent, deptId: string, day: string, shift: "A" | "B") => {
-    e.preventDefault();
-    setDropTarget({ deptId, day, shift });
-  };
-
-  // 드롭 영역을 벗어났을 때
-  const handleDragLeave = () => {
-    setDropTarget(null);
-  };
-
-  // 드롭 처리
-  const handleDrop = (e: React.DragEvent, toDeptId: string, toDay: string, toShift: "A" | "B") => {
-    e.preventDefault();
-    if (!draggedWorker) return;
+  // 인원 이동 처리
+  const handleMoveWorker = (toDeptId: string, toDay: string, toShift: "A" | "B") => {
+    if (!movingWorker) return;
     
-    const { worker, fromDeptId, fromDay, fromShift } = draggedWorker;
+    const { worker, fromDeptId, fromDay, fromShift } = movingWorker;
     
     // 같은 위치면 무시
     if (fromDeptId === toDeptId && fromDay === toDay && fromShift === toShift) {
-      handleDragEnd();
+      setMoveDialogOpen(false);
+      setMovingWorker(null);
       return;
     }
     
@@ -430,7 +411,8 @@ const WeeklySchedule = () => {
       return newData;
     });
     
-    handleDragEnd();
+    setMoveDialogOpen(false);
+    setMovingWorker(null);
   };
 
   // 잔업 시간 정보 가져오기 (화수목 전용)
@@ -598,15 +580,8 @@ const WeeklySchedule = () => {
                           <div className="flex flex-col divide-y divide-border">
                             {/* 초반 (항상 06-14) */}
                             <div
-                              className={`p-2 cursor-pointer group hover:bg-primary/5 transition-colors min-h-[60px] ${
-                                dropTarget?.deptId === dept.id && dropTarget?.day === day && dropTarget?.shift === firstShiftKey
-                                  ? "bg-primary/20 ring-2 ring-primary ring-inset"
-                                  : ""
-                              }`}
+                              className="p-2 cursor-pointer group hover:bg-primary/5 transition-colors min-h-[60px]"
                               onClick={() => openEditDialog(dept.id, day, firstShiftKey)}
-                              onDragOver={(e) => handleDragOver(e, dept.id, day, firstShiftKey)}
-                              onDragLeave={handleDragLeave}
-                              onDrop={(e) => handleDrop(e, dept.id, day, firstShiftKey)}
                             >
                               <div className="flex items-center gap-1 mb-1">
                                 <span className="text-xs font-semibold text-primary">초반</span>
@@ -626,12 +601,8 @@ const WeeklySchedule = () => {
                                       <DropdownMenu key={idx}>
                                         <DropdownMenuTrigger asChild>
                                           <div
-                                            draggable
-                                            onDragStart={() => handleDragStart(worker, dept.id, day, firstShiftKey)}
-                                            onDragEnd={handleDragEnd}
-                                            className={`flex items-center gap-1 cursor-grab hover:bg-muted/50 rounded px-0.5 -mx-0.5 ${
-                                              draggedWorker?.worker === worker ? "opacity-50" : ""
-                                            }`}
+                                            className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5 -mx-0.5"
+                                            onClick={(e) => e.stopPropagation()}
                                           >
                                             {statusStyle.icon}
                                             <span className={`text-xs ${statusStyle.className || "text-foreground"}`}>
@@ -639,7 +610,11 @@ const WeeklySchedule = () => {
                                             </span>
                                           </div>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+                                        <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>
+                                          <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, firstShiftKey)}>
+                                            <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                            이동하기
+                                          </DropdownMenuItem>
                                           <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
                                             <Users className="h-4 w-4 mr-2" />
                                             정상 근무
@@ -663,15 +638,8 @@ const WeeklySchedule = () => {
                             </div>
                             {/* 중반 (항상 14-22, 화수목은 10-22) */}
                             <div
-                              className={`p-2 cursor-pointer group hover:bg-secondary/50 transition-colors min-h-[60px] ${
-                                dropTarget?.deptId === dept.id && dropTarget?.day === day && dropTarget?.shift === secondShiftKey
-                                  ? "bg-secondary/40 ring-2 ring-secondary ring-inset"
-                                  : ""
-                              }`}
+                              className="p-2 cursor-pointer group hover:bg-secondary/50 transition-colors min-h-[60px]"
                               onClick={() => openEditDialog(dept.id, day, secondShiftKey)}
-                              onDragOver={(e) => handleDragOver(e, dept.id, day, secondShiftKey)}
-                              onDragLeave={handleDragLeave}
-                              onDrop={(e) => handleDrop(e, dept.id, day, secondShiftKey)}
                             >
                               <div className="flex items-center gap-1 mb-1">
                                 <span className="text-xs font-semibold text-secondary-foreground">중반</span>
@@ -693,12 +661,8 @@ const WeeklySchedule = () => {
                                       <DropdownMenu key={idx}>
                                         <DropdownMenuTrigger asChild>
                                           <div
-                                            draggable
-                                            onDragStart={() => handleDragStart(worker, dept.id, day, secondShiftKey)}
-                                            onDragEnd={handleDragEnd}
-                                            className={`flex items-center gap-1 cursor-grab hover:bg-muted/50 rounded px-0.5 -mx-0.5 ${
-                                              draggedWorker?.worker === worker ? "opacity-50" : ""
-                                            }`}
+                                            className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5 -mx-0.5"
+                                            onClick={(e) => e.stopPropagation()}
                                           >
                                             {statusStyle.icon}
                                             <span className={`text-xs ${statusStyle.className || "text-foreground"}`}>
@@ -706,7 +670,11 @@ const WeeklySchedule = () => {
                                             </span>
                                           </div>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+                                        <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>
+                                          <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, secondShiftKey)}>
+                                            <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                            이동하기
+                                          </DropdownMenuItem>
                                           <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
                                             <Users className="h-4 w-4 mr-2" />
                                             정상 근무
@@ -831,6 +799,56 @@ const WeeklySchedule = () => {
               취소
             </Button>
             <Button onClick={saveWorkers}>저장</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move Worker Dialog */}
+      <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRightLeft className="h-5 w-5" />
+              {movingWorker?.worker} 이동하기
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              현재 위치: {movingWorker && getDeptName(movingWorker.fromDeptId)} - {movingWorker?.fromDay}요일 {movingWorker && getDisplayShiftName(movingWorker.fromShift)}
+            </p>
+            <div className="space-y-3">
+              <p className="text-sm font-medium">이동할 위치를 선택하세요:</p>
+              <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
+                {departments.flatMap((dept) =>
+                  DAYS.filter(day => day !== "일").flatMap((day) =>
+                    (["A", "B"] as const).map((shiftKey) => {
+                      const isCurrent = movingWorker?.fromDeptId === dept.id && 
+                                       movingWorker?.fromDay === day && 
+                                       movingWorker?.fromShift === shiftKey;
+                      return (
+                        <Button
+                          key={`${dept.id}-${day}-${shiftKey}`}
+                          variant={isCurrent ? "secondary" : "outline"}
+                          size="sm"
+                          disabled={isCurrent}
+                          className="justify-start text-xs h-auto py-2"
+                          onClick={() => handleMoveWorker(dept.id, day, shiftKey)}
+                        >
+                          <span className="truncate">
+                            {dept.name} {day} {getDisplayShiftName(shiftKey)}
+                          </span>
+                        </Button>
+                      );
+                    })
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMoveDialogOpen(false)}>
+              취소
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

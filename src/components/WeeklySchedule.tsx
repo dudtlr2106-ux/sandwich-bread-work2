@@ -365,8 +365,8 @@ const WeeklySchedule = () => {
     setMoveDialogOpen(true);
   };
 
-  // 인원 이동 처리
-  const handleMoveWorker = (toDeptId: string, toDay: string, toShift: "A" | "B") => {
+  // 인원 이동 처리 (다이얼로그에서 선택 시)
+  const handleMoveWorkerFromDialog = (toDeptId: string, toDay: string, toShift: "A" | "B") => {
     if (!movingWorker) return;
     
     const { worker, fromDeptId, fromDay, fromShift } = movingWorker;
@@ -375,6 +375,24 @@ const WeeklySchedule = () => {
     if (fromDeptId === toDeptId && fromDay === toDay && fromShift === toShift) {
       setMoveDialogOpen(false);
       setMovingWorker(null);
+      return;
+    }
+    
+    moveWorker(worker, fromDeptId, fromDay, fromShift, toDeptId, toDay, toShift);
+    
+    setMoveDialogOpen(false);
+    setMovingWorker(null);
+  };
+
+  // 직접 인원 이동 (빠른 조 전환용)
+  const quickMoveWorker = (worker: string, fromDeptId: string, fromDay: string, fromShift: "A" | "B", toShift: "A" | "B") => {
+    moveWorker(worker, fromDeptId, fromDay, fromShift, fromDeptId, fromDay, toShift);
+  };
+
+  // 공통 이동 로직
+  const moveWorker = (worker: string, fromDeptId: string, fromDay: string, fromShift: "A" | "B", toDeptId: string, toDay: string, toShift: "A" | "B") => {
+    // 같은 위치면 무시
+    if (fromDeptId === toDeptId && fromDay === toDay && fromShift === toShift) {
       return;
     }
     
@@ -410,9 +428,6 @@ const WeeklySchedule = () => {
       
       return newData;
     });
-    
-    setMoveDialogOpen(false);
-    setMovingWorker(null);
   };
 
   // 잔업 시간 정보 가져오기 (화수목 전용)
@@ -611,9 +626,13 @@ const WeeklySchedule = () => {
                                           </div>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>
+                                          <DropdownMenuItem onClick={() => quickMoveWorker(worker, dept.id, day, firstShiftKey, secondShiftKey)} className="text-blue-600">
+                                            <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                            중반으로 이동
+                                          </DropdownMenuItem>
                                           <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, firstShiftKey)}>
                                             <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                            이동하기
+                                            다른 위치로 이동
                                           </DropdownMenuItem>
                                           <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
                                             <Users className="h-4 w-4 mr-2" />
@@ -671,9 +690,13 @@ const WeeklySchedule = () => {
                                           </div>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>
+                                          <DropdownMenuItem onClick={() => quickMoveWorker(worker, dept.id, day, secondShiftKey, firstShiftKey)} className="text-blue-600">
+                                            <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                            초반으로 이동
+                                          </DropdownMenuItem>
                                           <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, secondShiftKey)}>
                                             <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                            이동하기
+                                            다른 위치로 이동
                                           </DropdownMenuItem>
                                           <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
                                             <Users className="h-4 w-4 mr-2" />
@@ -832,7 +855,7 @@ const WeeklySchedule = () => {
                           size="sm"
                           disabled={isCurrent}
                           className="justify-start text-xs h-auto py-2"
-                          onClick={() => handleMoveWorker(dept.id, day, shiftKey)}
+                          onClick={() => handleMoveWorkerFromDialog(dept.id, day, shiftKey)}
                         >
                           <span className="truncate">
                             {dept.name} {day} {getDisplayShiftName(shiftKey)}

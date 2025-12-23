@@ -160,6 +160,9 @@ const WeeklySchedule = () => {
   // 잔업/휴가 상태 관리
   const [workerStatusData, setWorkerStatusData] = useState<WorkerStatusData>({});
   
+  // 휴무일 관리 (날짜별)
+  const [dayOffDates, setDayOffDates] = useState<Set<string>>(new Set());
+  
   // 인원 이동 다이얼로그 상태
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [movingWorker, setMovingWorker] = useState<{
@@ -221,6 +224,24 @@ const WeeklySchedule = () => {
     if (holiday || day === "일") return "text-sunday font-semibold";
     if (day === "토") return "text-saturday font-semibold";
     return "text-foreground font-semibold";
+  };
+
+  // 휴무일 토글
+  const toggleDayOff = (dateKey: string) => {
+    setDayOffDates((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(dateKey)) {
+        newSet.delete(dateKey);
+      } else {
+        newSet.add(dateKey);
+      }
+      return newSet;
+    });
+  };
+
+  // 휴무일 체크
+  const isDayOff = (dateKey: string) => {
+    return dayOffDates.has(dateKey);
   };
 
   const openEditDialog = (deptId: string, day: string, shift: "A" | "B") => {
@@ -522,22 +543,30 @@ const WeeklySchedule = () => {
                   </th>
                   {DAYS.map((day, index) => {
                     const date = getDateForDay(index);
+                    const dateKey = getDateKey(index);
                     const holiday = getHoliday(date);
                     const isSpecialWork = isSpecialWorkDay(date, day);
+                    const isOff = isDayOff(dateKey);
                     return (
                       <th
                         key={day}
-                        className={`p-4 text-center border-b border-r border-border min-w-[100px] ${getDayHeaderClass(day, date)}`}
+                        className={`p-4 text-center border-b border-r border-border min-w-[100px] cursor-pointer hover:bg-muted/70 transition-colors ${getDayHeaderClass(day, date)} ${isOff ? "bg-muted/50" : ""}`}
+                        onClick={() => toggleDayOff(dateKey)}
                       >
                         <div className="flex flex-col items-center gap-1">
                           <div className="flex items-center gap-1">
                             <span className="text-lg">{day}</span>
-                            {holiday && (
+                            {isOff && (
+                              <span className="text-[10px] bg-gray-500 text-white px-1 rounded">
+                                휴무
+                              </span>
+                            )}
+                            {!isOff && holiday && (
                               <span className="text-[10px] bg-red-500 text-white px-1 rounded">
                                 {holiday.name}
                               </span>
                             )}
-                            {isSpecialWork && !holiday && (
+                            {!isOff && isSpecialWork && !holiday && (
                               <span className="text-[10px] bg-blue-500 text-white px-1 rounded">
                                 특근
                               </span>
@@ -573,9 +602,11 @@ const WeeklySchedule = () => {
                         </div>
                       </div>
                     </td>
-                    {DAYS.map((day) => {
+                    {DAYS.map((day, dayIndex) => {
                       const isWeekend = day === "토" || day === "일";
                       const swapped = isSwappedWeek();
+                      const dateKey = getDateKey(dayIndex);
+                      const isOff = isDayOff(dateKey);
                       
                       // 로테이션된 인원 가져오기
                       const rotatedA = getRotatedWorkers(dept.id, day, "A");
@@ -586,6 +617,20 @@ const WeeklySchedule = () => {
                       const secondShiftWorkers = swapped ? rotatedA : rotatedB;
                       const firstShiftKey: "A" | "B" = swapped ? "B" : "A";
                       const secondShiftKey: "A" | "B" = swapped ? "A" : "B";
+                      
+                      // 휴무일인 경우
+                      if (isOff) {
+                        return (
+                          <td
+                            key={day}
+                            className="schedule-cell border-b p-0 bg-muted/50"
+                          >
+                            <div className="flex items-center justify-center min-h-[120px]">
+                              <span className="text-sm text-muted-foreground font-medium">휴무</span>
+                            </div>
+                          </td>
+                        );
+                      }
                       
                       return (
                         <td
@@ -608,8 +653,6 @@ const WeeklySchedule = () => {
                               <div className="flex flex-col gap-0.5">
                                 {firstShiftWorkers.length > 0 ? (
                                   firstShiftWorkers.map((worker, idx) => {
-                                    const dayIndex = DAYS.indexOf(day);
-                                    const dateKey = getDateKey(dayIndex);
                                     const status = getWorkerStatus(worker, dateKey, day);
                                     const statusStyle = getStatusStyle(status);
                                     return (
@@ -672,8 +715,6 @@ const WeeklySchedule = () => {
                               <div className="flex flex-col gap-0.5">
                                 {secondShiftWorkers.length > 0 ? (
                                   secondShiftWorkers.map((worker, idx) => {
-                                    const dayIndex = DAYS.indexOf(day);
-                                    const dateKey = getDateKey(dayIndex);
                                     const status = getWorkerStatus(worker, dateKey, day);
                                     const statusStyle = getStatusStyle(status);
                                     return (

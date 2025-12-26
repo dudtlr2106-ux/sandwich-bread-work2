@@ -708,10 +708,10 @@ const WeeklySchedule = () => {
                           key={day}
                           className={`schedule-cell border-b p-0 ${isWeekend ? "bg-muted/30" : ""}`}
                         >
-                          <div className="flex flex-col divide-y divide-border">
+                          <div className="flex flex-row divide-x divide-border">
                             {/* 초반 (항상 06-14) */}
                             <div
-                              className="p-2 cursor-pointer group hover:bg-primary/5 transition-colors min-h-[60px]"
+                              className="p-2 cursor-pointer group hover:bg-primary/5 transition-colors min-h-[60px] flex-1"
                               onClick={() => openEditDialog(dept.id, day, firstShiftKey)}
                             >
                               <div className="flex items-center gap-1 mb-1">
@@ -771,7 +771,7 @@ const WeeklySchedule = () => {
                             </div>
                             {/* 중반 (항상 14-22, 화수목은 10-22) */}
                             <div
-                              className="p-2 cursor-pointer group hover:bg-secondary/50 transition-colors min-h-[60px]"
+                              className="p-2 cursor-pointer group hover:bg-secondary/50 transition-colors min-h-[60px] flex-1"
                               onClick={() => openEditDialog(dept.id, day, secondShiftKey)}
                             >
                               <div className="flex items-center gap-1 mb-1">

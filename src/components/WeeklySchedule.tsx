@@ -733,7 +733,7 @@ const WeeklySchedule = () => {
                                             onClick={(e) => e.stopPropagation()}
                                           >
                                             {statusStyle.icon}
-                                            <span className={`text-xs ${statusStyle.className || "text-foreground"}`}>
+                                            <span className={`text-xs whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
                                               {worker}
                                             </span>
                                           </div>
@@ -789,7 +789,7 @@ const WeeklySchedule = () => {
                                             onClick={(e) => e.stopPropagation()}
                                           >
                                             {statusStyle.icon}
-                                            <span className={`text-xs ${statusStyle.className || "text-foreground"}`}>
+                                            <span className={`text-xs whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
                                               {worker}
                                             </span>
                                           </div>

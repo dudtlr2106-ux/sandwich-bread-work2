@@ -188,6 +188,9 @@ const WeeklySchedule = () => {
   const [tempMemo, setTempMemo] = useState("");
   const [memoSheetOpen, setMemoSheetOpen] = useState(false);
 
+  // 주말 출근 가능 여부 (직원별)
+  const [weekendAvailability, setWeekendAvailability] = useState<{ [dateKey: string]: Set<string> }>({});
+
   // 모바일 요일 선택 (오늘 요일로 초기화)
   const getTodayDayIndex = () => {
     const today = new Date().getDay();
@@ -520,6 +523,48 @@ const WeeklySchedule = () => {
       // 중반조: 10-22 (10시부터 시작)
       return "10시→";
     }
+  };
+
+  // 전체 근무자 목록 가져오기
+  const getAllWorkers = (): string[] => {
+    const workersSet = new Set<string>();
+    Object.values(scheduleData).forEach((deptData) => {
+      Object.values(deptData).forEach((dayData) => {
+        dayData.A.forEach((worker) => workersSet.add(worker));
+        dayData.B.forEach((worker) => workersSet.add(worker));
+      });
+    });
+    return Array.from(workersSet).sort();
+  };
+
+  // 주말 출근 가능 여부 토글
+  const toggleWeekendAvailability = (dateKey: string, worker: string) => {
+    setWeekendAvailability((prev) => {
+      const newData = { ...prev };
+      if (!newData[dateKey]) {
+        newData[dateKey] = new Set();
+      } else {
+        newData[dateKey] = new Set(prev[dateKey]);
+      }
+      if (newData[dateKey].has(worker)) {
+        newData[dateKey].delete(worker);
+      } else {
+        newData[dateKey].add(worker);
+      }
+      return newData;
+    });
+  };
+
+  // 주말 출근 가능 여부 확인
+  const isWeekendAvailable = (dateKey: string, worker: string) => {
+    return weekendAvailability[dateKey]?.has(worker) || false;
+  };
+
+  // 토요일이 휴무가 아닌지 확인
+  const isSaturdayWorkday = () => {
+    const saturdayIndex = 5; // 토요일
+    const saturdayDateKey = getDateKey(saturdayIndex);
+    return !isDayOff(saturdayDateKey);
   };
 
   // 상태별 아이콘 및 스타일
@@ -904,6 +949,43 @@ const WeeklySchedule = () => {
               </tbody>
             </table>
           </div>
+
+          {/* 주말 출근 가능 여부 체크란 - 토요일이 휴무가 아닌 경우에만 표시 */}
+          {isSaturdayWorkday() && (
+            <div className="p-4 border-t border-border bg-blue-50/50 dark:bg-blue-950/20">
+              <div className="flex items-center gap-2 mb-3">
+                <Calendar className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-foreground">주말 출근 가능 여부</span>
+                <span className="text-xs text-muted-foreground">(체크하면 출근 가능)</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {getAllWorkers().map((worker) => {
+                  const saturdayDateKey = getDateKey(5);
+                  const isAvailable = isWeekendAvailable(saturdayDateKey, worker);
+                  return (
+                    <label
+                      key={worker}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer transition-colors ${
+                        isAvailable
+                          ? "bg-blue-100 border-blue-400 dark:bg-blue-900/50 dark:border-blue-600"
+                          : "bg-background border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isAvailable}
+                        onChange={() => toggleWeekendAvailability(saturdayDateKey, worker)}
+                        className="w-4 h-4 rounded border-border text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className={`text-sm ${isAvailable ? "text-blue-700 dark:text-blue-300 font-medium" : "text-foreground"}`}>
+                        {worker}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Legend */}
           <div className="p-4 border-t border-border bg-muted/30">

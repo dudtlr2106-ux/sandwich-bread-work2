@@ -681,7 +681,7 @@ const WeeklySchedule = () => {
             <table className="w-full border-collapse table-fixed">
               <thead>
                 <tr className="bg-muted/50">
-                  <th rowSpan={2} className="px-3 py-2 text-left font-semibold text-foreground border-b border-r border-border w-[70px]">
+                  <th rowSpan={2} className="px-2 py-1 text-left font-semibold text-foreground border-b border-r border-border w-[50px] text-xs">
                     구분
                   </th>
                   {(isMobile ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
@@ -741,8 +741,8 @@ const WeeklySchedule = () => {
               <tbody>
                 {departments.map((dept) => (
                   <tr key={dept.id} className="hover:bg-muted/30 transition-colors">
-                    <td className={`px-3 py-2 border-b border-r border-border ${dept.colorClass}`}>
-                      <span className="font-medium text-sm text-foreground">
+                    <td className={`px-2 py-1 border-b border-r border-border ${dept.colorClass}`}>
+                      <span className="font-medium text-xs text-foreground">
                         {dept.name}
                       </span>
                     </td>

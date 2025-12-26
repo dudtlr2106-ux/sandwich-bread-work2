@@ -609,7 +609,7 @@ const WeeklySchedule = () => {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-muted/50">
-                  <th className="p-4 text-left font-semibold text-foreground border-b border-r border-border min-w-[140px]">
+                  <th rowSpan={2} className="p-4 text-left font-semibold text-foreground border-b border-r border-border min-w-[140px]">
                     부서
                   </th>
                   {DAYS.map((day, index) => {
@@ -621,7 +621,8 @@ const WeeklySchedule = () => {
                     return (
                       <th
                         key={day}
-                        className={`p-4 text-center border-b border-r border-border min-w-[100px] cursor-pointer hover:bg-muted/70 transition-colors ${getDayHeaderClass(day, date)} ${isOff ? "bg-muted/50" : ""}`}
+                        colSpan={2}
+                        className={`p-2 text-center border-b border-r border-border min-w-[160px] cursor-pointer hover:bg-muted/70 transition-colors ${getDayHeaderClass(day, date)} ${isOff ? "bg-muted/50" : ""}`}
                         onClick={() => toggleDayOff(dateKey)}
                       >
                         <div className="flex flex-col items-center gap-1">
@@ -650,6 +651,18 @@ const WeeklySchedule = () => {
                       </th>
                     );
                   })}
+                </tr>
+                <tr className="bg-muted/30">
+                  {DAYS.map((day) => (
+                    <>
+                      <th key={`${day}-early`} className="px-2 py-1 text-center border-b border-r border-border text-xs font-semibold text-primary">
+                        초반
+                      </th>
+                      <th key={`${day}-mid`} className="px-2 py-1 text-center border-b border-r border-border text-xs font-semibold text-secondary-foreground">
+                        중반
+                      </th>
+                    </>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -708,15 +721,14 @@ const WeeklySchedule = () => {
                           key={day}
                           className={`schedule-cell border-b p-0 ${isWeekend ? "bg-muted/30" : ""}`}
                         >
-                          <div className="flex flex-row divide-x divide-border">
+                          <div className="flex flex-row">
                             {/* 초반 (항상 06-14) */}
                             <div
-                              className="p-2 cursor-pointer group hover:bg-primary/5 transition-colors min-h-[60px] flex-1"
+                              className="p-2 cursor-pointer group hover:bg-primary/5 transition-colors min-h-[60px] flex-1 border-r border-border"
                               onClick={() => openEditDialog(dept.id, day, firstShiftKey)}
                             >
-                              <div className="flex items-center gap-1 mb-1">
-                                <span className="text-xs font-semibold text-primary">초반</span>
-                                <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
+                              <div className="flex items-center mb-1">
+                                <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                               </div>
                               <div className="flex flex-col gap-0.5">
                                 {firstShiftWorkers.length > 0 ? (
@@ -771,9 +783,8 @@ const WeeklySchedule = () => {
                               className="p-2 cursor-pointer group hover:bg-secondary/50 transition-colors min-h-[60px] flex-1"
                               onClick={() => openEditDialog(dept.id, day, secondShiftKey)}
                             >
-                              <div className="flex items-center gap-1 mb-1">
-                                <span className="text-xs font-semibold text-secondary-foreground">중반</span>
-                                <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
+                              <div className="flex items-center mb-1">
+                                <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                               </div>
                               <div className="flex flex-col gap-0.5">
                                 {secondShiftWorkers.length > 0 ? (

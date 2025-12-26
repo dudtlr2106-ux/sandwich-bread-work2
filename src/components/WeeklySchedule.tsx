@@ -742,12 +742,9 @@ const WeeklySchedule = () => {
                 {departments.map((dept) => (
                   <tr key={dept.id} className="hover:bg-muted/30 transition-colors">
                     <td className={`px-3 py-2 border-b border-r border-border ${dept.colorClass}`}>
-                      <div className="flex items-center gap-2">
-                        {dept.icon}
-                        <span className="font-medium text-sm text-foreground">
-                          {dept.name}
-                        </span>
-                      </div>
+                      <span className="font-medium text-sm text-foreground">
+                        {dept.name}
+                      </span>
                     </td>
                     {(isMobile ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
                       const isWeekend = day === "토" || day === "일";

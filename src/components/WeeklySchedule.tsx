@@ -536,7 +536,7 @@ const WeeklySchedule = () => {
 
   return (
     <>
-      <Card className="w-full max-w-6xl mx-auto shadow-lg border-0 bg-card animate-fade-in">
+      <Card className="w-full mx-auto shadow-lg border-0 bg-card animate-fade-in">
         <CardHeader className="pb-4 border-b border-border">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -678,10 +678,10 @@ const WeeklySchedule = () => {
             onTouchMove={isMobile ? handleTouchMove : undefined}
             onTouchEnd={isMobile ? handleTouchEnd : undefined}
           >
-            <table className="w-full border-collapse">
+            <table className="w-full border-collapse table-fixed">
               <thead>
                 <tr className="bg-muted/50">
-                  <th rowSpan={2} className="px-3 py-2 text-left font-semibold text-foreground border-b border-r border-border min-w-[80px]">
+                  <th rowSpan={2} className="px-3 py-2 text-left font-semibold text-foreground border-b border-r border-border w-[70px]">
                     구분
                   </th>
                   {(isMobile ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
@@ -695,7 +695,7 @@ const WeeklySchedule = () => {
                       <th
                         key={day}
                         colSpan={2}
-                        className={`p-2 text-center border-b border-r border-border ${isMobile ? "min-w-[200px]" : "min-w-[160px]"} cursor-pointer hover:bg-muted/70 transition-colors ${getDayHeaderClass(day, date)} ${isOff ? "bg-muted/50" : ""}`}
+                        className={`p-2 text-center border-b border-r border-border cursor-pointer hover:bg-muted/70 transition-colors ${getDayHeaderClass(day, date)} ${isOff ? "bg-muted/50" : ""}`}
                         onClick={() => toggleDayOff(dateKey)}
                       >
                         <div className="flex flex-col items-center gap-1">

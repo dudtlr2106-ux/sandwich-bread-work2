@@ -1,4 +1,4 @@
-import React, { useState, useRef, TouchEvent, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -311,30 +311,6 @@ const WeeklySchedule = () => {
   };
   const [selectedDayIndex, setSelectedDayIndex] = useState(getTodayDayIndex);
 
-  // 스와이프 처리
-  const touchStartX = useRef<number>(0);
-  const touchEndX = useRef<number>(0);
-
-  const handleTouchStart = (e: TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchMove = (e: TouchEvent) => {
-    touchEndX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = () => {
-    const diff = touchStartX.current - touchEndX.current;
-    const threshold = 50;
-    
-    if (diff > threshold) {
-      // 왼쪽으로 스와이프 -> 다음 요일
-      setSelectedDayIndex((prev) => (prev < 6 ? prev + 1 : 0));
-    } else if (diff < -threshold) {
-      // 오른쪽으로 스와이프 -> 이전 요일
-      setSelectedDayIndex((prev) => (prev > 0 ? prev - 1 : 6));
-    }
-  };
 
   const openMemoSheet = () => {
     setTempMemo(noticeMemo);
@@ -895,12 +871,7 @@ const WeeklySchedule = () => {
               </Button>
             </div>
           )}
-          <div 
-            className="overflow-x-auto"
-            onTouchStart={isMobile ? handleTouchStart : undefined}
-            onTouchMove={isMobile ? handleTouchMove : undefined}
-            onTouchEnd={isMobile ? handleTouchEnd : undefined}
-          >
+          <div className="overflow-x-auto">
             <table className="w-full border-collapse table-fixed">
               <thead>
                 <tr className="bg-muted/50">

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef, TouchEvent } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -153,6 +154,7 @@ const initialScheduleData: ScheduleData = {
 };
 
 const WeeklySchedule = () => {
+  const isMobile = useIsMobile();
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
@@ -185,6 +187,39 @@ const WeeklySchedule = () => {
   const [noticeMemo, setNoticeMemo] = useState("");
   const [tempMemo, setTempMemo] = useState("");
   const [memoSheetOpen, setMemoSheetOpen] = useState(false);
+
+  // 모바일 요일 선택 (오늘 요일로 초기화)
+  const getTodayDayIndex = () => {
+    const today = new Date().getDay();
+    // 일요일(0)을 6으로, 나머지는 -1
+    return today === 0 ? 6 : today - 1;
+  };
+  const [selectedDayIndex, setSelectedDayIndex] = useState(getTodayDayIndex);
+
+  // 스와이프 처리
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
+
+  const handleTouchStart = (e: TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const diff = touchStartX.current - touchEndX.current;
+    const threshold = 50;
+    
+    if (diff > threshold) {
+      // 왼쪽으로 스와이프 -> 다음 요일
+      setSelectedDayIndex((prev) => (prev < 6 ? prev + 1 : 0));
+    } else if (diff < -threshold) {
+      // 오른쪽으로 스와이프 -> 이전 요일
+      setSelectedDayIndex((prev) => (prev > 0 ? prev - 1 : 6));
+    }
+  };
 
   const openMemoSheet = () => {
     setTempMemo(noticeMemo);
@@ -605,16 +640,54 @@ const WeeklySchedule = () => {
           )}
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* 모바일 요일 네비게이션 */}
+          {isMobile && (
+            <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedDayIndex((prev) => (prev > 0 ? prev - 1 : 6))}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <div className="flex items-center gap-2">
+                {DAYS.map((day, index) => (
+                  <Button
+                    key={day}
+                    variant={selectedDayIndex === index ? "default" : "ghost"}
+                    size="sm"
+                    className="w-8 h-8 p-0"
+                    onClick={() => setSelectedDayIndex(index)}
+                  >
+                    {day}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedDayIndex((prev) => (prev < 6 ? prev + 1 : 0))}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
+          <div 
+            className="overflow-x-auto"
+            onTouchStart={isMobile ? handleTouchStart : undefined}
+            onTouchMove={isMobile ? handleTouchMove : undefined}
+            onTouchEnd={isMobile ? handleTouchEnd : undefined}
+          >
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-muted/50">
                   <th rowSpan={2} className="px-3 py-2 text-left font-semibold text-foreground border-b border-r border-border min-w-[80px]">
                     구분
                   </th>
-                  {DAYS.map((day, index) => {
-                    const date = getDateForDay(index);
-                    const dateKey = getDateKey(index);
+                  {(isMobile ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
+                    const actualIndex = isMobile ? selectedDayIndex : index;
+                    const date = getDateForDay(actualIndex);
+                    const dateKey = getDateKey(actualIndex);
                     const holiday = getHoliday(date);
                     const isSpecialWork = isSpecialWorkDay(date, day);
                     const isOff = isDayOff(dateKey);
@@ -622,7 +695,7 @@ const WeeklySchedule = () => {
                       <th
                         key={day}
                         colSpan={2}
-                        className={`p-2 text-center border-b border-r border-border min-w-[160px] cursor-pointer hover:bg-muted/70 transition-colors ${getDayHeaderClass(day, date)} ${isOff ? "bg-muted/50" : ""}`}
+                        className={`p-2 text-center border-b border-r border-border ${isMobile ? "min-w-[200px]" : "min-w-[160px]"} cursor-pointer hover:bg-muted/70 transition-colors ${getDayHeaderClass(day, date)} ${isOff ? "bg-muted/50" : ""}`}
                         onClick={() => toggleDayOff(dateKey)}
                       >
                         <div className="flex flex-col items-center gap-1">
@@ -653,7 +726,7 @@ const WeeklySchedule = () => {
                   })}
                 </tr>
                 <tr className="bg-muted/30">
-                  {DAYS.map((day) => (
+                  {(isMobile ? [DAYS[selectedDayIndex]] : DAYS).map((day) => (
                     <>
                       <th key={`${day}-early`} className="px-2 py-1 text-center border-b border-r border-border text-xs font-semibold text-primary">
                         초반
@@ -676,7 +749,7 @@ const WeeklySchedule = () => {
                         </span>
                       </div>
                     </td>
-                    {DAYS.map((day, dayIndex) => {
+                    {(isMobile ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
                       const isWeekend = day === "토" || day === "일";
                       const swapped = isSwappedWeek();
                       const dateKey = getDateKey(dayIndex);

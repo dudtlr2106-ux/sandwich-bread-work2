@@ -158,7 +158,19 @@ const WeeklySchedule = () => {
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
-  const [scheduleData, setScheduleData] = useState<ScheduleData>(initialScheduleData);
+  // 스케줄 데이터 - localStorage에서 로드
+  const [scheduleData, setScheduleData] = useState<ScheduleData>(() => {
+    try {
+      const saved = localStorage.getItem("scheduleData");
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Failed to load schedule data from localStorage:", e);
+    }
+    return initialScheduleData;
+  });
+
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingCell, setEditingCell] = useState<{
     deptId: string;
@@ -168,11 +180,31 @@ const WeeklySchedule = () => {
   const [editingWorkers, setEditingWorkers] = useState<string[]>([]);
   const [newWorkerName, setNewWorkerName] = useState("");
   
-  // 잔업/휴가 상태 관리
-  const [workerStatusData, setWorkerStatusData] = useState<WorkerStatusData>({});
+  // 잔업/휴가 상태 관리 - localStorage에서 로드
+  const [workerStatusData, setWorkerStatusData] = useState<WorkerStatusData>(() => {
+    try {
+      const saved = localStorage.getItem("workerStatusData");
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Failed to load worker status from localStorage:", e);
+    }
+    return {};
+  });
   
-  // 휴무일 관리 (날짜별)
-  const [dayOffDates, setDayOffDates] = useState<Set<string>>(new Set());
+  // 휴무일 관리 (날짜별) - localStorage에서 로드
+  const [dayOffDates, setDayOffDates] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem("dayOffDates");
+      if (saved) {
+        return new Set(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error("Failed to load day off dates from localStorage:", e);
+    }
+    return new Set();
+  });
   
   // 인원 이동 다이얼로그 상태
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
@@ -183,8 +215,18 @@ const WeeklySchedule = () => {
     fromShift: "A" | "B";
   } | null>(null);
 
-  // 공지 메모 상태
-  const [noticeMemo, setNoticeMemo] = useState("");
+  // 공지 메모 상태 - localStorage에서 로드
+  const [noticeMemo, setNoticeMemo] = useState(() => {
+    try {
+      const saved = localStorage.getItem("noticeMemo");
+      if (saved) {
+        return saved;
+      }
+    } catch (e) {
+      console.error("Failed to load notice memo from localStorage:", e);
+    }
+    return "";
+  });
   const [tempMemo, setTempMemo] = useState("");
   const [memoSheetOpen, setMemoSheetOpen] = useState(false);
 
@@ -205,6 +247,39 @@ const WeeklySchedule = () => {
     }
     return {};
   });
+
+  // 데이터 변경 시 localStorage에 저장
+  useEffect(() => {
+    try {
+      localStorage.setItem("scheduleData", JSON.stringify(scheduleData));
+    } catch (e) {
+      console.error("Failed to save schedule data to localStorage:", e);
+    }
+  }, [scheduleData]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("workerStatusData", JSON.stringify(workerStatusData));
+    } catch (e) {
+      console.error("Failed to save worker status to localStorage:", e);
+    }
+  }, [workerStatusData]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("dayOffDates", JSON.stringify(Array.from(dayOffDates)));
+    } catch (e) {
+      console.error("Failed to save day off dates to localStorage:", e);
+    }
+  }, [dayOffDates]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("noticeMemo", noticeMemo);
+    } catch (e) {
+      console.error("Failed to save notice memo to localStorage:", e);
+    }
+  }, [noticeMemo]);
 
   // 주말 출근 가능 여부 변경 시 localStorage에 저장
   useEffect(() => {

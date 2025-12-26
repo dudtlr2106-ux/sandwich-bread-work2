@@ -17,6 +17,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
+import {
   Calendar,
   Users,
   Wrench,
@@ -30,6 +38,7 @@ import {
   Clock,
   Palmtree,
   ArrowRightLeft,
+  StickyNote,
 } from "lucide-react";
 import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -171,6 +180,21 @@ const WeeklySchedule = () => {
     fromDay: string;
     fromShift: "A" | "B";
   } | null>(null);
+
+  // 공지 메모 상태
+  const [noticeMemo, setNoticeMemo] = useState("");
+  const [tempMemo, setTempMemo] = useState("");
+  const [memoSheetOpen, setMemoSheetOpen] = useState(false);
+
+  const openMemoSheet = () => {
+    setTempMemo(noticeMemo);
+    setMemoSheetOpen(true);
+  };
+
+  const saveMemo = () => {
+    setNoticeMemo(tempMemo);
+    setMemoSheetOpen(false);
+  };
 
   const goToPreviousWeek = () => {
     setCurrentWeekStart((prev) => subWeeks(prev, 1));
@@ -496,6 +520,37 @@ const WeeklySchedule = () => {
             
             {/* Week Navigation */}
             <div className="flex items-center gap-2">
+              <Sheet open={memoSheetOpen} onOpenChange={setMemoSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={openMemoSheet}>
+                    <StickyNote className="h-4 w-4 mr-2" />
+                    공지 메모
+                    {noticeMemo && <Badge variant="secondary" className="ml-2">1</Badge>}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetHeader>
+                    <SheetTitle>공지 메모</SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-4 space-y-4">
+                    <Textarea
+                      placeholder="공지사항이나 메모를 입력하세요..."
+                      value={tempMemo}
+                      onChange={(e) => setTempMemo(e.target.value)}
+                      className="min-h-[300px]"
+                    />
+                    <div className="flex gap-2">
+                      <Button onClick={saveMemo} className="flex-1">
+                        저장
+                      </Button>
+                      <Button variant="outline" onClick={() => setMemoSheetOpen(false)}>
+                        취소
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+              
               <Button
                 variant="outline"
                 size="icon"
@@ -532,6 +587,22 @@ const WeeklySchedule = () => {
               (셀을 클릭하여 편집)
             </span>
           </div>
+
+          {/* Notice display */}
+          {noticeMemo && (
+            <div className="mt-4 bg-muted/50 border border-border rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <StickyNote className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground mb-1">공지사항</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">{noticeMemo}</p>
+                </div>
+                <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => setNoticeMemo("")}>
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

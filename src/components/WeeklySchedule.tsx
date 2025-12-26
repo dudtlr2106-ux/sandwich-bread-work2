@@ -1,4 +1,4 @@
-import { useState, useRef, TouchEvent, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,7 @@ import {
   Palmtree,
   ArrowRightLeft,
   StickyNote,
+  Check,
 } from "lucide-react";
 import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -230,6 +231,14 @@ const WeeklySchedule = () => {
   const [tempMemo, setTempMemo] = useState("");
   const [memoSheetOpen, setMemoSheetOpen] = useState(false);
 
+  // 토요일 근무자 선택 다이얼로그 상태
+  const [saturdaySelectDialogOpen, setSaturdaySelectDialogOpen] = useState(false);
+  const [saturdaySelectingCell, setSaturdaySelectingCell] = useState<{
+    deptId: string;
+    shift: "A" | "B";
+  } | null>(null);
+  const [selectedSaturdayWorkers, setSelectedSaturdayWorkers] = useState<string[]>([]);
+
   // 주말 출근 가능 여부 (직원별) - localStorage에서 로드
   const [weekendAvailability, setWeekendAvailability] = useState<{ [dateKey: string]: Set<string> }>(() => {
     try {
@@ -302,30 +311,6 @@ const WeeklySchedule = () => {
   };
   const [selectedDayIndex, setSelectedDayIndex] = useState(getTodayDayIndex);
 
-  // 스와이프 처리
-  const touchStartX = useRef<number>(0);
-  const touchEndX = useRef<number>(0);
-
-  const handleTouchStart = (e: TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchMove = (e: TouchEvent) => {
-    touchEndX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = () => {
-    const diff = touchStartX.current - touchEndX.current;
-    const threshold = 50;
-    
-    if (diff > threshold) {
-      // 왼쪽으로 스와이프 -> 다음 요일
-      setSelectedDayIndex((prev) => (prev < 6 ? prev + 1 : 0));
-    } else if (diff < -threshold) {
-      // 오른쪽으로 스와이프 -> 이전 요일
-      setSelectedDayIndex((prev) => (prev > 0 ? prev - 1 : 6));
-    }
-  };
 
   const openMemoSheet = () => {
     setTempMemo(noticeMemo);
@@ -670,6 +655,48 @@ const WeeklySchedule = () => {
     return !isDayOff(saturdayDateKey);
   };
 
+  // 토요일 근무자 선택 다이얼로그 열기
+  const openSaturdaySelectDialog = (deptId: string, shift: "A" | "B") => {
+    const saturdayDateKey = getDateKey(5);
+    const currentWorkers = scheduleData[deptId]?.["토"]?.[shift] || [];
+    setSaturdaySelectingCell({ deptId, shift });
+    setSelectedSaturdayWorkers([...currentWorkers]);
+    setSaturdaySelectDialogOpen(true);
+  };
+
+  // 토요일 근무자 선택/해제 토글
+  const toggleSaturdayWorkerSelection = (worker: string) => {
+    setSelectedSaturdayWorkers((prev) =>
+      prev.includes(worker)
+        ? prev.filter((w) => w !== worker)
+        : [...prev, worker]
+    );
+  };
+
+  // 토요일 근무자 저장
+  const saveSaturdayWorkers = () => {
+    if (saturdaySelectingCell) {
+      setScheduleData((prev) => ({
+        ...prev,
+        [saturdaySelectingCell.deptId]: {
+          ...prev[saturdaySelectingCell.deptId],
+          ["토"]: {
+            ...prev[saturdaySelectingCell.deptId]["토"],
+            [saturdaySelectingCell.shift]: selectedSaturdayWorkers,
+          },
+        },
+      }));
+    }
+    setSaturdaySelectDialogOpen(false);
+    setSaturdaySelectingCell(null);
+  };
+
+  // 주말 출근 가능자 목록 (해당 날짜)
+  const getAvailableWeekendWorkers = (): string[] => {
+    const saturdayDateKey = getDateKey(5);
+    return getAllWorkers().filter((worker) => isWeekendAvailable(saturdayDateKey, worker));
+  };
+
   // 특정 날짜의 특정 조에서 휴가자 목록 가져오기
   const getVacationWorkers = (dateKey: string, day: string, workers: string[]): string[] => {
     return workers.filter((worker) => getWorkerStatus(worker, dateKey, day) === "vacation");
@@ -844,12 +871,7 @@ const WeeklySchedule = () => {
               </Button>
             </div>
           )}
-          <div 
-            className="overflow-x-auto"
-            onTouchStart={isMobile ? handleTouchStart : undefined}
-            onTouchMove={isMobile ? handleTouchMove : undefined}
-            onTouchEnd={isMobile ? handleTouchEnd : undefined}
-          >
+          <div className="overflow-x-auto">
             <table className="w-full border-collapse table-fixed">
               <thead>
                 <tr className="bg-muted/50">
@@ -920,15 +942,17 @@ const WeeklySchedule = () => {
                     </td>
                     {(isMobile ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
                       const isWeekend = day === "토" || day === "일";
+                      const isSaturday = day === "토";
                       const swapped = isSwappedWeek();
                       const dateKey = getDateKey(dayIndex);
                       const isOff = isDayOff(dateKey);
                       
-                      // 로테이션된 인원 가져오기
-                      const rotatedA = getRotatedWorkers(dept.id, day, "A");
-                      const rotatedB = getRotatedWorkers(dept.id, day, "B");
+                      // 토요일: scheduleData에서 직접 가져오기 (로테이션 없음)
+                      // 다른 요일: 로테이션 적용
+                      const rotatedA = isSaturday ? (scheduleData[dept.id]?.["토"]?.A || []) : getRotatedWorkers(dept.id, day, "A");
+                      const rotatedB = isSaturday ? (scheduleData[dept.id]?.["토"]?.B || []) : getRotatedWorkers(dept.id, day, "B");
                       
-                      // 주차에 따라 표시 순서와 인원 교대 (초반/중반 swap)
+                      // 주차에 따라 표시 순서와 인원 교대 (초반/중반 swap) - 토요일도 동일하게 적용
                       const firstShiftWorkers = swapped ? rotatedB : rotatedA;
                       const secondShiftWorkers = swapped ? rotatedA : rotatedB;
                       const firstShiftKey: "A" | "B" = swapped ? "B" : "A";
@@ -937,9 +961,8 @@ const WeeklySchedule = () => {
                       // 휴무일인 경우
                       if (isOff) {
                         return (
-                          <>
+                          <React.Fragment key={`${dept.id}-${day}`}>
                             <td
-                              key={`${day}-early`}
                               className="schedule-cell border-b border-r border-border p-0 bg-muted/50"
                             >
                               <div className="flex items-center justify-center min-h-[40px]">
@@ -947,14 +970,13 @@ const WeeklySchedule = () => {
                               </div>
                             </td>
                             <td
-                              key={`${day}-mid`}
                               className="schedule-cell border-b border-r border-border p-0 bg-muted/50"
                             >
                               <div className="flex items-center justify-center min-h-[40px]">
                                 <span className="text-xs text-muted-foreground">휴무</span>
                               </div>
                             </td>
-                          </>
+                          </React.Fragment>
                         );
                       }
                       
@@ -964,12 +986,11 @@ const WeeklySchedule = () => {
                       const secondShiftNeedsOvertime = overtimeNotifications.some(n => n.shift === "second");
                       
                       return (
-                        <>
+                        <React.Fragment key={`${dept.id}-${day}`}>
                           {/* 초반 셀 */}
                           <td
-                            key={`${day}-early`}
                             className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-primary/5 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${firstShiftNeedsOvertime ? "bg-orange-50 dark:bg-orange-950/30" : ""}`}
-                            onClick={() => openEditDialog(dept.id, day, firstShiftKey)}
+                            onClick={() => isSaturday ? openSaturdaySelectDialog(dept.id, firstShiftKey) : openEditDialog(dept.id, day, firstShiftKey)}
                           >
                             <div className="flex flex-col gap-1">
                               {firstShiftNeedsOvertime && (
@@ -1029,9 +1050,8 @@ const WeeklySchedule = () => {
                           </td>
                           {/* 중반 셀 */}
                           <td
-                            key={`${day}-mid`}
                             className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-secondary/50 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${secondShiftNeedsOvertime ? "bg-orange-50 dark:bg-orange-950/30" : ""}`}
-                            onClick={() => openEditDialog(dept.id, day, secondShiftKey)}
+                            onClick={() => isSaturday ? openSaturdaySelectDialog(dept.id, secondShiftKey) : openEditDialog(dept.id, day, secondShiftKey)}
                           >
                             <div className="flex flex-col gap-1">
                               {secondShiftNeedsOvertime && (
@@ -1089,7 +1109,7 @@ const WeeklySchedule = () => {
                               </div>
                             </div>
                           </td>
-                        </>
+                        </React.Fragment>
                       );
                     })}
                   </tr>
@@ -1277,6 +1297,68 @@ const WeeklySchedule = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setMoveDialogOpen(false)}>
               취소
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Saturday Worker Selection Dialog */}
+      <Dialog open={saturdaySelectDialogOpen} onOpenChange={setSaturdaySelectDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-blue-600" />
+              {saturdaySelectingCell && `토요일 ${getDeptName(saturdaySelectingCell.deptId)} - ${getDisplayShiftName(saturdaySelectingCell.shift)}`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              주말 출근 가능자 중에서 근무할 인원을 선택하세요.
+            </p>
+            {getAvailableWeekendWorkers().length > 0 ? (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {getAvailableWeekendWorkers().map((worker) => {
+                  const isSelected = selectedSaturdayWorkers.includes(worker);
+                  return (
+                    <div
+                      key={worker}
+                      onClick={() => toggleSaturdayWorkerSelection(worker)}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                        isSelected
+                          ? "bg-blue-100 border-blue-400 dark:bg-blue-900/50 dark:border-blue-600"
+                          : "bg-background border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                        isSelected ? "bg-blue-600 border-blue-600" : "border-muted-foreground"
+                      }`}>
+                        {isSelected && <Check className="h-3 w-3 text-white" />}
+                      </div>
+                      <span className={`text-sm ${isSelected ? "text-blue-700 dark:text-blue-300 font-medium" : "text-foreground"}`}>
+                        {worker}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Calendar className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  주말 출근 가능한 인원이 없습니다.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  하단의 "주말 출근 가능 여부"에서 체크해주세요.
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaturdaySelectDialogOpen(false)}>
+              취소
+            </Button>
+            <Button onClick={saveSaturdayWorkers} disabled={getAvailableWeekendWorkers().length === 0}>
+              저장
             </Button>
           </DialogFooter>
         </DialogContent>

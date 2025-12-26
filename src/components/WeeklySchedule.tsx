@@ -491,7 +491,7 @@ const WeeklySchedule = () => {
   const getStatusStyle = (status: WorkerStatus) => {
     switch (status) {
       case "overtime":
-        return { icon: <Clock className="h-3 w-3 text-orange-500" />, className: "text-orange-600 font-medium" };
+        return { icon: null, className: "text-orange-600 font-medium" };
       case "vacation":
         return { icon: <Palmtree className="h-3 w-3 text-green-500" />, className: "text-green-600 line-through" };
       default:
@@ -720,7 +720,7 @@ const WeeklySchedule = () => {
                               <div className="flex items-center mb-1">
                                 <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                               </div>
-                              <div className="flex flex-col gap-0.5">
+                              <div className="flex flex-wrap gap-1">
                                 {firstShiftWorkers.length > 0 ? (
                                   firstShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
@@ -776,7 +776,7 @@ const WeeklySchedule = () => {
                               <div className="flex items-center mb-1">
                                 <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                               </div>
-                              <div className="flex flex-col gap-0.5">
+                              <div className="flex flex-wrap gap-1">
                                 {secondShiftWorkers.length > 0 ? (
                                   secondShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);

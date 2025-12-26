@@ -1,4 +1,4 @@
-import { useState, useRef, TouchEvent } from "react";
+import { useState, useRef, TouchEvent, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -188,8 +188,36 @@ const WeeklySchedule = () => {
   const [tempMemo, setTempMemo] = useState("");
   const [memoSheetOpen, setMemoSheetOpen] = useState(false);
 
-  // 주말 출근 가능 여부 (직원별)
-  const [weekendAvailability, setWeekendAvailability] = useState<{ [dateKey: string]: Set<string> }>({});
+  // 주말 출근 가능 여부 (직원별) - localStorage에서 로드
+  const [weekendAvailability, setWeekendAvailability] = useState<{ [dateKey: string]: Set<string> }>(() => {
+    try {
+      const saved = localStorage.getItem("weekendAvailability");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const result: { [dateKey: string]: Set<string> } = {};
+        Object.entries(parsed).forEach(([dateKey, workers]) => {
+          result[dateKey] = new Set(workers as string[]);
+        });
+        return result;
+      }
+    } catch (e) {
+      console.error("Failed to load weekend availability from localStorage:", e);
+    }
+    return {};
+  });
+
+  // 주말 출근 가능 여부 변경 시 localStorage에 저장
+  useEffect(() => {
+    try {
+      const toSave: { [dateKey: string]: string[] } = {};
+      Object.entries(weekendAvailability).forEach(([dateKey, workers]) => {
+        toSave[dateKey] = Array.from(workers);
+      });
+      localStorage.setItem("weekendAvailability", JSON.stringify(toSave));
+    } catch (e) {
+      console.error("Failed to save weekend availability to localStorage:", e);
+    }
+  }, [weekendAvailability]);
 
   // 모바일 요일 선택 (오늘 요일로 초기화)
   const getTodayDayIndex = () => {

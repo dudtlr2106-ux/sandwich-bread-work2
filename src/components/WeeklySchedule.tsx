@@ -1,4 +1,4 @@
-import { useState, useRef, TouchEvent, useEffect } from "react";
+import React, { useState, useRef, TouchEvent, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -990,9 +990,8 @@ const WeeklySchedule = () => {
                       // 휴무일인 경우
                       if (isOff) {
                         return (
-                          <>
+                          <React.Fragment key={`${dept.id}-${day}`}>
                             <td
-                              key={`${day}-early`}
                               className="schedule-cell border-b border-r border-border p-0 bg-muted/50"
                             >
                               <div className="flex items-center justify-center min-h-[40px]">
@@ -1000,14 +999,13 @@ const WeeklySchedule = () => {
                               </div>
                             </td>
                             <td
-                              key={`${day}-mid`}
                               className="schedule-cell border-b border-r border-border p-0 bg-muted/50"
                             >
                               <div className="flex items-center justify-center min-h-[40px]">
                                 <span className="text-xs text-muted-foreground">휴무</span>
                               </div>
                             </td>
-                          </>
+                          </React.Fragment>
                         );
                       }
                       
@@ -1017,10 +1015,9 @@ const WeeklySchedule = () => {
                       const secondShiftNeedsOvertime = overtimeNotifications.some(n => n.shift === "second");
                       
                       return (
-                        <>
+                        <React.Fragment key={`${dept.id}-${day}`}>
                           {/* 초반 셀 */}
                           <td
-                            key={`${day}-early`}
                             className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-primary/5 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${firstShiftNeedsOvertime ? "bg-orange-50 dark:bg-orange-950/30" : ""}`}
                             onClick={() => isSaturday ? openSaturdaySelectDialog(dept.id, firstShiftKey) : openEditDialog(dept.id, day, firstShiftKey)}
                           >
@@ -1082,7 +1079,6 @@ const WeeklySchedule = () => {
                           </td>
                           {/* 중반 셀 */}
                           <td
-                            key={`${day}-mid`}
                             className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-secondary/50 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${secondShiftNeedsOvertime ? "bg-orange-50 dark:bg-orange-950/30" : ""}`}
                             onClick={() => isSaturday ? openSaturdaySelectDialog(dept.id, secondShiftKey) : openEditDialog(dept.id, day, secondShiftKey)}
                           >
@@ -1142,7 +1138,7 @@ const WeeklySchedule = () => {
                               </div>
                             </div>
                           </td>
-                        </>
+                        </React.Fragment>
                       );
                     })}
                   </tr>

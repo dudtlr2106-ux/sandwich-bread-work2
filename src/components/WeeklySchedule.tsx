@@ -609,8 +609,8 @@ const WeeklySchedule = () => {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-muted/50">
-                  <th rowSpan={2} className="p-4 text-left font-semibold text-foreground border-b border-r border-border min-w-[140px]">
-                    부서
+                  <th rowSpan={2} className="px-3 py-2 text-left font-semibold text-foreground border-b border-r border-border min-w-[80px]">
+                    구분
                   </th>
                   {DAYS.map((day, index) => {
                     const date = getDateForDay(index);
@@ -668,22 +668,12 @@ const WeeklySchedule = () => {
               <tbody>
                 {departments.map((dept) => (
                   <tr key={dept.id} className="hover:bg-muted/30 transition-colors">
-                    <td className={`p-4 border-b border-r border-border ${dept.colorClass}`}>
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-md bg-card shadow-sm">
-                          {dept.icon}
-                        </div>
-                        <div>
-                          <span className="font-semibold text-foreground block">
-                            {dept.name}
-                          </span>
-                          <Badge
-                            variant="secondary"
-                            className={`mt-1 ${dept.badgeClass} text-xs`}
-                          >
-                            {dept.count}명
-                          </Badge>
-                        </div>
+                    <td className={`px-3 py-2 border-b border-r border-border ${dept.colorClass}`}>
+                      <div className="flex items-center gap-2">
+                        {dept.icon}
+                        <span className="font-medium text-sm text-foreground">
+                          {dept.name}
+                        </span>
                       </div>
                     </td>
                     {DAYS.map((day, dayIndex) => {

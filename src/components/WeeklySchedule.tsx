@@ -716,9 +716,6 @@ const WeeklySchedule = () => {
                             >
                               <div className="flex items-center gap-1 mb-1">
                                 <span className="text-xs font-semibold text-primary">초반</span>
-                                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                  {isOvertimeDay(day) ? "06-18" : "06-14"}
-                                </span>
                                 <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
                               </div>
                               <div className="flex flex-col gap-0.5">
@@ -776,11 +773,6 @@ const WeeklySchedule = () => {
                             >
                               <div className="flex items-center gap-1 mb-1">
                                 <span className="text-xs font-semibold text-secondary-foreground">중반</span>
-                                {isOvertimeDay(day) ? (
-                                  <span className="text-[10px] text-orange-500 font-medium">10-22</span>
-                                ) : (
-                                  <span className="text-[10px] text-muted-foreground">14-22</span>
-                                )}
                                 <Edit2 className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
                               </div>
                               <div className="flex flex-col gap-0.5">

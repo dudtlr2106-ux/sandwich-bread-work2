@@ -670,6 +670,30 @@ const WeeklySchedule = () => {
     return !isDayOff(saturdayDateKey);
   };
 
+  // 특정 날짜의 특정 조에서 휴가자 목록 가져오기
+  const getVacationWorkers = (dateKey: string, day: string, workers: string[]): string[] => {
+    return workers.filter((worker) => getWorkerStatus(worker, dateKey, day) === "vacation");
+  };
+
+  // 휴가자 발생 시 다른 조 잔업 가능 알림 메시지
+  const getOvertimeNotification = (dateKey: string, day: string, firstShiftWorkers: string[], secondShiftWorkers: string[]) => {
+    const firstShiftVacations = getVacationWorkers(dateKey, day, firstShiftWorkers);
+    const secondShiftVacations = getVacationWorkers(dateKey, day, secondShiftWorkers);
+    
+    const notifications: { shift: "first" | "second"; vacationWorkers: string[] }[] = [];
+    
+    if (secondShiftVacations.length > 0) {
+      // 중반 휴가자 → 초반 잔업 가능
+      notifications.push({ shift: "first", vacationWorkers: secondShiftVacations });
+    }
+    if (firstShiftVacations.length > 0) {
+      // 초반 휴가자 → 중반 잔업 가능
+      notifications.push({ shift: "second", vacationWorkers: firstShiftVacations });
+    }
+    
+    return notifications;
+  };
+
   // 상태별 아이콘 및 스타일
   const getStatusStyle = (status: WorkerStatus) => {
     switch (status) {
@@ -934,114 +958,135 @@ const WeeklySchedule = () => {
                         );
                       }
                       
+                      // 휴가자에 따른 잔업 알림 계산
+                      const overtimeNotifications = getOvertimeNotification(dateKey, day, firstShiftWorkers, secondShiftWorkers);
+                      const firstShiftNeedsOvertime = overtimeNotifications.some(n => n.shift === "first");
+                      const secondShiftNeedsOvertime = overtimeNotifications.some(n => n.shift === "second");
+                      
                       return (
                         <>
                           {/* 초반 셀 */}
                           <td
                             key={`${day}-early`}
-                            className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-primary/5 transition-colors ${isWeekend ? "bg-muted/30" : ""}`}
+                            className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-primary/5 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${firstShiftNeedsOvertime ? "bg-orange-50 dark:bg-orange-950/30" : ""}`}
                             onClick={() => openEditDialog(dept.id, day, firstShiftKey)}
                           >
-                            <div className="flex flex-wrap gap-1">
-                              {firstShiftWorkers.length > 0 ? (
-                                firstShiftWorkers.map((worker, idx) => {
-                                  const status = getWorkerStatus(worker, dateKey, day);
-                                  const statusStyle = getStatusStyle(status);
-                                  return (
-                                    <DropdownMenu key={idx}>
-                                      <DropdownMenuTrigger asChild>
-                                        <div
-                                          className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          {statusStyle.icon}
-                                          <span className={`text-sm whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
-                                            {worker}
-                                          </span>
-                                        </div>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>
-                                        <DropdownMenuItem onClick={() => quickMoveWorker(worker, dept.id, day, firstShiftKey, secondShiftKey)} className="text-blue-600">
-                                          <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                          중반으로 이동
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, firstShiftKey)}>
-                                          <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                          다른 위치로 이동
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
-                                          <Users className="h-4 w-4 mr-2" />
-                                          정상 근무
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "overtime")} className="text-orange-600">
-                                          <Clock className="h-4 w-4 mr-2" />
-                                          잔업
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "vacation")} className="text-green-600">
-                                          <Palmtree className="h-4 w-4 mr-2" />
-                                          휴가
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  );
-                                })
-                              ) : (
-                                <span className="text-xs text-muted-foreground italic">-</span>
+                            <div className="flex flex-col gap-1">
+                              {firstShiftNeedsOvertime && (
+                                <div className="flex items-center gap-1 text-[10px] text-orange-600 bg-orange-100 dark:bg-orange-900/50 px-1 py-0.5 rounded">
+                                  <Clock className="h-3 w-3" />
+                                  <span>잔업 가능</span>
+                                </div>
                               )}
+                              <div className="flex flex-wrap gap-1">
+                                {firstShiftWorkers.length > 0 ? (
+                                  firstShiftWorkers.map((worker, idx) => {
+                                    const status = getWorkerStatus(worker, dateKey, day);
+                                    const statusStyle = getStatusStyle(status);
+                                    return (
+                                      <DropdownMenu key={idx}>
+                                        <DropdownMenuTrigger asChild>
+                                          <div
+                                            className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {statusStyle.icon}
+                                            <span className={`text-sm whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
+                                              {worker}
+                                            </span>
+                                          </div>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>
+                                          <DropdownMenuItem onClick={() => quickMoveWorker(worker, dept.id, day, firstShiftKey, secondShiftKey)} className="text-blue-600">
+                                            <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                            중반으로 이동
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, firstShiftKey)}>
+                                            <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                            다른 위치로 이동
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
+                                            <Users className="h-4 w-4 mr-2" />
+                                            정상 근무
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "overtime")} className="text-orange-600">
+                                            <Clock className="h-4 w-4 mr-2" />
+                                            잔업
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "vacation")} className="text-green-600">
+                                            <Palmtree className="h-4 w-4 mr-2" />
+                                            휴가
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    );
+                                  })
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">-</span>
+                                )}
+                              </div>
                             </div>
                           </td>
                           {/* 중반 셀 */}
                           <td
                             key={`${day}-mid`}
-                            className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-secondary/50 transition-colors ${isWeekend ? "bg-muted/30" : ""}`}
+                            className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-secondary/50 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${secondShiftNeedsOvertime ? "bg-orange-50 dark:bg-orange-950/30" : ""}`}
                             onClick={() => openEditDialog(dept.id, day, secondShiftKey)}
                           >
-                            <div className="flex flex-wrap gap-1">
-                              {secondShiftWorkers.length > 0 ? (
-                                secondShiftWorkers.map((worker, idx) => {
-                                  const status = getWorkerStatus(worker, dateKey, day);
-                                  const statusStyle = getStatusStyle(status);
-                                  return (
-                                    <DropdownMenu key={idx}>
-                                      <DropdownMenuTrigger asChild>
-                                        <div
-                                          className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          {statusStyle.icon}
-                                          <span className={`text-sm whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
-                                            {worker}
-                                          </span>
-                                        </div>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>
-                                        <DropdownMenuItem onClick={() => quickMoveWorker(worker, dept.id, day, secondShiftKey, firstShiftKey)} className="text-blue-600">
-                                          <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                          초반으로 이동
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, secondShiftKey)}>
-                                          <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                          다른 위치로 이동
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
-                                          <Users className="h-4 w-4 mr-2" />
-                                          정상 근무
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "overtime")} className="text-orange-600">
-                                          <Clock className="h-4 w-4 mr-2" />
-                                          잔업
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "vacation")} className="text-green-600">
-                                          <Palmtree className="h-4 w-4 mr-2" />
-                                          휴가
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  );
-                                })
-                              ) : (
-                                <span className="text-xs text-muted-foreground italic">-</span>
+                            <div className="flex flex-col gap-1">
+                              {secondShiftNeedsOvertime && (
+                                <div className="flex items-center gap-1 text-[10px] text-orange-600 bg-orange-100 dark:bg-orange-900/50 px-1 py-0.5 rounded">
+                                  <Clock className="h-3 w-3" />
+                                  <span>잔업 가능</span>
+                                </div>
                               )}
+                              <div className="flex flex-wrap gap-1">
+                                {secondShiftWorkers.length > 0 ? (
+                                  secondShiftWorkers.map((worker, idx) => {
+                                    const status = getWorkerStatus(worker, dateKey, day);
+                                    const statusStyle = getStatusStyle(status);
+                                    return (
+                                      <DropdownMenu key={idx}>
+                                        <DropdownMenuTrigger asChild>
+                                          <div
+                                            className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {statusStyle.icon}
+                                            <span className={`text-sm whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
+                                              {worker}
+                                            </span>
+                                          </div>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>
+                                          <DropdownMenuItem onClick={() => quickMoveWorker(worker, dept.id, day, secondShiftKey, firstShiftKey)} className="text-blue-600">
+                                            <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                            초반으로 이동
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, secondShiftKey)}>
+                                            <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                            다른 위치로 이동
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
+                                            <Users className="h-4 w-4 mr-2" />
+                                            정상 근무
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "overtime")} className="text-orange-600">
+                                            <Clock className="h-4 w-4 mr-2" />
+                                            잔업
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "vacation")} className="text-green-600">
+                                            <Palmtree className="h-4 w-4 mr-2" />
+                                            휴가
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    );
+                                  })
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">-</span>
+                                )}
+                              </div>
                             </div>
                           </td>
                         </>

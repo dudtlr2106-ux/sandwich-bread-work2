@@ -45,8 +45,8 @@ import {
 import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
 
-// 잔업/휴가 상태 타입
-type WorkerStatus = "normal" | "overtime" | "vacation";
+// 잔업/휴가/휴무 상태 타입
+type WorkerStatus = "normal" | "overtime" | "vacation" | "dayoff";
 
 // 직원별 일별 상태 데이터
 type WorkerStatusData = {
@@ -953,8 +953,12 @@ const WeeklySchedule = () => {
                       const rotatedB = isSaturday ? (scheduleData[dept.id]?.["토"]?.B || []) : getRotatedWorkers(dept.id, day, "B");
                       
                       // 주차에 따라 표시 순서와 인원 교대 (초반/중반 swap) - 토요일도 동일하게 적용
-                      const firstShiftWorkers = swapped ? rotatedB : rotatedA;
-                      const secondShiftWorkers = swapped ? rotatedA : rotatedB;
+                      // 휴무 상태인 직원 필터링
+                      const filterDayOff = (workers: string[]) => 
+                        workers.filter(worker => getWorkerStatus(worker, dateKey, day) !== "dayoff");
+                      
+                      const firstShiftWorkers = filterDayOff(swapped ? rotatedB : rotatedA);
+                      const secondShiftWorkers = filterDayOff(swapped ? rotatedA : rotatedB);
                       const firstShiftKey: "A" | "B" = swapped ? "B" : "A";
                       const secondShiftKey: "A" | "B" = swapped ? "A" : "B";
                       
@@ -1038,6 +1042,10 @@ const WeeklySchedule = () => {
                                             <Palmtree className="h-4 w-4 mr-2" />
                                             휴가
                                           </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "dayoff")} className="text-gray-600">
+                                            <X className="h-4 w-4 mr-2" />
+                                            휴무
+                                          </DropdownMenuItem>
                                         </DropdownMenuContent>
                                       </DropdownMenu>
                                     );
@@ -1098,6 +1106,10 @@ const WeeklySchedule = () => {
                                           <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "vacation")} className="text-green-600">
                                             <Palmtree className="h-4 w-4 mr-2" />
                                             휴가
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "dayoff")} className="text-gray-600">
+                                            <X className="h-4 w-4 mr-2" />
+                                            휴무
                                           </DropdownMenuItem>
                                         </DropdownMenuContent>
                                       </DropdownMenu>

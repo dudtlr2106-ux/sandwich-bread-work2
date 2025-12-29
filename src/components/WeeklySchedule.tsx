@@ -16,6 +16,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Sheet,
@@ -41,9 +42,11 @@ import {
   ArrowRightLeft,
   StickyNote,
   Check,
+  Send,
 } from "lucide-react";
 import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
+import AttendanceRequestForm from "@/components/AttendanceRequestForm";
 
 // 잔업/휴가/휴무 상태 타입
 type WorkerStatus = "normal" | "overtime" | "vacation" | "dayoff";
@@ -256,6 +259,21 @@ const WeeklySchedule = () => {
     }
     return {};
   });
+
+  // 근태 수정 요청 다이얼로그 상태
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const [requestingWorker, setRequestingWorker] = useState<{
+    workerName: string;
+    dateKey: string;
+    day: string;
+    currentStatus: string;
+  } | null>(null);
+
+  // 근태 수정 요청 다이얼로그 열기
+  const openRequestDialog = (workerName: string, dateKey: string, day: string, currentStatus: string) => {
+    setRequestingWorker({ workerName, dateKey, day, currentStatus });
+    setRequestDialogOpen(true);
+  };
 
   // 데이터 변경 시 localStorage에 저장
   useEffect(() => {
@@ -1046,6 +1064,11 @@ const WeeklySchedule = () => {
                                             <X className="h-4 w-4 mr-2" />
                                             휴무
                                           </DropdownMenuItem>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem onClick={() => openRequestDialog(worker, dateKey, day, status)} className="text-primary">
+                                            <Send className="h-4 w-4 mr-2" />
+                                            근태 수정 요청
+                                          </DropdownMenuItem>
                                         </DropdownMenuContent>
                                       </DropdownMenu>
                                     );
@@ -1110,6 +1133,11 @@ const WeeklySchedule = () => {
                                           <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "dayoff")} className="text-gray-600">
                                             <X className="h-4 w-4 mr-2" />
                                             휴무
+                                          </DropdownMenuItem>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem onClick={() => openRequestDialog(worker, dateKey, day, status)} className="text-primary">
+                                            <Send className="h-4 w-4 mr-2" />
+                                            근태 수정 요청
                                           </DropdownMenuItem>
                                         </DropdownMenuContent>
                                       </DropdownMenu>
@@ -1376,6 +1404,17 @@ const WeeklySchedule = () => {
         </DialogContent>
       </Dialog>
 
+      {/* 근태 수정 요청 다이얼로그 */}
+      {requestingWorker && (
+        <AttendanceRequestForm
+          open={requestDialogOpen}
+          onOpenChange={setRequestDialogOpen}
+          workerName={requestingWorker.workerName}
+          dateKey={requestingWorker.dateKey}
+          day={requestingWorker.day}
+          currentStatus={requestingWorker.currentStatus}
+        />
+      )}
     </>
   );
 };

@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Check, X, Clock, FileText, RefreshCw } from "lucide-react";
+import { Check, X, Clock, FileText, RefreshCw, History } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 
@@ -23,6 +24,7 @@ interface AttendanceRequest {
   status: string;
   created_at: string;
   rejection_reason: string | null;
+  reviewed_at: string | null;
 }
 
 interface AdminRequestListProps {
@@ -155,7 +157,8 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
   };
 
   const pendingRequests = requests.filter((r) => r.status === "pending");
-  const processedRequests = requests.filter((r) => r.status !== "pending");
+  const approvedRequests = requests.filter((r) => r.status === "approved");
+  const rejectedRequests = requests.filter((r) => r.status === "rejected");
 
   if (!isAdmin) {
     return null;
@@ -179,95 +182,176 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
       <CardContent>
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground">로딩 중...</div>
-        ) : requests.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">요청이 없습니다</div>
         ) : (
-          <div className="space-y-4">
-            {/* 대기 중인 요청 */}
-            {pendingRequests.length > 0 && (
-              <div className="space-y-2">
-                <h3 className="font-medium text-sm text-muted-foreground">대기 중</h3>
-                {pendingRequests.map((request) => (
-                  <div
-                    key={request.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border rounded-lg bg-yellow-50/50"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(request.status)}
-                        <span className="font-medium">{request.worker_name}</span>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {request.date_key} ({request.day}) • 
-                        {statusLabels[request.current_status || "normal"]} → 
-                        <span className="font-medium text-primary">
-                          {statusLabels[request.requested_status]}
-                        </span>
-                      </div>
-                      {request.reason && (
-                        <div className="text-sm text-muted-foreground">
-                          사유: {request.reason}
-                        </div>
-                      )}
-                      <div className="text-xs text-muted-foreground">
-                        요청자: {request.requester_name} • 
-                        {format(new Date(request.created_at), "M월 d일 HH:mm", { locale: ko })}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleApprove(request)}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <Check className="h-4 w-4 mr-1" />
-                        승인
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => openRejectDialog(request)}
-                      >
-                        <X className="h-4 w-4 mr-1" />
-                        반려
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+          <Tabs defaultValue="pending" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="pending" className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                대기 중
+                {pendingRequests.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center">
+                    {pendingRequests.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="approved" className="flex items-center gap-1">
+                <Check className="h-3 w-3" />
+                승인 내역
+                {approvedRequests.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center">
+                    {approvedRequests.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="rejected" className="flex items-center gap-1">
+                <X className="h-3 w-3" />
+                반려 내역
+                {rejectedRequests.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center">
+                    {rejectedRequests.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
 
-            {/* 처리된 요청 */}
-            {processedRequests.length > 0 && (
-              <div className="space-y-2">
-                <h3 className="font-medium text-sm text-muted-foreground">처리 완료</h3>
-                {processedRequests.slice(0, 10).map((request) => (
-                  <div
-                    key={request.id}
-                    className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 border rounded-lg ${
-                      request.status === "approved" ? "bg-green-50/50" : "bg-red-50/50"
-                    }`}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(request.status)}
-                        <span className="font-medium">{request.worker_name}</span>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {request.date_key} ({request.day}) • 
-                        {statusLabels[request.current_status || "normal"]} → {statusLabels[request.requested_status]}
-                      </div>
-                      {request.rejection_reason && (
-                        <div className="text-sm text-destructive">
-                          반려 사유: {request.rejection_reason}
+            {/* 대기 중 탭 */}
+            <TabsContent value="pending" className="mt-4">
+              {pendingRequests.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">대기 중인 요청이 없습니다</div>
+              ) : (
+                <div className="space-y-2">
+                  {pendingRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border rounded-lg bg-yellow-50/50"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(request.status)}
+                          <span className="font-medium">{request.worker_name}</span>
                         </div>
-                      )}
+                        <div className="text-sm text-muted-foreground">
+                          {request.date_key} ({request.day}) • 
+                          {statusLabels[request.current_status || "normal"]} → 
+                          <span className="font-medium text-primary">
+                            {statusLabels[request.requested_status]}
+                          </span>
+                        </div>
+                        {request.reason && (
+                          <div className="text-sm text-muted-foreground">
+                            사유: {request.reason}
+                          </div>
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          요청자: {request.requester_name} • 
+                          {format(new Date(request.created_at), "M월 d일 HH:mm", { locale: ko })}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleApprove(request)}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <Check className="h-4 w-4 mr-1" />
+                          승인
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => openRejectDialog(request)}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          반려
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* 승인 내역 탭 */}
+            <TabsContent value="approved" className="mt-4">
+              {approvedRequests.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">승인된 내역이 없습니다</div>
+              ) : (
+                <div className="space-y-2">
+                  {approvedRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4 border rounded-lg bg-green-50/50"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(request.status)}
+                          <span className="font-medium">{request.worker_name}</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {request.date_key} ({request.day}) • 
+                          {statusLabels[request.current_status || "normal"]} → 
+                          <span className="font-medium text-green-700">
+                            {statusLabels[request.requested_status]}
+                          </span>
+                        </div>
+                        {request.reason && (
+                          <div className="text-sm text-muted-foreground">
+                            사유: {request.reason}
+                          </div>
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          요청자: {request.requester_name} • 
+                          요청: {format(new Date(request.created_at), "M월 d일 HH:mm", { locale: ko })}
+                          {request.reviewed_at && (
+                            <> • 승인: {format(new Date(request.reviewed_at), "M월 d일 HH:mm", { locale: ko })}</>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* 반려 내역 탭 */}
+            <TabsContent value="rejected" className="mt-4">
+              {rejectedRequests.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">반려된 내역이 없습니다</div>
+              ) : (
+                <div className="space-y-2">
+                  {rejectedRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4 border rounded-lg bg-red-50/50"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(request.status)}
+                          <span className="font-medium">{request.worker_name}</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {request.date_key} ({request.day}) • 
+                          {statusLabels[request.current_status || "normal"]} → {statusLabels[request.requested_status]}
+                        </div>
+                        {request.rejection_reason && (
+                          <div className="text-sm text-destructive">
+                            반려 사유: {request.rejection_reason}
+                          </div>
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          요청자: {request.requester_name} • 
+                          요청: {format(new Date(request.created_at), "M월 d일 HH:mm", { locale: ko })}
+                          {request.reviewed_at && (
+                            <> • 반려: {format(new Date(request.reviewed_at), "M월 d일 HH:mm", { locale: ko })}</>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         )}
       </CardContent>
 

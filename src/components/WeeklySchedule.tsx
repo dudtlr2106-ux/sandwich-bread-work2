@@ -619,15 +619,24 @@ const WeeklySchedule = () => {
     });
   };
 
-  // 잔업 시간 정보 가져오기 (화수목 전용)
-  const getOvertimeInfo = (day: string, isFirstShift: boolean) => {
-    if (!isOvertimeDay(day)) return null;
+  // 출퇴근 시간 정보 가져오기
+  const getShiftTimes = (shift: "A" | "B", day: string, status: WorkerStatus) => {
+    const swapped = isSwappedWeek();
+    const isFirstShift = swapped ? shift === "B" : shift === "A";
+    const isOvertime = status === "overtime" || (isOvertimeDay(day) && status === "normal");
+    
     if (isFirstShift) {
-      // 초반조: 06-14 + 14-18 잔업
-      return "→18시";
+      // 초반조
+      return {
+        start: "06",
+        end: isOvertime ? "18" : "14",
+      };
     } else {
-      // 중반조: 10-22 (10시부터 시작)
-      return "10시→";
+      // 중반조
+      return {
+        start: isOvertime ? "10" : "14",
+        end: "22",
+      };
     }
   };
 
@@ -1026,17 +1035,20 @@ const WeeklySchedule = () => {
                                   firstShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
                                     const statusStyle = getStatusStyle(status);
+                                    const times = getShiftTimes(firstShiftKey, day, status);
                                     return (
                                       <DropdownMenu key={idx}>
                                         <DropdownMenuTrigger asChild>
                                           <div
-                                            className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5"
+                                            className="flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 rounded px-0.5"
                                             onClick={(e) => e.stopPropagation()}
                                           >
+                                            <span className="text-[10px] text-muted-foreground">{times.start}</span>
                                             {statusStyle.icon}
                                             <span className={`text-sm whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
                                               {worker}
                                             </span>
+                                            <span className="text-[10px] text-muted-foreground">{times.end}</span>
                                           </div>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>
@@ -1096,17 +1108,20 @@ const WeeklySchedule = () => {
                                   secondShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
                                     const statusStyle = getStatusStyle(status);
+                                    const times = getShiftTimes(secondShiftKey, day, status);
                                     return (
                                       <DropdownMenu key={idx}>
                                         <DropdownMenuTrigger asChild>
                                           <div
-                                            className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-0.5"
+                                            className="flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 rounded px-0.5"
                                             onClick={(e) => e.stopPropagation()}
                                           >
+                                            <span className="text-[10px] text-muted-foreground">{times.start}</span>
                                             {statusStyle.icon}
                                             <span className={`text-sm whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
                                               {worker}
                                             </span>
+                                            <span className="text-[10px] text-muted-foreground">{times.end}</span>
                                           </div>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>

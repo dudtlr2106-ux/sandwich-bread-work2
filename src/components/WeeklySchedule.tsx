@@ -342,16 +342,30 @@ const WeeklySchedule = () => {
     setMemoSheetOpen(false);
   };
 
+  // 토요일 인원 초기화 함수
+  const clearSaturdayWorkers = () => {
+    setScheduleData((prev) => ({
+      ...prev,
+      foreman: { ...prev.foreman, 토: { A: [], B: [] } },
+      equipment: { ...prev.equipment, 토: { A: [], B: [] } },
+      inspection: { ...prev.inspection, 토: { A: [], B: [] } },
+      logistics: { ...prev.logistics, 토: { A: [], B: [] } },
+    }));
+  };
+
   const goToPreviousWeek = () => {
     setCurrentWeekStart((prev) => subWeeks(prev, 1));
+    clearSaturdayWorkers();
   };
 
   const goToNextWeek = () => {
     setCurrentWeekStart((prev) => addWeeks(prev, 1));
+    clearSaturdayWorkers();
   };
 
   const goToCurrentWeek = () => {
     setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+    clearSaturdayWorkers();
   };
 
   const getDateForDay = (dayIndex: number) => {

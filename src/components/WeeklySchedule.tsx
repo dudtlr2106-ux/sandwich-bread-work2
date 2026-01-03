@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -159,6 +160,7 @@ const initialScheduleData: ScheduleData = {
 
 const WeeklySchedule = () => {
   const isMobile = useIsMobile();
+  const { isAdmin } = useAuth();
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
@@ -1052,31 +1054,35 @@ const WeeklySchedule = () => {
                                           </div>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>
-                                          <DropdownMenuItem onClick={() => quickMoveWorker(worker, dept.id, day, firstShiftKey, secondShiftKey)} className="text-blue-600">
-                                            <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                            중반으로 이동
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, firstShiftKey)}>
-                                            <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                            다른 위치로 이동
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
-                                            <Users className="h-4 w-4 mr-2" />
-                                            정상 근무
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "overtime")} className="text-orange-600">
-                                            <Clock className="h-4 w-4 mr-2" />
-                                            잔업
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "vacation")} className="text-green-600">
-                                            <Palmtree className="h-4 w-4 mr-2" />
-                                            휴가
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "dayoff")} className="text-gray-600">
-                                            <X className="h-4 w-4 mr-2" />
-                                            휴무
-                                          </DropdownMenuItem>
-                                          <DropdownMenuSeparator />
+                                          {isAdmin && (
+                                            <>
+                                              <DropdownMenuItem onClick={() => quickMoveWorker(worker, dept.id, day, firstShiftKey, secondShiftKey)} className="text-blue-600">
+                                                <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                                중반으로 이동
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, firstShiftKey)}>
+                                                <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                                다른 위치로 이동
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
+                                                <Users className="h-4 w-4 mr-2" />
+                                                정상 근무
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "overtime")} className="text-orange-600">
+                                                <Clock className="h-4 w-4 mr-2" />
+                                                잔업
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "vacation")} className="text-green-600">
+                                                <Palmtree className="h-4 w-4 mr-2" />
+                                                휴가
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "dayoff")} className="text-gray-600">
+                                                <X className="h-4 w-4 mr-2" />
+                                                휴무
+                                              </DropdownMenuItem>
+                                              <DropdownMenuSeparator />
+                                            </>
+                                          )}
                                           <DropdownMenuItem onClick={() => openRequestDialog(worker, dateKey, day, status)} className="text-primary">
                                             <Send className="h-4 w-4 mr-2" />
                                             근태 수정 요청
@@ -1125,31 +1131,35 @@ const WeeklySchedule = () => {
                                           </div>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>
-                                          <DropdownMenuItem onClick={() => quickMoveWorker(worker, dept.id, day, secondShiftKey, firstShiftKey)} className="text-blue-600">
-                                            <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                            초반으로 이동
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, secondShiftKey)}>
-                                            <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                            다른 위치로 이동
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
-                                            <Users className="h-4 w-4 mr-2" />
-                                            정상 근무
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "overtime")} className="text-orange-600">
-                                            <Clock className="h-4 w-4 mr-2" />
-                                            잔업
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "vacation")} className="text-green-600">
-                                            <Palmtree className="h-4 w-4 mr-2" />
-                                            휴가
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "dayoff")} className="text-gray-600">
-                                            <X className="h-4 w-4 mr-2" />
-                                            휴무
-                                          </DropdownMenuItem>
-                                          <DropdownMenuSeparator />
+                                          {isAdmin && (
+                                            <>
+                                              <DropdownMenuItem onClick={() => quickMoveWorker(worker, dept.id, day, secondShiftKey, firstShiftKey)} className="text-blue-600">
+                                                <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                                초반으로 이동
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, secondShiftKey)}>
+                                                <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                                다른 위치로 이동
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
+                                                <Users className="h-4 w-4 mr-2" />
+                                                정상 근무
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "overtime")} className="text-orange-600">
+                                                <Clock className="h-4 w-4 mr-2" />
+                                                잔업
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "vacation")} className="text-green-600">
+                                                <Palmtree className="h-4 w-4 mr-2" />
+                                                휴가
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "dayoff")} className="text-gray-600">
+                                                <X className="h-4 w-4 mr-2" />
+                                                휴무
+                                              </DropdownMenuItem>
+                                              <DropdownMenuSeparator />
+                                            </>
+                                          )}
                                           <DropdownMenuItem onClick={() => openRequestDialog(worker, dateKey, day, status)} className="text-primary">
                                             <Send className="h-4 w-4 mr-2" />
                                             근태 수정 요청

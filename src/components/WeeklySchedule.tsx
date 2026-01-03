@@ -623,7 +623,7 @@ const WeeklySchedule = () => {
   const getShiftTimes = (shift: "A" | "B", day: string, status: WorkerStatus) => {
     const swapped = isSwappedWeek();
     const isFirstShift = swapped ? shift === "B" : shift === "A";
-    const isOvertime = status === "overtime" || (isOvertimeDay(day) && status === "normal");
+    const isOvertime = status === "overtime";
     
     if (isFirstShift) {
       // 초반조

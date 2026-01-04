@@ -855,15 +855,6 @@ const WeeklySchedule = () => {
             </div>
           </div>
           
-          <div className="flex items-center gap-2 mt-4">
-            <Users className="h-5 w-5 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">
-              총 {departments.reduce((acc, d) => acc + d.count, 0)}명
-            </span>
-            <span className="text-xs text-muted-foreground ml-2">
-              (셀을 클릭하여 편집)
-            </span>
-          </div>
 
           {/* Notice display */}
           {noticeMemo && (

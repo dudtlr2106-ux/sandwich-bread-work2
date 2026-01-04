@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,6 +45,9 @@ import {
   StickyNote,
   Check,
   Send,
+  LogIn,
+  LogOut,
+  Shield,
 } from "lucide-react";
 import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -160,7 +164,7 @@ const initialScheduleData: ScheduleData = {
 
 const WeeklySchedule = () => {
   const isMobile = useIsMobile();
-  const { isAdmin } = useAuth();
+  const { user, isAdmin, signOut, isLoading } = useAuth();
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
@@ -795,13 +799,41 @@ const WeeklySchedule = () => {
               </div>
             </div>
             
-            {/* Week Navigation */}
-            <div className="flex items-center gap-2">
+            {/* Week Navigation & Auth */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Auth Section */}
+              {isLoading ? (
+                <div className="h-9 w-20 bg-muted animate-pulse rounded" />
+              ) : user ? (
+                <div className="flex items-center gap-2">
+                  {isAdmin && (
+                    <span className="flex items-center gap-1 text-sm text-primary">
+                      <Shield className="h-4 w-4" />
+                      관리자
+                    </span>
+                  )}
+                  <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
+                  <Button variant="outline" size="sm" onClick={signOut}>
+                    <LogOut className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">로그아웃</span>
+                  </Button>
+                </div>
+              ) : (
+                <Link to="/auth">
+                  <Button variant="outline" size="sm">
+                    <LogIn className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">관리자 로그인</span>
+                  </Button>
+                </Link>
+              )}
+
+              <div className="h-6 w-px bg-border hidden sm:block" />
+
               <Sheet open={memoSheetOpen} onOpenChange={setMemoSheetOpen}>
                 <SheetTrigger asChild>
                   <Button variant="outline" size="sm" onClick={openMemoSheet}>
-                    <StickyNote className="h-4 w-4 mr-2" />
-                    공지 메모
+                    <StickyNote className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">공지 메모</span>
                     {noticeMemo && <Badge variant="secondary" className="ml-2">1</Badge>}
                   </Button>
                 </SheetTrigger>

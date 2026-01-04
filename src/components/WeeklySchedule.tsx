@@ -957,28 +957,26 @@ const WeeklySchedule = () => {
                         className={`p-2 text-center border-b border-r border-border cursor-pointer hover:bg-muted/70 transition-colors ${getDayHeaderClass(day, date)} ${isOff ? "bg-muted/50" : ""}`}
                         onClick={() => toggleDayOff(dateKey)}
                       >
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="flex items-center gap-1">
-                            <span className="text-lg">{day}</span>
-                            {isOff && (
-                              <span className="text-[10px] bg-gray-500 text-white px-1 rounded">
-                                휴무
-                              </span>
-                            )}
-                            {!isOff && holiday && (
-                              <span className="text-[10px] bg-red-500 text-white px-1 rounded">
-                                {holiday.name}
-                              </span>
-                            )}
-                            {!isOff && isSpecialWork && !holiday && (
-                              <span className="text-[10px] bg-blue-500 text-white px-1 rounded">
-                                특근
-                              </span>
-                            )}
-                          </div>
+                        <div className="flex items-center justify-center gap-1 flex-wrap">
+                          <span className="text-lg">{day}</span>
                           <span className="text-xs text-muted-foreground font-normal">
                             {format(date, "M/d")}
                           </span>
+                          {isOff && (
+                            <span className="text-[10px] bg-gray-500 text-white px-1 rounded">
+                              휴무
+                            </span>
+                          )}
+                          {!isOff && holiday && (
+                            <span className="text-[10px] bg-red-500 text-white px-1 rounded">
+                              {holiday.name}
+                            </span>
+                          )}
+                          {!isOff && isSpecialWork && !holiday && (
+                            <span className="text-[10px] bg-blue-500 text-white px-1 rounded">
+                              특근
+                            </span>
+                          )}
                         </div>
                       </th>
                     );

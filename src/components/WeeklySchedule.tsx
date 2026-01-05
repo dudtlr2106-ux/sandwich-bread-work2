@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
+import { useScheduleData, WorkerStatus, WorkerStatusData, ScheduleData, initialScheduleData } from "@/hooks/useScheduleData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,17 +53,6 @@ import {
 import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
 import AttendanceRequestForm from "@/components/AttendanceRequestForm";
-
-// 잔업/휴가/휴무 상태 타입
-type WorkerStatus = "normal" | "overtime" | "vacation" | "dayoff";
-
-// 직원별 일별 상태 데이터
-type WorkerStatusData = {
-  [dateKey: string]: {
-    [workerName: string]: WorkerStatus;
-  };
-};
-
 // 기준 주차 (이번 주가 짝수 주차인지 홀수 주차인지 판단용)
 const BASE_WEEK_START = startOfWeek(new Date(), { weekStartsOn: 1 });
 
@@ -112,74 +102,29 @@ const departments: Department[] = [
   },
 ];
 
-type ShiftData = {
-  A: string[]; // 초반: 06:00-14:00
-  B: string[]; // 중반: 14:00-22:00
-};
-
-type ScheduleData = {
-  [deptId: string]: {
-    [day: string]: ShiftData;
-  };
-};
-
-const initialScheduleData: ScheduleData = {
-  foreman: {
-    월: { A: ["박노일"], B: ["김영식"] },
-    화: { A: ["박노일"], B: ["김영식"] },
-    수: { A: ["박노일"], B: ["김영식"] },
-    목: { A: ["박노일"], B: ["김영식"] },
-    금: { A: ["박노일"], B: ["김영식"] },
-    토: { A: [], B: [] },
-    일: { A: [], B: [] },
-  },
-  equipment: {
-    월: { A: ["이상민", "연명옥", "장영광"], B: ["오세홍", "김순기", "김용주"] },
-    화: { A: ["이상민", "연명옥", "장영광"], B: ["오세홍", "김순기", "김용주"] },
-    수: { A: ["이상민", "연명옥", "장영광"], B: ["오세홍", "김순기", "김용주"] },
-    목: { A: ["이상민", "연명옥", "장영광"], B: ["오세홍", "김순기", "김용주"] },
-    금: { A: ["이상민", "연명옥", "장영광"], B: ["오세홍", "김순기", "김용주"] },
-    토: { A: [], B: [] },
-    일: { A: [], B: [] },
-  },
-  inspection: {
-    월: { A: ["백승빈", "서민성"], B: ["고장윤", "윤기은"] },
-    화: { A: ["백승빈", "서민성"], B: ["고장윤", "윤기은"] },
-    수: { A: ["백승빈", "서민성"], B: ["고장윤", "윤기은"] },
-    목: { A: ["백승빈", "서민성"], B: ["고장윤", "윤기은"] },
-    금: { A: ["백승빈", "서민성"], B: ["고장윤", "윤기은"] },
-    토: { A: [], B: [] },
-    일: { A: [], B: [] },
-  },
-  logistics: {
-    월: { A: ["김광시"], B: ["강윤묵"] },
-    화: { A: ["김광시"], B: ["강윤묵"] },
-    수: { A: ["김광시"], B: ["강윤묵"] },
-    목: { A: ["김광시"], B: ["강윤묵"] },
-    금: { A: ["김광시"], B: ["강윤묵"] },
-    토: { A: [], B: [] },
-    일: { A: [], B: [] },
-  },
-};
-
 const WeeklySchedule = () => {
   const isMobile = useIsMobile();
   const { user, isAdmin, signOut, isLoading } = useAuth();
+  
+  // 데이터베이스 연동 훅 사용
+  const {
+    scheduleData,
+    setScheduleData,
+    workerStatusData,
+    setWorkerStatusData,
+    saveWorkerStatus,
+    dayOffDates,
+    toggleDayOff: toggleDayOffDb,
+    noticeMemo,
+    setNoticeMemo,
+    weekendAvailability,
+    toggleWeekendAvailability: toggleWeekendAvailabilityDb,
+    isLoading: isDataLoading,
+  } = useScheduleData();
+  
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
-  // 스케줄 데이터 - localStorage에서 로드
-  const [scheduleData, setScheduleData] = useState<ScheduleData>(() => {
-    try {
-      const saved = localStorage.getItem("scheduleData");
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error("Failed to load schedule data from localStorage:", e);
-    }
-    return initialScheduleData;
-  });
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingCell, setEditingCell] = useState<{
@@ -190,32 +135,6 @@ const WeeklySchedule = () => {
   const [editingWorkers, setEditingWorkers] = useState<string[]>([]);
   const [newWorkerName, setNewWorkerName] = useState("");
   
-  // 잔업/휴가 상태 관리 - localStorage에서 로드
-  const [workerStatusData, setWorkerStatusData] = useState<WorkerStatusData>(() => {
-    try {
-      const saved = localStorage.getItem("workerStatusData");
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error("Failed to load worker status from localStorage:", e);
-    }
-    return {};
-  });
-  
-  // 휴무일 관리 (날짜별) - localStorage에서 로드
-  const [dayOffDates, setDayOffDates] = useState<Set<string>>(() => {
-    try {
-      const saved = localStorage.getItem("dayOffDates");
-      if (saved) {
-        return new Set(JSON.parse(saved));
-      }
-    } catch (e) {
-      console.error("Failed to load day off dates from localStorage:", e);
-    }
-    return new Set();
-  });
-  
   // 인원 이동 다이얼로그 상태
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [movingWorker, setMovingWorker] = useState<{
@@ -225,18 +144,6 @@ const WeeklySchedule = () => {
     fromShift: "A" | "B";
   } | null>(null);
 
-  // 공지 메모 상태 - localStorage에서 로드
-  const [noticeMemo, setNoticeMemo] = useState(() => {
-    try {
-      const saved = localStorage.getItem("noticeMemo");
-      if (saved) {
-        return saved;
-      }
-    } catch (e) {
-      console.error("Failed to load notice memo from localStorage:", e);
-    }
-    return "";
-  });
   const [tempMemo, setTempMemo] = useState("");
   const [memoSheetOpen, setMemoSheetOpen] = useState(false);
 
@@ -247,24 +154,6 @@ const WeeklySchedule = () => {
     shift: "A" | "B";
   } | null>(null);
   const [selectedSaturdayWorkers, setSelectedSaturdayWorkers] = useState<string[]>([]);
-
-  // 주말 출근 가능 여부 (직원별) - localStorage에서 로드
-  const [weekendAvailability, setWeekendAvailability] = useState<{ [dateKey: string]: Set<string> }>(() => {
-    try {
-      const saved = localStorage.getItem("weekendAvailability");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        const result: { [dateKey: string]: Set<string> } = {};
-        Object.entries(parsed).forEach(([dateKey, workers]) => {
-          result[dateKey] = new Set(workers as string[]);
-        });
-        return result;
-      }
-    } catch (e) {
-      console.error("Failed to load weekend availability from localStorage:", e);
-    }
-    return {};
-  });
 
   // 근태 수정 요청 다이얼로그 상태
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
@@ -280,52 +169,6 @@ const WeeklySchedule = () => {
     setRequestingWorker({ workerName, dateKey, day, currentStatus });
     setRequestDialogOpen(true);
   };
-
-  // 데이터 변경 시 localStorage에 저장
-  useEffect(() => {
-    try {
-      localStorage.setItem("scheduleData", JSON.stringify(scheduleData));
-    } catch (e) {
-      console.error("Failed to save schedule data to localStorage:", e);
-    }
-  }, [scheduleData]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("workerStatusData", JSON.stringify(workerStatusData));
-    } catch (e) {
-      console.error("Failed to save worker status to localStorage:", e);
-    }
-  }, [workerStatusData]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("dayOffDates", JSON.stringify(Array.from(dayOffDates)));
-    } catch (e) {
-      console.error("Failed to save day off dates to localStorage:", e);
-    }
-  }, [dayOffDates]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("noticeMemo", noticeMemo);
-    } catch (e) {
-      console.error("Failed to save notice memo to localStorage:", e);
-    }
-  }, [noticeMemo]);
-
-  // 주말 출근 가능 여부 변경 시 localStorage에 저장
-  useEffect(() => {
-    try {
-      const toSave: { [dateKey: string]: string[] } = {};
-      Object.entries(weekendAvailability).forEach(([dateKey, workers]) => {
-        toSave[dateKey] = Array.from(workers);
-      });
-      localStorage.setItem("weekendAvailability", JSON.stringify(toSave));
-    } catch (e) {
-      console.error("Failed to save weekend availability to localStorage:", e);
-    }
-  }, [weekendAvailability]);
 
   // 모바일 요일 선택 (오늘 요일로 초기화)
   const getTodayDayIndex = () => {
@@ -414,17 +257,10 @@ const WeeklySchedule = () => {
     return "text-foreground font-semibold";
   };
 
-  // 휴무일 토글
+  // 휴무일 토글 - 관리자 전용
   const toggleDayOff = (dateKey: string) => {
-    setDayOffDates((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(dateKey)) {
-        newSet.delete(dateKey);
-      } else {
-        newSet.add(dateKey);
-      }
-      return newSet;
-    });
+    if (!isAdmin) return;
+    toggleDayOffDb(dateKey);
   };
 
   // 휴무일 체크
@@ -672,27 +508,14 @@ const WeeklySchedule = () => {
     return Array.from(workersSet).sort();
   };
 
-  // 주말 출근 가능 여부 토글
-  const toggleWeekendAvailability = (dateKey: string, worker: string) => {
-    setWeekendAvailability((prev) => {
-      const newData = { ...prev };
-      if (!newData[dateKey]) {
-        newData[dateKey] = new Set();
-      } else {
-        newData[dateKey] = new Set(prev[dateKey]);
-      }
-      if (newData[dateKey].has(worker)) {
-        newData[dateKey].delete(worker);
-      } else {
-        newData[dateKey].add(worker);
-      }
-      return newData;
-    });
+  // 주말 출근 가능 여부 토글 - 훅 사용
+  const toggleWeekendAvailabilityLocal = (worker: string) => {
+    toggleWeekendAvailabilityDb(worker);
   };
 
-  // 주말 출근 가능 여부 확인
-  const isWeekendAvailable = (dateKey: string, worker: string) => {
-    return weekendAvailability[dateKey]?.has(worker) || false;
+  // 주말 출근 가능 여부 확인 - 훅에서 가져온 weekendAvailability 사용
+  const isWeekendAvailableLocal = (worker: string) => {
+    return weekendAvailability[worker] || false;
   };
 
   // 토요일이 휴무가 아닌지 확인
@@ -738,10 +561,9 @@ const WeeklySchedule = () => {
     setSaturdaySelectingCell(null);
   };
 
-  // 주말 출근 가능자 목록 (해당 날짜)
+  // 주말 출근 가능자 목록
   const getAvailableWeekendWorkers = (): string[] => {
-    const saturdayDateKey = getDateKey(5);
-    return getAllWorkers().filter((worker) => isWeekendAvailable(saturdayDateKey, worker));
+    return getAllWorkers().filter((worker) => isWeekendAvailableLocal(worker));
   };
 
   // 특정 날짜의 특정 조에서 휴가자 목록 가져오기
@@ -1227,8 +1049,7 @@ const WeeklySchedule = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {getAllWorkers().map((worker) => {
-                  const saturdayDateKey = getDateKey(5);
-                  const isAvailable = isWeekendAvailable(saturdayDateKey, worker);
+                  const isAvailable = isWeekendAvailableLocal(worker);
                   return (
                     <label
                       key={worker}
@@ -1241,7 +1062,7 @@ const WeeklySchedule = () => {
                       <input
                         type="checkbox"
                         checked={isAvailable}
-                        onChange={() => toggleWeekendAvailability(saturdayDateKey, worker)}
+                        onChange={() => toggleWeekendAvailabilityLocal(worker)}
                         className="w-4 h-4 rounded border-border text-blue-600 focus:ring-blue-500"
                       />
                       <span className={`text-sm ${isAvailable ? "text-blue-700 dark:text-blue-300 font-medium" : "text-foreground"}`}>

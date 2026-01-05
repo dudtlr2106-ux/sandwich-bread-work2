@@ -62,6 +62,72 @@ export type Database = {
         }
         Relationships: []
       }
+      day_offs: {
+        Row: {
+          created_at: string
+          date_key: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          date_key: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          date_key?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      notice_memos: {
+        Row: {
+          content: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      schedule_data: {
+        Row: {
+          created_at: string
+          date_key: string
+          department: string
+          id: string
+          shift: string
+          updated_at: string
+          workers: string[]
+        }
+        Insert: {
+          created_at?: string
+          date_key: string
+          department: string
+          id?: string
+          shift: string
+          updated_at?: string
+          workers?: string[]
+        }
+        Update: {
+          created_at?: string
+          date_key?: string
+          department?: string
+          id?: string
+          shift?: string
+          updated_at?: string
+          workers?: string[]
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -80,6 +146,54 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      weekend_availability: {
+        Row: {
+          id: string
+          is_available: boolean
+          updated_at: string
+          worker_name: string
+        }
+        Insert: {
+          id?: string
+          is_available?: boolean
+          updated_at?: string
+          worker_name: string
+        }
+        Update: {
+          id?: string
+          is_available?: boolean
+          updated_at?: string
+          worker_name?: string
+        }
+        Relationships: []
+      }
+      worker_statuses: {
+        Row: {
+          created_at: string
+          date_key: string
+          id: string
+          status: string
+          updated_at: string
+          worker_name: string
+        }
+        Insert: {
+          created_at?: string
+          date_key: string
+          id?: string
+          status?: string
+          updated_at?: string
+          worker_name: string
+        }
+        Update: {
+          created_at?: string
+          date_key?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          worker_name?: string
         }
         Relationships: []
       }

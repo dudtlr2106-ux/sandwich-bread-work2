@@ -140,9 +140,58 @@ export function useScheduleData() {
     }
   }, []);
 
-  // 컴포넌트 마운트 시 데이터 로드
+  // 컴포넌트 마운트 시 데이터 로드 및 실시간 구독
   useEffect(() => {
     loadData();
+
+    // 실시간 구독 설정
+    const channel = supabase
+      .channel('schedule-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'schedule_data' },
+        () => {
+          console.log('Schedule data changed, reloading...');
+          loadData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'worker_statuses' },
+        () => {
+          console.log('Worker statuses changed, reloading...');
+          loadData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'day_offs' },
+        () => {
+          console.log('Day offs changed, reloading...');
+          loadData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notice_memos' },
+        () => {
+          console.log('Notice memos changed, reloading...');
+          loadData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'weekend_availability' },
+        () => {
+          console.log('Weekend availability changed, reloading...');
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [loadData]);
 
   // 스케줄 데이터 저장 (디바운스 적용)

@@ -393,15 +393,9 @@ const WeeklySchedule = () => {
     return "normal";
   };
 
-  // 상태 저장
+  // 상태 저장 (DB에 저장)
   const setWorkerStatus = (worker: string, dateKey: string, status: WorkerStatus) => {
-    setWorkerStatusData((prev) => ({
-      ...prev,
-      [dateKey]: {
-        ...prev[dateKey],
-        [worker]: status,
-      },
-    }));
+    saveWorkerStatus(dateKey, worker, status);
   };
 
   // 인원 이동 다이얼로그 열기

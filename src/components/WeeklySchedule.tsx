@@ -269,6 +269,8 @@ const WeeklySchedule = () => {
   };
 
   const openEditDialog = (deptId: string, day: string, shift: "A" | "B") => {
+    // 표시되는 부서(deptId)의 원본 데이터를 직접 편집
+    // 로테이션과 관계없이 해당 부서의 scheduleData를 수정
     setEditingCell({ deptId, day, shift });
     setEditingWorkers([...(scheduleData[deptId]?.[day]?.[shift] || [])]);
     setNewWorkerName("");

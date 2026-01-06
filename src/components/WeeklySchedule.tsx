@@ -1160,21 +1160,71 @@ const WeeklySchedule = () => {
                 근무자 추가
               </label>
               <div className="flex gap-2">
-                <Input
-                  placeholder="이름 입력"
-                  value={newWorkerName}
-                  onChange={(e) => setNewWorkerName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addWorker();
-                    }
-                  }}
-                />
+                <div className="relative flex-1">
+                  <Input
+                    placeholder="이름 입력 또는 선택"
+                    value={newWorkerName}
+                    onChange={(e) => setNewWorkerName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addWorker();
+                      }
+                    }}
+                  />
+                  {/* Autocomplete dropdown */}
+                  {newWorkerName.length > 0 && (
+                    (() => {
+                      const suggestions = getAllWorkers().filter(
+                        (worker) =>
+                          worker.toLowerCase().includes(newWorkerName.toLowerCase()) &&
+                          !editingWorkers.includes(worker)
+                      );
+                      if (suggestions.length === 0) return null;
+                      return (
+                        <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                          {suggestions.map((worker) => (
+                            <button
+                              key={worker}
+                              type="button"
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                              onClick={() => {
+                                setEditingWorkers((prev) => [...prev, worker]);
+                                setNewWorkerName("");
+                              }}
+                            >
+                              {worker}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()
+                  )}
+                </div>
                 <Button onClick={addWorker} size="icon" variant="secondary">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+              {/* Quick select existing workers */}
+              {getAllWorkers().filter((w) => !editingWorkers.includes(w)).length > 0 && (
+                <div className="pt-2">
+                  <p className="text-xs text-muted-foreground mb-2">기존 근무자 선택:</p>
+                  <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                    {getAllWorkers()
+                      .filter((w) => !editingWorkers.includes(w))
+                      .map((worker) => (
+                        <button
+                          key={worker}
+                          type="button"
+                          className="px-2 py-1 text-xs bg-muted hover:bg-primary hover:text-primary-foreground rounded transition-colors"
+                          onClick={() => setEditingWorkers((prev) => [...prev, worker])}
+                        >
+                          + {worker}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>

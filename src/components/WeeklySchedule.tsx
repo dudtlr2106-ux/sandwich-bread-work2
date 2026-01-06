@@ -288,6 +288,16 @@ const WeeklySchedule = () => {
 
   const saveWorkers = () => {
     if (editingCell) {
+      const dateKey = getDateKey(DAYS.indexOf(editingCell.day));
+      
+      // 추가된 근무자들의 dayoff 상태를 normal로 초기화
+      editingWorkers.forEach((worker) => {
+        const currentStatus = getWorkerStatus(worker, dateKey, editingCell.day);
+        if (currentStatus === "dayoff") {
+          saveWorkerStatus(dateKey, worker, "normal");
+        }
+      });
+      
       setScheduleData((prev) => ({
         ...prev,
         [editingCell.deptId]: {
@@ -540,6 +550,16 @@ const WeeklySchedule = () => {
   // 토요일 근무자 저장
   const saveSaturdayWorkers = () => {
     if (saturdaySelectingCell) {
+      const saturdayDateKey = getDateKey(5); // 토요일
+      
+      // 선택된 근무자들의 dayoff 상태를 normal로 초기화
+      selectedSaturdayWorkers.forEach((worker) => {
+        const currentStatus = getWorkerStatus(worker, saturdayDateKey, "토");
+        if (currentStatus === "dayoff") {
+          saveWorkerStatus(saturdayDateKey, worker, "normal");
+        }
+      });
+      
       setScheduleData((prev) => ({
         ...prev,
         [saturdaySelectingCell.deptId]: {

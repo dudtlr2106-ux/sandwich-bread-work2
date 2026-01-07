@@ -944,10 +944,6 @@ const WeeklySchedule = () => {
                                                 <ArrowRightLeft className="h-4 w-4 mr-2" />
                                                 중반으로 이동
                                               </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, firstShiftKey)}>
-                                                <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                                다른 위치로 이동
-                                              </DropdownMenuItem>
                                               <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
                                                 <Users className="h-4 w-4 mr-2" />
                                                 정상 근무
@@ -1020,10 +1016,6 @@ const WeeklySchedule = () => {
                                               <DropdownMenuItem onClick={() => quickMoveWorker(worker, dept.id, day, secondShiftKey, firstShiftKey)} className="text-blue-600">
                                                 <ArrowRightLeft className="h-4 w-4 mr-2" />
                                                 초반으로 이동
-                                              </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, secondShiftKey)}>
-                                                <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                                다른 위치로 이동
                                               </DropdownMenuItem>
                                               <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
                                                 <Users className="h-4 w-4 mr-2" />

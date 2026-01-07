@@ -269,10 +269,11 @@ const WeeklySchedule = () => {
   };
 
   const openEditDialog = (deptId: string, day: string, shift: "A" | "B") => {
-    // 표시되는 부서(deptId)의 원본 데이터를 직접 편집
-    // 로테이션과 관계없이 해당 부서의 scheduleData를 수정
+    // 표시되는 부서의 현재 인원을 가져와서 편집
+    // 로테이션이 적용된 상태의 인원을 직접 편집
+    const displayedWorkers = getRotatedWorkers(deptId, day, shift);
     setEditingCell({ deptId, day, shift });
-    setEditingWorkers([...(scheduleData[deptId]?.[day]?.[shift] || [])]);
+    setEditingWorkers([...displayedWorkers]);
     setNewWorkerName("");
     setEditDialogOpen(true);
   };
@@ -300,16 +301,27 @@ const WeeklySchedule = () => {
         }
       });
       
-      setScheduleData((prev) => ({
-        ...prev,
-        [editingCell.deptId]: {
-          ...prev[editingCell.deptId],
-          [editingCell.day]: {
-            ...prev[editingCell.deptId][editingCell.day],
-            [editingCell.shift]: editingWorkers,
+      // 로테이션과 관계없이 표시된 부서에 직접 저장
+      // 사용자가 클릭한 위치에 그대로 인원을 배치
+      const deptId = editingCell.deptId;
+      const day = editingCell.day;
+      const shift = editingCell.shift;
+      
+      setScheduleData((prev) => {
+        const currentDeptData = prev[deptId] || {};
+        const currentDayData = currentDeptData[day] || { A: [], B: [] };
+        
+        return {
+          ...prev,
+          [deptId]: {
+            ...currentDeptData,
+            [day]: {
+              ...currentDayData,
+              [shift]: editingWorkers,
+            },
           },
-        },
-      }));
+        };
+      });
     }
     setEditDialogOpen(false);
     setEditingCell(null);

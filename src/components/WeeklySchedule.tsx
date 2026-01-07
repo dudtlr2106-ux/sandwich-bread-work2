@@ -269,10 +269,10 @@ const WeeklySchedule = () => {
   };
 
   const openEditDialog = (deptId: string, day: string, shift: "A" | "B") => {
-    // 표시되는 부서(deptId)의 원본 데이터를 직접 편집
-    // 로테이션과 관계없이 해당 부서의 scheduleData를 수정
+    // 데이터베이스에서 직접 인원 가져오기
+    const displayedWorkers = getWorkers(deptId, day, shift);
     setEditingCell({ deptId, day, shift });
-    setEditingWorkers([...(scheduleData[deptId]?.[day]?.[shift] || [])]);
+    setEditingWorkers([...displayedWorkers]);
     setNewWorkerName("");
     setEditDialogOpen(true);
   };
@@ -300,82 +300,52 @@ const WeeklySchedule = () => {
         }
       });
       
-      setScheduleData((prev) => ({
-        ...prev,
-        [editingCell.deptId]: {
-          ...prev[editingCell.deptId],
-          [editingCell.day]: {
-            ...prev[editingCell.deptId][editingCell.day],
-            [editingCell.shift]: editingWorkers,
+      // 로테이션과 관계없이 표시된 부서에 직접 저장
+      // 사용자가 클릭한 위치에 그대로 인원을 배치
+      const deptId = editingCell.deptId;
+      const day = editingCell.day;
+      const shift = editingCell.shift;
+      
+      setScheduleData((prev) => {
+        const currentDeptData = prev[deptId] || {};
+        const currentDayData = currentDeptData[day] || { A: [], B: [] };
+        
+        return {
+          ...prev,
+          [deptId]: {
+            ...currentDeptData,
+            [day]: {
+              ...currentDayData,
+              [shift]: editingWorkers,
+            },
           },
-        },
-      }));
+        };
+      });
     }
     setEditDialogOpen(false);
     setEditingCell(null);
   };
 
-  // 주차에 따른 조 교대 여부 계산 (이번주 기준으로 swap 상태)
-  const isSwappedWeek = () => {
-    const weeksDiff = differenceInWeeks(currentWeekStart, BASE_WEEK_START);
-    // 이번주는 설비→검사/물류 로테이션이므로 짝수주가 swap
-    return weeksDiff % 2 === 0;
-  };
-
-  // 주차에 따른 부서 로테이션 계산
-  // 짝수 주차: 원래대로 (설비→설비, 검사→검사, 물류→물류)
-  // 홀수 주차: 설비→검사/물류, 검사+물류→설비
-  const getRotatedWorkers = (deptId: string, day: string, shift: "A" | "B"): string[] => {
-    const swapped = isSwappedWeek();
-    const rawData = scheduleData;
-    
-    // 반장은 로테이션 없이 그대로
-    if (deptId === "foreman") {
-      return rawData[deptId]?.[day]?.[shift] || [];
-    }
-    
-    if (!swapped) {
-      // 짝수 주차: 원래 부서의 인원
-      return rawData[deptId]?.[day]?.[shift] || [];
-    }
-    
-    // 홀수 주차: 부서 로테이션
-    if (deptId === "equipment") {
-      // 설비에는 검사 + 물류 인원이 감
-      const inspectionWorkers = rawData["inspection"]?.[day]?.[shift] || [];
-      const logisticsWorkers = rawData["logistics"]?.[day]?.[shift] || [];
-      return [...inspectionWorkers, ...logisticsWorkers];
-    } else if (deptId === "inspection") {
-      // 검사에는 설비 인원 중 앞 2명이 감
-      const equipmentWorkers = rawData["equipment"]?.[day]?.[shift] || [];
-      return equipmentWorkers.slice(0, 2);
-    } else if (deptId === "logistics") {
-      // 물류에는 설비 인원 중 나머지 1명이 감
-      const equipmentWorkers = rawData["equipment"]?.[day]?.[shift] || [];
-      return equipmentWorkers.slice(2);
-    }
-    
-    return [];
+  // 데이터베이스에서 직접 인원 가져오기 (로테이션 없음)
+  const getWorkers = (deptId: string, day: string, shift: "A" | "B"): string[] => {
+    return scheduleData[deptId]?.[day]?.[shift] || [];
   };
 
   const getShiftLabel = (shift: "A" | "B") => {
-    const swapped = isSwappedWeek();
     if (shift === "A") {
-      return swapped ? "중반 (14-22시)" : "초반 (06-14시)";
+      return "초반 (06-14시)";
     }
-    return swapped ? "초반 (06-14시)" : "중반 (14-22시)";
+    return "중반 (14-22시)";
   };
 
   const getDisplayShiftName = (shift: "A" | "B") => {
-    const swapped = isSwappedWeek();
-    if (shift === "A") return swapped ? "중반" : "초반";
-    return swapped ? "초반" : "중반";
+    if (shift === "A") return "초반";
+    return "중반";
   };
 
   const getDisplayShiftTime = (shift: "A" | "B") => {
-    const swapped = isSwappedWeek();
-    if (shift === "A") return swapped ? "14-22" : "06-14";
-    return swapped ? "06-14" : "14-22";
+    if (shift === "A") return "06-14";
+    return "14-22";
   };
 
   const getDeptName = (deptId: string) => {
@@ -483,8 +453,7 @@ const WeeklySchedule = () => {
 
   // 출퇴근 시간 정보 가져오기
   const getShiftTimes = (shift: "A" | "B", day: string, status: WorkerStatus) => {
-    const swapped = isSwappedWeek();
-    const isFirstShift = swapped ? shift === "B" : shift === "A";
+    const isFirstShift = shift === "A";
     const isOvertime = status === "overtime";
     
     if (isFirstShift) {
@@ -844,24 +813,22 @@ const WeeklySchedule = () => {
                     {(isMobile ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
                       const isWeekend = day === "토" || day === "일";
                       const isSaturday = day === "토";
-                      const swapped = isSwappedWeek();
                       const dateKey = getDateKey(dayIndex);
                       const isOff = isDayOff(dateKey);
                       
-                      // 토요일: scheduleData에서 직접 가져오기 (로테이션 없음)
-                      // 다른 요일: 로테이션 적용
-                      const rotatedA = isSaturday ? (scheduleData[dept.id]?.["토"]?.A || []) : getRotatedWorkers(dept.id, day, "A");
-                      const rotatedB = isSaturday ? (scheduleData[dept.id]?.["토"]?.B || []) : getRotatedWorkers(dept.id, day, "B");
+                      // 데이터베이스에서 직접 가져오기 (로테이션 없음)
+                      const workersA = getWorkers(dept.id, day, "A");
+                      const workersB = getWorkers(dept.id, day, "B");
                       
-                      // 주차에 따라 표시 순서와 인원 교대 (초반/중반 swap) - 토요일도 동일하게 적용
                       // 휴무 상태인 직원 필터링
                       const filterDayOff = (workers: string[]) => 
                         workers.filter(worker => getWorkerStatus(worker, dateKey, day) !== "dayoff");
                       
-                      const firstShiftWorkers = filterDayOff(swapped ? rotatedB : rotatedA);
-                      const secondShiftWorkers = filterDayOff(swapped ? rotatedA : rotatedB);
-                      const firstShiftKey: "A" | "B" = swapped ? "B" : "A";
-                      const secondShiftKey: "A" | "B" = swapped ? "A" : "B";
+                      // A=초반, B=중반 (고정)
+                      const firstShiftWorkers = filterDayOff(workersA);
+                      const secondShiftWorkers = filterDayOff(workersB);
+                      const firstShiftKey: "A" | "B" = "A";
+                      const secondShiftKey: "A" | "B" = "B";
                       
                       // 휴무일인 경우
                       if (isOff) {
@@ -931,10 +898,6 @@ const WeeklySchedule = () => {
                                               <DropdownMenuItem onClick={() => quickMoveWorker(worker, dept.id, day, firstShiftKey, secondShiftKey)} className="text-blue-600">
                                                 <ArrowRightLeft className="h-4 w-4 mr-2" />
                                                 중반으로 이동
-                                              </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, firstShiftKey)}>
-                                                <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                                다른 위치로 이동
                                               </DropdownMenuItem>
                                               <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
                                                 <Users className="h-4 w-4 mr-2" />
@@ -1008,10 +971,6 @@ const WeeklySchedule = () => {
                                               <DropdownMenuItem onClick={() => quickMoveWorker(worker, dept.id, day, secondShiftKey, firstShiftKey)} className="text-blue-600">
                                                 <ArrowRightLeft className="h-4 w-4 mr-2" />
                                                 초반으로 이동
-                                              </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => openMoveDialog(worker, dept.id, day, secondShiftKey)}>
-                                                <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                                다른 위치로 이동
                                               </DropdownMenuItem>
                                               <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
                                                 <Users className="h-4 w-4 mr-2" />

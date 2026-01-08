@@ -694,27 +694,6 @@ const WeeklySchedule = () => {
                 <ChevronRight className="h-4 w-4" />
               </Button>
 
-              {/* 저장 버튼 (변경사항이 있을 때만 표시) */}
-              {hasUnsavedChanges && isAdmin && (
-                <>
-                  <div className="h-6 w-px bg-border" />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={discardChanges}
-                  >
-                    취소
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={saveScheduleData}
-                    className="bg-primary text-primary-foreground"
-                  >
-                    <Check className="h-4 w-4 mr-1" />
-                    저장
-                  </Button>
-                </>
-              )}
             </div>
           </div>
           
@@ -1344,6 +1323,28 @@ const WeeklySchedule = () => {
           day={requestingWorker.day}
           currentStatus={requestingWorker.currentStatus}
         />
+      )}
+
+      {/* 플로팅 저장 버튼 */}
+      {hasUnsavedChanges && isAdmin && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex gap-2 bg-card border border-border rounded-full shadow-lg px-4 py-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={discardChanges}
+          >
+            <X className="h-4 w-4 mr-1" />
+            취소
+          </Button>
+          <Button
+            size="sm"
+            onClick={saveScheduleData}
+            className="bg-primary text-primary-foreground"
+          >
+            <Check className="h-4 w-4 mr-1" />
+            저장
+          </Button>
+        </div>
       )}
     </>
   );

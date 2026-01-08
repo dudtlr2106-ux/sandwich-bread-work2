@@ -110,6 +110,9 @@ const WeeklySchedule = () => {
   const {
     scheduleData,
     setScheduleData,
+    saveScheduleData,
+    discardChanges,
+    hasUnsavedChanges,
     workerStatusData,
     setWorkerStatusData,
     saveWorkerStatus,
@@ -690,6 +693,28 @@ const WeeklySchedule = () => {
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
+
+              {/* 저장 버튼 (변경사항이 있을 때만 표시) */}
+              {hasUnsavedChanges && isAdmin && (
+                <>
+                  <div className="h-6 w-px bg-border" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={discardChanges}
+                  >
+                    취소
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={saveScheduleData}
+                    className="bg-primary text-primary-foreground"
+                  >
+                    <Check className="h-4 w-4 mr-1" />
+                    저장
+                  </Button>
+                </>
+              )}
             </div>
           </div>
           

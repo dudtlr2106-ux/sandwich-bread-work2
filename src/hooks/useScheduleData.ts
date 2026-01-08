@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -66,14 +66,13 @@ const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
 
 export function useScheduleData() {
   const [scheduleData, setScheduleDataLocal] = useState<ScheduleData>(initialScheduleData);
+  const [savedScheduleData, setSavedScheduleData] = useState<ScheduleData>(initialScheduleData);
   const [workerStatusData, setWorkerStatusDataLocal] = useState<WorkerStatusData>({});
   const [dayOffDates, setDayOffDatesLocal] = useState<Set<string>>(new Set());
   const [noticeMemo, setNoticeMemoLocal] = useState("");
   const [weekendAvailability, setWeekendAvailabilityLocal] = useState<{ [workerName: string]: boolean }>({});
   const [isLoading, setIsLoading] = useState(true);
-  
-  // 저장 디바운스를 위한 타이머
-  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // 데이터베이스에서 데이터 로드
   const loadData = useCallback(async () => {
@@ -100,6 +99,8 @@ export function useScheduleData() {
           }
         });
         setScheduleDataLocal(newScheduleData);
+        setSavedScheduleData(newScheduleData);
+        setHasUnsavedChanges(false);
       }
 
       // 근무자 상태 데이터 처리
@@ -224,22 +225,28 @@ export function useScheduleData() {
     }
   }, []);
 
-  // 스케줄 데이터 업데이트 (함수 또는 직접 값)
+  // 스케줄 데이터 업데이트 (로컬만 - DB 저장 없음)
   const setScheduleData = useCallback((newDataOrUpdater: ScheduleData | ((prev: ScheduleData) => ScheduleData)) => {
     setScheduleDataLocal((prev) => {
       const newData = typeof newDataOrUpdater === 'function' ? newDataOrUpdater(prev) : newDataOrUpdater;
-      
-      // 디바운스된 DB 저장
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-      }
-      saveTimerRef.current = setTimeout(() => {
-        saveScheduleToDb(newData);
-      }, 500);
-      
+      setHasUnsavedChanges(true);
       return newData;
     });
-  }, [saveScheduleToDb]);
+  }, []);
+
+  // 스케줄 데이터를 DB에 저장
+  const saveScheduleData = useCallback(async () => {
+    await saveScheduleToDb(scheduleData);
+    setSavedScheduleData(scheduleData);
+    setHasUnsavedChanges(false);
+    toast.success('스케줄이 저장되었습니다');
+  }, [scheduleData, saveScheduleToDb]);
+
+  // 변경사항 취소 (저장된 데이터로 복원)
+  const discardChanges = useCallback(() => {
+    setScheduleDataLocal(savedScheduleData);
+    setHasUnsavedChanges(false);
+  }, [savedScheduleData]);
 
   // 근무자 상태 업데이트
   const setWorkerStatusData = useCallback((newDataOrUpdater: WorkerStatusData | ((prev: WorkerStatusData) => WorkerStatusData)) => {
@@ -357,6 +364,9 @@ export function useScheduleData() {
   return {
     scheduleData,
     setScheduleData,
+    saveScheduleData,
+    discardChanges,
+    hasUnsavedChanges,
     workerStatusData,
     setWorkerStatusData,
     saveWorkerStatus,

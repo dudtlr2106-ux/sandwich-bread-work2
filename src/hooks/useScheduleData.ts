@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { format, addDays, startOfWeek } from 'date-fns';
 
 // 잔업/휴가/휴무 상태 타입
 export type WorkerStatus = "normal" | "overtime" | "vacation" | "dayoff";
@@ -23,6 +24,7 @@ export type ScheduleData = {
   };
 };
 
+// 로테이션 규칙에 따른 기본 스케줄 (주차 생성 시 사용)
 export const initialScheduleData: ScheduleData = {
   foreman: {
     월: { A: ["박노일"], B: ["김영식"] },
@@ -63,8 +65,22 @@ export const initialScheduleData: ScheduleData = {
 };
 
 const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
+const DEPARTMENTS = ["foreman", "equipment", "inspection", "logistics"];
 
-export function useScheduleData() {
+// 주차 시작일을 기반으로 각 요일의 날짜 키(yyyy-MM-dd) 생성
+const getDateKeyForDay = (weekStart: Date, dayIndex: number): string => {
+  return format(addDays(weekStart, dayIndex), "yyyy-MM-dd");
+};
+
+// 주차 시작일을 기반으로 해당 주의 모든 날짜 키 생성
+const getWeekDateKeys = (weekStart: Date): string[] => {
+  return DAYS.map((_, index) => getDateKeyForDay(weekStart, index));
+};
+
+export function useScheduleData(currentWeekStart?: Date) {
+  const weekStart = currentWeekStart || startOfWeek(new Date(), { weekStartsOn: 1 });
+  const weekStartKey = format(weekStart, "yyyy-MM-dd");
+  
   const [scheduleData, setScheduleDataLocal] = useState<ScheduleData>(initialScheduleData);
   const [savedScheduleData, setSavedScheduleData] = useState<ScheduleData>(initialScheduleData);
   const [workerStatusData, setWorkerStatusDataLocal] = useState<WorkerStatusData>({});
@@ -73,35 +89,49 @@ export function useScheduleData() {
   const [weekendAvailability, setWeekendAvailabilityLocal] = useState<{ [workerName: string]: boolean }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // 이전 주차 키를 추적하여 주차 변경 감지
+  const prevWeekStartKeyRef = useRef<string>(weekStartKey);
 
-  // 데이터베이스에서 데이터 로드
+  // 데이터베이스에서 현재 주차 데이터 로드
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
+      const weekDateKeys = getWeekDateKeys(weekStart);
+      
       // 병렬로 모든 데이터 로드
       const [scheduleRes, statusRes, dayOffRes, memoRes, weekendRes] = await Promise.all([
-        supabase.from('schedule_data').select('*'),
-        supabase.from('worker_statuses').select('*'),
-        supabase.from('day_offs').select('*'),
+        supabase.from('schedule_data').select('*').in('date_key', weekDateKeys),
+        supabase.from('worker_statuses').select('*').in('date_key', weekDateKeys),
+        supabase.from('day_offs').select('*').in('date_key', weekDateKeys),
         supabase.from('notice_memos').select('*').limit(1),
         supabase.from('weekend_availability').select('*'),
       ]);
 
-      // 스케줄 데이터 처리
+      // 스케줄 데이터 처리 - 해당 주차 데이터가 있으면 로드, 없으면 초기 데이터 사용
+      const newScheduleData: ScheduleData = JSON.parse(JSON.stringify(initialScheduleData));
+      
       if (scheduleRes.data && scheduleRes.data.length > 0) {
-        const newScheduleData: ScheduleData = JSON.parse(JSON.stringify(initialScheduleData));
+        // DB에서 가져온 데이터로 덮어쓰기
         scheduleRes.data.forEach((row) => {
-          if (newScheduleData[row.department] && DAYS.includes(row.date_key)) {
-            newScheduleData[row.department][row.date_key] = {
-              ...newScheduleData[row.department][row.date_key],
-              [row.shift]: row.workers || [],
-            };
+          // date_key에서 요일 인덱스 찾기
+          const dayIndex = weekDateKeys.indexOf(row.date_key);
+          if (dayIndex !== -1 && DEPARTMENTS.includes(row.department)) {
+            const day = DAYS[dayIndex];
+            if (!newScheduleData[row.department]) {
+              newScheduleData[row.department] = {};
+            }
+            if (!newScheduleData[row.department][day]) {
+              newScheduleData[row.department][day] = { A: [], B: [] };
+            }
+            newScheduleData[row.department][day][row.shift as "A" | "B"] = row.workers || [];
           }
         });
-        setScheduleDataLocal(newScheduleData);
-        setSavedScheduleData(newScheduleData);
-        setHasUnsavedChanges(false);
       }
+      
+      setScheduleDataLocal(newScheduleData);
+      setSavedScheduleData(newScheduleData);
+      setHasUnsavedChanges(false);
 
       // 근무자 상태 데이터 처리
       if (statusRes.data && statusRes.data.length > 0) {
@@ -113,11 +143,15 @@ export function useScheduleData() {
           newStatusData[row.date_key][row.worker_name] = row.status as WorkerStatus;
         });
         setWorkerStatusDataLocal(newStatusData);
+      } else {
+        setWorkerStatusDataLocal({});
       }
 
       // 휴무일 데이터 처리
       if (dayOffRes.data && dayOffRes.data.length > 0) {
         setDayOffDatesLocal(new Set(dayOffRes.data.map((row) => row.date_key)));
+      } else {
+        setDayOffDatesLocal(new Set());
       }
 
       // 공지 메모 처리
@@ -139,37 +173,56 @@ export function useScheduleData() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [weekStart]);
 
-  // 컴포넌트 마운트 시 데이터 로드 및 실시간 구독
+  // 주차가 변경되면 데이터 다시 로드
   useEffect(() => {
+    if (prevWeekStartKeyRef.current !== weekStartKey) {
+      // 주차가 변경됨 - 미저장 변경사항 경고 없이 새 데이터 로드
+      prevWeekStartKeyRef.current = weekStartKey;
+      setHasUnsavedChanges(false);
+    }
     loadData();
+  }, [weekStartKey, loadData]);
 
-    // 실시간 구독 설정
+  // 실시간 구독 설정
+  useEffect(() => {
+    const weekDateKeys = getWeekDateKeys(weekStart);
+    
     const channel = supabase
-      .channel('schedule-realtime')
+      .channel(`schedule-realtime-${weekStartKey}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'schedule_data' },
-        () => {
-          console.log('Schedule data changed, reloading...');
-          loadData();
+        (payload) => {
+          // 현재 주차의 데이터 변경만 반영
+          const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
+          if (weekDateKeys.includes(dateKey)) {
+            console.log('Schedule data changed for current week, reloading...');
+            loadData();
+          }
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'worker_statuses' },
-        () => {
-          console.log('Worker statuses changed, reloading...');
-          loadData();
+        (payload) => {
+          const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
+          if (weekDateKeys.includes(dateKey)) {
+            console.log('Worker statuses changed for current week, reloading...');
+            loadData();
+          }
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'day_offs' },
-        () => {
-          console.log('Day offs changed, reloading...');
-          loadData();
+        (payload) => {
+          const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
+          if (weekDateKeys.includes(dateKey)) {
+            console.log('Day offs changed for current week, reloading...');
+            loadData();
+          }
         }
       )
       .on(
@@ -193,25 +246,31 @@ export function useScheduleData() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [loadData]);
+  }, [weekStartKey, weekStart, loadData]);
 
-  // 스케줄 데이터 저장 (디바운스 적용)
+  // 스케줄 데이터 저장 (현재 주차의 날짜 키로 저장)
   const saveScheduleToDb = useCallback(async (newData: ScheduleData) => {
+    const weekDateKeys = getWeekDateKeys(weekStart);
     const upsertData: { date_key: string; department: string; shift: string; workers: string[] }[] = [];
+    
     Object.entries(newData).forEach(([deptId, days]) => {
       Object.entries(days).forEach(([day, shifts]) => {
-        upsertData.push({
-          date_key: day,
-          department: deptId,
-          shift: 'A',
-          workers: shifts.A,
-        });
-        upsertData.push({
-          date_key: day,
-          department: deptId,
-          shift: 'B',
-          workers: shifts.B,
-        });
+        const dayIndex = DAYS.indexOf(day);
+        if (dayIndex !== -1) {
+          const dateKey = weekDateKeys[dayIndex];
+          upsertData.push({
+            date_key: dateKey,
+            department: deptId,
+            shift: 'A',
+            workers: shifts.A,
+          });
+          upsertData.push({
+            date_key: dateKey,
+            department: deptId,
+            shift: 'B',
+            workers: shifts.B,
+          });
+        }
       });
     });
 
@@ -222,8 +281,9 @@ export function useScheduleData() {
     if (error) {
       console.error('Failed to save schedule data:', error);
       toast.error('스케줄 저장에 실패했습니다');
+      throw error;
     }
-  }, []);
+  }, [weekStart]);
 
   // 스케줄 데이터 업데이트 (로컬만 - DB 저장 없음)
   const setScheduleData = useCallback((newDataOrUpdater: ScheduleData | ((prev: ScheduleData) => ScheduleData)) => {
@@ -236,10 +296,14 @@ export function useScheduleData() {
 
   // 스케줄 데이터를 DB에 저장
   const saveScheduleData = useCallback(async () => {
-    await saveScheduleToDb(scheduleData);
-    setSavedScheduleData(scheduleData);
-    setHasUnsavedChanges(false);
-    toast.success('스케줄이 저장되었습니다');
+    try {
+      await saveScheduleToDb(scheduleData);
+      setSavedScheduleData(scheduleData);
+      setHasUnsavedChanges(false);
+      toast.success('스케줄이 저장되었습니다');
+    } catch (error) {
+      // Error already handled in saveScheduleToDb
+    }
   }, [scheduleData, saveScheduleToDb]);
 
   // 변경사항 취소 (저장된 데이터로 복원)
@@ -247,6 +311,11 @@ export function useScheduleData() {
     setScheduleDataLocal(savedScheduleData);
     setHasUnsavedChanges(false);
   }, [savedScheduleData]);
+
+  // 날짜 키 헬퍼 함수
+  const getDateKey = useCallback((dayIndex: number): string => {
+    return getDateKeyForDay(weekStart, dayIndex);
+  }, [weekStart]);
 
   // 근무자 상태 업데이트
   const setWorkerStatusData = useCallback((newDataOrUpdater: WorkerStatusData | ((prev: WorkerStatusData) => WorkerStatusData)) => {
@@ -379,5 +448,6 @@ export function useScheduleData() {
     isWeekendAvailable,
     isLoading,
     refreshData: loadData,
+    getDateKey,
   };
 }

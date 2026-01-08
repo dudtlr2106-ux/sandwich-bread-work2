@@ -106,7 +106,12 @@ const WeeklySchedule = () => {
   const isMobile = useIsMobile();
   const { user, isAdmin, signOut, isLoading } = useAuth();
   
-  // 데이터베이스 연동 훅 사용
+  // 주차 상태를 먼저 정의
+  const [currentWeekStart, setCurrentWeekStart] = useState(() =>
+    startOfWeek(new Date(), { weekStartsOn: 1 })
+  );
+  
+  // 데이터베이스 연동 훅 사용 - 현재 주차를 전달
   const {
     scheduleData,
     setScheduleData,
@@ -123,11 +128,8 @@ const WeeklySchedule = () => {
     weekendAvailability,
     toggleWeekendAvailability: toggleWeekendAvailabilityDb,
     isLoading: isDataLoading,
-  } = useScheduleData();
-  
-  const [currentWeekStart, setCurrentWeekStart] = useState(() =>
-    startOfWeek(new Date(), { weekStartsOn: 1 })
-  );
+    getDateKey,
+  } = useScheduleData(currentWeekStart);
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingCell, setEditingCell] = useState<{
@@ -353,11 +355,6 @@ const WeeklySchedule = () => {
 
   const getDeptName = (deptId: string) => {
     return departments.find((d) => d.id === deptId)?.name || deptId;
-  };
-
-  // 날짜 키 생성 (yyyy-MM-dd 형식)
-  const getDateKey = (dayIndex: number) => {
-    return format(getDateForDay(dayIndex), "yyyy-MM-dd");
   };
 
   // 화수목 체크 (기본 잔업일)

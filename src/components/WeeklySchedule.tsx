@@ -49,10 +49,12 @@ import {
   LogIn,
   LogOut,
   Shield,
+  Settings,
 } from "lucide-react";
 import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
 import AttendanceRequestForm from "@/components/AttendanceRequestForm";
+import TeamManagement from "@/components/TeamManagement";
 // 기준 주차 (이번 주가 짝수 주차인지 홀수 주차인지 판단용)
 const BASE_WEEK_START = startOfWeek(new Date(), { weekStartsOn: 1 });
 
@@ -168,6 +170,9 @@ const WeeklySchedule = () => {
     day: string;
     currentStatus: string;
   } | null>(null);
+
+  // 팀 관리 화면 상태
+  const [showTeamManagement, setShowTeamManagement] = useState(false);
 
   // 근태 수정 요청 다이얼로그 열기
   const openRequestDialog = (workerName: string, dateKey: string, day: string, currentStatus: string) => {
@@ -590,6 +595,11 @@ const WeeklySchedule = () => {
     }
   };
 
+  // 팀 관리 화면을 보여주는 경우
+  if (showTeamManagement) {
+    return <TeamManagement onClose={() => setShowTeamManagement(false)} />;
+  }
+
   return (
     <>
       <Card className="w-full mx-auto shadow-lg border-0 bg-card animate-fade-in">
@@ -668,6 +678,18 @@ const WeeklySchedule = () => {
                   </div>
                 </SheetContent>
               </Sheet>
+
+              {/* 팀 관리 버튼 - 관리자만 표시 */}
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowTeamManagement(true)}
+                >
+                  <Settings className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">팀 관리</span>
+                </Button>
+              )}
               
               <Button
                 variant="outline"

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
-import { useScheduleData, WorkerStatus, WorkerStatusData, ScheduleData, initialScheduleData } from "@/hooks/useScheduleData";
+import { useScheduleData, WorkerStatus, WorkerStatusData, ScheduleData, initialScheduleData, SORTED_ALL_WORKERS } from "@/hooks/useScheduleData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -471,7 +471,7 @@ const WeeklySchedule = () => {
     }
   };
 
-  // 전체 근무자 목록 가져오기
+  // 전체 근무자 목록 가져오기 (조별 정렬: A조 → B조, 반장 → 1조 → 2조)
   const getAllWorkers = (): string[] => {
     const workersSet = new Set<string>();
     Object.values(scheduleData).forEach((deptData) => {
@@ -480,7 +480,10 @@ const WeeklySchedule = () => {
         dayData.B.forEach((worker) => workersSet.add(worker));
       });
     });
-    return Array.from(workersSet).sort();
+    // SORTED_ALL_WORKERS 순서대로 정렬, 그 외 근무자는 뒤에 추가
+    const sortedWorkers = SORTED_ALL_WORKERS.filter((w) => workersSet.has(w));
+    const otherWorkers = Array.from(workersSet).filter((w) => !SORTED_ALL_WORKERS.includes(w)).sort();
+    return [...sortedWorkers, ...otherWorkers];
   };
 
   // 주말 출근 가능 여부 토글 - 훅 사용

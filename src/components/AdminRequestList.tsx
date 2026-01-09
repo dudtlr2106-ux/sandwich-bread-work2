@@ -85,7 +85,8 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
   }, []);
 
   const handleApprove = async (request: AttendanceRequest) => {
-    const { error } = await supabase
+    // 1. 요청 상태를 approved로 업데이트
+    const { error: requestError } = await supabase
       .from("attendance_requests")
       .update({
         status: "approved",
@@ -94,18 +95,37 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
       })
       .eq("id", request.id);
 
-    if (error) {
+    if (requestError) {
       toast({
         variant: "destructive",
         title: "승인 실패",
       });
+      return;
+    }
+
+    // 2. worker_statuses 테이블에 근태 상태 반영
+    const { error: statusError } = await supabase
+      .from("worker_statuses")
+      .upsert(
+        {
+          worker_name: request.worker_name,
+          date_key: request.date_key,
+          status: request.requested_status,
+        },
+        { onConflict: "worker_name,date_key" }
+      );
+
+    if (statusError) {
+      toast({
+        variant: "destructive",
+        title: "근태 반영 실패",
+        description: "요청은 승인되었지만 근태 상태 변경에 실패했습니다",
+      });
     } else {
       toast({
         title: "승인 완료",
-        description: `${request.worker_name}님의 근태가 변경됩니다`,
+        description: `${request.worker_name}님의 근태가 ${statusLabels[request.requested_status]}(으)로 변경되었습니다`,
       });
-      // 부모에게 상태 변경 알림
-      onStatusChange?.(request.worker_name, request.date_key, request.requested_status);
     }
   };
 

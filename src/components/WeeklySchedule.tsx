@@ -57,6 +57,7 @@ import { ko } from "date-fns/locale";
 import AttendanceRequestForm from "@/components/AttendanceRequestForm";
 import TeamManagement from "@/components/TeamManagement";
 import AIPatternManager from "@/components/AIPatternManager";
+import PatternHistory from "@/components/PatternHistory";
 // 기준 주차 (이번 주가 짝수 주차인지 홀수 주차인지 판단용)
 const BASE_WEEK_START = startOfWeek(new Date(), { weekStartsOn: 1 });
 
@@ -178,6 +179,9 @@ const WeeklySchedule = () => {
 
   // AI 패턴 매니저 상태
   const [showAIPatternManager, setShowAIPatternManager] = useState(false);
+
+  // 패턴 히스토리 상태
+  const [showPatternHistory, setShowPatternHistory] = useState(false);
 
   // 근태 수정 요청 다이얼로그 열기
   const openRequestDialog = (workerName: string, dateKey: string, day: string, currentStatus: string) => {
@@ -615,7 +619,7 @@ const WeeklySchedule = () => {
       type: "early_leave" | "late_start" | "vacation" | "overtime";
       value?: string;
     }[];
-  }) => {
+  }, _command?: string, _action?: string, _description?: string) => {
     // 조 스왑 처리
     if (changes.swapShifts) {
       setScheduleData((prev) => {
@@ -1477,6 +1481,20 @@ const WeeklySchedule = () => {
         onClose={() => setShowAIPatternManager(false)}
         scheduleData={scheduleData}
         onApplyChanges={handleAIChanges}
+        onOpenHistory={() => {
+          setShowAIPatternManager(false);
+          setShowPatternHistory(true);
+        }}
+      />
+
+      {/* 패턴 히스토리 */}
+      <PatternHistory
+        isOpen={showPatternHistory}
+        onClose={() => setShowPatternHistory(false)}
+        onRestoreSchedule={(previousState) => {
+          setScheduleData(previousState);
+        }}
+        onReapplyChanges={handleAIChanges}
       />
     </>
   );

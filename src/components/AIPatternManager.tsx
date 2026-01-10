@@ -11,15 +11,17 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Send, Loader2, CheckCircle, XCircle, ArrowRightLeft, User, Clock } from "lucide-react";
+import { Sparkles, Send, Loader2, CheckCircle, XCircle, ArrowRightLeft, User, Clock, History } from "lucide-react";
 import { toast } from "sonner";
 import { ScheduleData } from "@/hooks/useScheduleData";
+import { usePatternRules, PatternRule } from "@/hooks/usePatternRules";
 
 interface AIPatternManagerProps {
   isOpen: boolean;
   onClose: () => void;
   scheduleData: ScheduleData;
-  onApplyChanges: (changes: AIScheduleChanges) => void;
+  onApplyChanges: (changes: AIScheduleChanges, command: string, action: string, description: string) => void;
+  onOpenHistory: () => void;
 }
 
 interface AIScheduleChanges {
@@ -51,7 +53,9 @@ const AIPatternManager: React.FC<AIPatternManagerProps> = ({
   onClose,
   scheduleData,
   onApplyChanges,
+  onOpenHistory,
 }) => {
+  const { addPatternRule } = usePatternRules();
   const [command, setCommand] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<AIResponse | null>(null);
@@ -105,9 +109,22 @@ const AIPatternManager: React.FC<AIPatternManagerProps> = ({
     }
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (response?.changes) {
-      onApplyChanges(response.changes);
+      // 현재 스케줄 상태를 저장 (롤백용)
+      const previousState = JSON.parse(JSON.stringify(scheduleData));
+      
+      // 패턴 규칙을 DB에 저장
+      await addPatternRule(
+        command,
+        response.action,
+        response.description,
+        response.changes,
+        previousState
+      );
+      
+      // 변경 적용
+      onApplyChanges(response.changes, command, response.action, response.description);
       toast.success("근무표가 업데이트되었습니다.");
       handleReset();
       onClose();
@@ -299,6 +316,10 @@ const AIPatternManager: React.FC<AIPatternManagerProps> = ({
         </div>
 
         <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onOpenHistory} disabled={isLoading}>
+            <History className="h-4 w-4 mr-2" />
+            히스토리
+          </Button>
           <Button variant="outline" onClick={handleReset} disabled={isLoading}>
             초기화
           </Button>

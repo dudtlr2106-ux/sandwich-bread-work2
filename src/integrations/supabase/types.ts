@@ -98,6 +98,45 @@ export type Database = {
         }
         Relationships: []
       }
+      pattern_rules: {
+        Row: {
+          action: string
+          applied_at: string
+          applied_by: string | null
+          changes: Json
+          command: string
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          previous_state: Json | null
+        }
+        Insert: {
+          action: string
+          applied_at?: string
+          applied_by?: string | null
+          changes?: Json
+          command: string
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean
+          previous_state?: Json | null
+        }
+        Update: {
+          action?: string
+          applied_at?: string
+          applied_by?: string | null
+          changes?: Json
+          command?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          previous_state?: Json | null
+        }
+        Relationships: []
+      }
       schedule_data: {
         Row: {
           created_at: string

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { format, addDays, startOfWeek } from 'date-fns';
+import { format, addDays, startOfWeek, isBefore, startOfDay } from 'date-fns';
+import { PatternRule } from '@/hooks/usePatternRules';
 
 // 잔업/휴가/휴무 상태 타입
 export type WorkerStatus = "normal" | "overtime" | "vacation" | "dayoff";
@@ -121,25 +122,78 @@ export function useScheduleData(currentWeekStart?: Date) {
   // 이전 주차 키를 추적하여 주차 변경 감지
   const prevWeekStartKeyRef = useRef<string>(weekStartKey);
 
+  // 마스터 룰 적용 함수
+  const applyMasterRules = useCallback((baseData: ScheduleData, rules: PatternRule[]): ScheduleData => {
+    let result = JSON.parse(JSON.stringify(baseData));
+    
+    rules.forEach((rule) => {
+      if (!rule.is_active) return;
+      
+      const changes = rule.changes;
+      
+      // 조 스왑 처리
+      if (changes.swapShifts) {
+        Object.keys(result).forEach((deptId) => {
+          Object.keys(result[deptId]).forEach((day) => {
+            const tempA = [...(result[deptId][day].A || [])];
+            const tempB = [...(result[deptId][day].B || [])];
+            result[deptId][day] = { A: tempB, B: tempA };
+          });
+        });
+      }
+      
+      // 인원 이동 처리
+      if (changes.workerMoves && changes.workerMoves.length > 0) {
+        changes.workerMoves.forEach((move) => {
+          if (move.fromShift && move.toShift && move.fromShift !== move.toShift) {
+            Object.keys(result).forEach((deptId) => {
+              Object.keys(result[deptId]).forEach((day) => {
+                const fromWorkers = result[deptId][day][move.fromShift!] as string[];
+                const toWorkers = result[deptId][day][move.toShift!] as string[];
+                const workerIndex = fromWorkers.indexOf(move.worker);
+                
+                if (workerIndex > -1) {
+                  fromWorkers.splice(workerIndex, 1);
+                  if (!toWorkers.includes(move.worker)) {
+                    toWorkers.push(move.worker);
+                  }
+                }
+              });
+            });
+          }
+        });
+      }
+    });
+    
+    return result;
+  }, []);
+
   // 데이터베이스에서 현재 주차 데이터 로드
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const weekDateKeys = getWeekDateKeys(weekStart);
+      const today = startOfDay(new Date());
+      const isFutureWeek = isBefore(today, weekStart);
       
       // 병렬로 모든 데이터 로드
-      const [scheduleRes, statusRes, dayOffRes, memoRes, weekendRes] = await Promise.all([
+      const [scheduleRes, statusRes, dayOffRes, memoRes, weekendRes, patternRes] = await Promise.all([
         supabase.from('schedule_data').select('*').in('date_key', weekDateKeys),
         supabase.from('worker_statuses').select('*').in('date_key', weekDateKeys),
         supabase.from('day_offs').select('*').in('date_key', weekDateKeys),
         supabase.from('notice_memos').select('*').limit(1),
         supabase.from('weekend_availability').select('*'),
+        // 미래 주차인 경우 마스터 룰도 로드
+        isFutureWeek 
+          ? supabase.from('pattern_rules').select('*').eq('is_active', true).order('applied_at', { ascending: true })
+          : Promise.resolve({ data: [] }),
       ]);
 
       // 스케줄 데이터 처리 - 해당 주차 데이터가 있으면 로드, 없으면 초기 데이터 사용
-      const newScheduleData: ScheduleData = JSON.parse(JSON.stringify(initialScheduleData));
+      let newScheduleData: ScheduleData = JSON.parse(JSON.stringify(initialScheduleData));
+      const hasExistingData = scheduleRes.data && scheduleRes.data.length > 0;
       
-      if (scheduleRes.data && scheduleRes.data.length > 0) {
+      if (hasExistingData) {
         // DB에서 가져온 데이터로 덮어쓰기
         scheduleRes.data.forEach((row) => {
           // date_key에서 요일 인덱스 찾기
@@ -155,6 +209,22 @@ export function useScheduleData(currentWeekStart?: Date) {
             newScheduleData[row.department][day][row.shift as "A" | "B"] = row.workers || [];
           }
         });
+      } else if (isFutureWeek && patternRes.data && patternRes.data.length > 0) {
+        // 미래 주차이고 기존 데이터가 없으면 마스터 룰 적용
+        const masterRules: PatternRule[] = patternRes.data.map((row) => ({
+          id: row.id,
+          command: row.command,
+          action: row.action,
+          description: row.description,
+          changes: row.changes as PatternRule['changes'],
+          previous_state: row.previous_state as ScheduleData | null,
+          applied_at: row.applied_at,
+          applied_by: row.applied_by,
+          is_active: row.is_active,
+          created_at: row.created_at,
+        }));
+        
+        newScheduleData = applyMasterRules(newScheduleData, masterRules);
       }
       
       setScheduleDataLocal(newScheduleData);
@@ -201,7 +271,7 @@ export function useScheduleData(currentWeekStart?: Date) {
     } finally {
       setIsLoading(false);
     }
-  }, [weekStart]);
+  }, [weekStart, applyMasterRules]);
 
   // 주차가 변경되면 데이터 다시 로드
   useEffect(() => {

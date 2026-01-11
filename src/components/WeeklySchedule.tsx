@@ -56,6 +56,7 @@ import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, is
 import { ko } from "date-fns/locale";
 import AttendanceRequestForm from "@/components/AttendanceRequestForm";
 import TeamManagement from "@/components/TeamManagement";
+import ScheduleModifier from "@/components/ScheduleModifier";
 // 기준 주차 (이번 주가 짝수 주차인지 홀수 주차인지 판단용)
 const BASE_WEEK_START = startOfWeek(new Date(), { weekStartsOn: 1 });
 
@@ -174,6 +175,9 @@ const WeeklySchedule = () => {
 
   // 팀 관리 화면 상태
   const [showTeamManagement, setShowTeamManagement] = useState(false);
+  
+  // 근무수정 다이얼로그 상태
+  const [showScheduleModifier, setShowScheduleModifier] = useState(false);
 
   // 근태 수정 요청 다이얼로그 열기
   const openRequestDialog = (workerName: string, dateKey: string, day: string, currentStatus: string) => {
@@ -584,6 +588,96 @@ const WeeklySchedule = () => {
     return notifications;
   };
 
+  // AI 근무수정 변경사항 적용
+  const handleAIChanges = (changes: {
+    swapShifts?: boolean;
+    workerMoves?: Array<{
+      worker: string;
+      fromDept?: string;
+      toDept?: string;
+      fromShift?: string;
+      toShift?: string;
+    }>;
+    individualChanges?: Array<{
+      worker: string;
+      type: string;
+      value?: string;
+    }>;
+  }) => {
+    setScheduleData((prev) => {
+      let newData = { ...prev };
+
+      // 조 스왑 (A조 ↔ B조)
+      if (changes.swapShifts) {
+        const deptIds = ["foreman", "equipment", "inspection", "logistics"];
+        deptIds.forEach((deptId) => {
+          DAYS.forEach((day) => {
+            const aWorkers = newData[deptId]?.[day]?.A || [];
+            const bWorkers = newData[deptId]?.[day]?.B || [];
+            newData[deptId] = {
+              ...newData[deptId],
+              [day]: {
+                A: bWorkers,
+                B: aWorkers,
+              },
+            };
+          });
+        });
+      }
+
+      // 개별 변경사항 (휴가, 잔업 등)
+      if (changes.individualChanges) {
+        changes.individualChanges.forEach((change) => {
+          const dateKey = getDateKey(0); // 현재 주의 월요일 기준
+          if (change.type === "vacation") {
+            saveWorkerStatus(dateKey, change.worker, "vacation");
+          } else if (change.type === "overtime") {
+            saveWorkerStatus(dateKey, change.worker, "overtime");
+          }
+        });
+      }
+
+      // 인원 이동 (조 변경)
+      if (changes.workerMoves) {
+        changes.workerMoves.forEach((move) => {
+          const deptIds = ["foreman", "equipment", "inspection", "logistics"];
+          deptIds.forEach((deptId) => {
+            DAYS.forEach((day) => {
+              // fromShift에서 제거
+              if (move.fromShift) {
+                const fromShiftKey = move.fromShift === "A" ? "A" : "B";
+                const workers = newData[deptId]?.[day]?.[fromShiftKey] || [];
+                if (workers.includes(move.worker)) {
+                  newData[deptId] = {
+                    ...newData[deptId],
+                    [day]: {
+                      ...newData[deptId][day],
+                      [fromShiftKey]: workers.filter((w) => w !== move.worker),
+                    },
+                  };
+                  // toShift에 추가
+                  if (move.toShift) {
+                    const toShiftKey = move.toShift === "A" ? "A" : "B";
+                    const toWorkers = newData[deptId]?.[day]?.[toShiftKey] || [];
+                    newData[deptId] = {
+                      ...newData[deptId],
+                      [day]: {
+                        ...newData[deptId][day],
+                        [toShiftKey]: [...toWorkers, move.worker],
+                      },
+                    };
+                  }
+                }
+              }
+            });
+          });
+        });
+      }
+
+      return newData;
+    });
+  };
+
   // 상태별 아이콘 및 스타일
   const getStatusStyle = (status: WorkerStatus) => {
     switch (status) {
@@ -692,15 +786,27 @@ const WeeklySchedule = () => {
                 </Button>
               )}
 
+              {/* 근무수정 버튼 - 관리자만 표시 */}
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowScheduleModifier(true)}
+                  className="bg-primary/5 border-primary/30 hover:bg-primary/10"
+                >
+                  <Sparkles className="h-4 w-4 sm:mr-2 text-primary" />
+                  <span className="hidden sm:inline">근무수정</span>
+                </Button>
+              )}
+
               {/* 패턴 관리 버튼 - 관리자만 표시 */}
               {isAdmin && (
                 <Link to="/pattern-management">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="bg-primary/5 border-primary/30 hover:bg-primary/10"
                   >
-                    <Sparkles className="h-4 w-4 sm:mr-2 text-primary" />
+                    <Sparkles className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">패턴 관리</span>
                   </Button>
                 </Link>
@@ -1361,6 +1467,14 @@ const WeeklySchedule = () => {
           currentStatus={requestingWorker.currentStatus}
         />
       )}
+
+      {/* AI 근무수정 다이얼로그 */}
+      <ScheduleModifier
+        isOpen={showScheduleModifier}
+        onClose={() => setShowScheduleModifier(false)}
+        scheduleData={scheduleData}
+        onApplyChanges={handleAIChanges}
+      />
 
       {/* 플로팅 저장 버튼 */}
       {hasUnsavedChanges && isAdmin && (

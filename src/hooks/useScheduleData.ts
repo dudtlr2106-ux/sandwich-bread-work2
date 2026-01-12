@@ -5,12 +5,25 @@ import { format, addDays, startOfWeek, isBefore, startOfDay } from 'date-fns';
 import { PatternRule } from '@/hooks/usePatternRules';
 
 // 잔업/휴가/휴무 상태 타입
-export type WorkerStatus = "normal" | "overtime" | "vacation" | "dayoff";
+export type WorkerStatus = "normal" | "overtime" | "vacation" | "partial_vacation" | "dayoff";
+
+// 시간휴가 정보 타입
+export type PartialVacationInfo = {
+  start_time: string;
+  end_time: string;
+};
 
 // 직원별 일별 상태 데이터
 export type WorkerStatusData = {
   [dateKey: string]: {
     [workerName: string]: WorkerStatus;
+  };
+};
+
+// 시간휴가 정보 데이터
+export type PartialVacationData = {
+  [dateKey: string]: {
+    [workerName: string]: PartialVacationInfo;
   };
 };
 
@@ -113,6 +126,7 @@ export function useScheduleData(currentWeekStart?: Date) {
   const [scheduleData, setScheduleDataLocal] = useState<ScheduleData>(initialScheduleData);
   const [savedScheduleData, setSavedScheduleData] = useState<ScheduleData>(initialScheduleData);
   const [workerStatusData, setWorkerStatusDataLocal] = useState<WorkerStatusData>({});
+  const [partialVacationData, setPartialVacationData] = useState<PartialVacationData>({});
   const [dayOffDates, setDayOffDatesLocal] = useState<Set<string>>(new Set());
   const [noticeMemo, setNoticeMemoLocal] = useState("");
   const [weekendAvailability, setWeekendAvailabilityLocal] = useState<{ [workerName: string]: boolean }>({});
@@ -177,7 +191,7 @@ export function useScheduleData(currentWeekStart?: Date) {
       const isFutureWeek = isBefore(today, weekStart);
       
       // 병렬로 모든 데이터 로드
-      const [scheduleRes, statusRes, dayOffRes, memoRes, weekendRes, patternRes] = await Promise.all([
+      const [scheduleRes, statusRes, dayOffRes, memoRes, weekendRes, patternRes, partialVacationRes] = await Promise.all([
         supabase.from('schedule_data').select('*').in('date_key', weekDateKeys),
         supabase.from('worker_statuses').select('*').in('date_key', weekDateKeys),
         supabase.from('day_offs').select('*').in('date_key', weekDateKeys),
@@ -187,6 +201,12 @@ export function useScheduleData(currentWeekStart?: Date) {
         isFutureWeek 
           ? supabase.from('pattern_rules').select('*').eq('is_active', true).order('applied_at', { ascending: true })
           : Promise.resolve({ data: [] }),
+        // 시간휴가 정보 로드 (승인된 partial_vacation 요청에서)
+        supabase.from('attendance_requests')
+          .select('worker_name, date_key, start_time, end_time')
+          .in('date_key', weekDateKeys)
+          .eq('requested_status', 'partial_vacation')
+          .eq('status', 'approved'),
       ]);
 
       // 스케줄 데이터 처리 - 해당 주차 데이터가 있으면 로드, 없으면 초기 데이터 사용
@@ -265,6 +285,25 @@ export function useScheduleData(currentWeekStart?: Date) {
         });
         setWeekendAvailabilityLocal(availability);
       }
+
+      // 시간휴가 정보 처리
+      if (partialVacationRes.data && partialVacationRes.data.length > 0) {
+        const partialData: PartialVacationData = {};
+        partialVacationRes.data.forEach((row) => {
+          if (row.start_time && row.end_time) {
+            if (!partialData[row.date_key]) {
+              partialData[row.date_key] = {};
+            }
+            partialData[row.date_key][row.worker_name] = {
+              start_time: row.start_time,
+              end_time: row.end_time,
+            };
+          }
+        });
+        setPartialVacationData(partialData);
+      } else {
+        setPartialVacationData({});
+      }
     } catch (error) {
       console.error('Failed to load data from database:', error);
       toast.error('데이터 로드에 실패했습니다');
@@ -337,6 +376,17 @@ export function useScheduleData(currentWeekStart?: Date) {
         () => {
           console.log('Weekend availability changed, reloading...');
           loadData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'attendance_requests' },
+        (payload) => {
+          const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
+          if (weekDateKeys.includes(dateKey)) {
+            console.log('Attendance requests changed for current week, reloading...');
+            loadData();
+          }
         }
       )
       .subscribe();
@@ -537,6 +587,7 @@ export function useScheduleData(currentWeekStart?: Date) {
     workerStatusData,
     setWorkerStatusData,
     saveWorkerStatus,
+    partialVacationData,
     dayOffDates,
     toggleDayOff,
     noticeMemo,

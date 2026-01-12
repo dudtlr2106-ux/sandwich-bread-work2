@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
-import { useScheduleData, WorkerStatus, WorkerStatusData, ScheduleData, initialScheduleData, SORTED_ALL_WORKERS } from "@/hooks/useScheduleData";
+import { useScheduleData, WorkerStatus, WorkerStatusData, ScheduleData, initialScheduleData, SORTED_ALL_WORKERS, PartialVacationData } from "@/hooks/useScheduleData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -125,6 +125,7 @@ const WeeklySchedule = () => {
     workerStatusData,
     setWorkerStatusData,
     saveWorkerStatus,
+    partialVacationData,
     dayOffDates,
     toggleDayOff: toggleDayOffDb,
     noticeMemo,
@@ -461,10 +462,37 @@ const WeeklySchedule = () => {
     });
   };
 
-  // 출퇴근 시간 정보 가져오기
-  const getShiftTimes = (shift: "A" | "B", day: string, status: WorkerStatus) => {
+  // 출퇴근 시간 정보 가져오기 (시간휴가 반영)
+  const getShiftTimes = (shift: "A" | "B", day: string, status: WorkerStatus, worker?: string, dateKey?: string) => {
     const isFirstShift = shift === "A";
     const isOvertime = status === "overtime";
+    
+    // 시간휴가인 경우 시간 조정
+    if (status === "partial_vacation" && worker && dateKey) {
+      const partialInfo = partialVacationData[dateKey]?.[worker];
+      if (partialInfo) {
+        const vacationStart = partialInfo.start_time.replace(":", "").slice(0, 2);
+        const vacationEnd = partialInfo.end_time.replace(":", "").slice(0, 2);
+        
+        if (isFirstShift) {
+          // 초반조 (06-14)
+          const baseStart = "06";
+          const baseEnd = isOvertime ? "18" : "14";
+          
+          // 시작 시간이 휴가 종료 시간 이후면 조정
+          const adjustedStart = vacationStart === baseStart ? vacationEnd : baseStart;
+          return { start: adjustedStart, end: baseEnd };
+        } else {
+          // 중반조 (14-22)
+          const baseStart = isOvertime ? "10" : "14";
+          const baseEnd = "22";
+          
+          // 종료 시간이 휴가 시작 시간 이전으로 조정
+          const adjustedEnd = vacationEnd === baseEnd ? vacationStart : baseEnd;
+          return { start: baseStart, end: adjustedEnd };
+        }
+      }
+    }
     
     if (isFirstShift) {
       // 초반조
@@ -685,6 +713,8 @@ const WeeklySchedule = () => {
         return { icon: null, className: "text-orange-600 font-medium" };
       case "vacation":
         return { icon: <Palmtree className="h-3 w-3 text-green-500" />, className: "text-green-600 line-through" };
+      case "partial_vacation":
+        return { icon: <Clock className="h-3 w-3 text-blue-500" />, className: "text-blue-600" };
       default:
         return { icon: null, className: "" };
     }
@@ -1023,7 +1053,7 @@ const WeeklySchedule = () => {
                                   firstShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
                                     const statusStyle = getStatusStyle(status);
-                                    const times = getShiftTimes(firstShiftKey, day, status);
+                                    const times = getShiftTimes(firstShiftKey, day, status, worker, dateKey);
                                     return (
                                       <DropdownMenu key={idx}>
                                         <DropdownMenuTrigger asChild>
@@ -1096,7 +1126,7 @@ const WeeklySchedule = () => {
                                   secondShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
                                     const statusStyle = getStatusStyle(status);
-                                    const times = getShiftTimes(secondShiftKey, day, status);
+                                    const times = getShiftTimes(secondShiftKey, day, status, worker, dateKey);
                                     return (
                                       <DropdownMenu key={idx}>
                                         <DropdownMenuTrigger asChild>

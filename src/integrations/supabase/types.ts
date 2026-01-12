@@ -20,6 +20,7 @@ export type Database = {
           current_status: string | null
           date_key: string
           day: string
+          end_time: string | null
           id: string
           reason: string | null
           rejection_reason: string | null
@@ -27,6 +28,7 @@ export type Database = {
           requester_name: string
           reviewed_at: string | null
           reviewed_by: string | null
+          start_time: string | null
           status: string
           worker_name: string
         }
@@ -35,6 +37,7 @@ export type Database = {
           current_status?: string | null
           date_key: string
           day: string
+          end_time?: string | null
           id?: string
           reason?: string | null
           rejection_reason?: string | null
@@ -42,6 +45,7 @@ export type Database = {
           requester_name: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          start_time?: string | null
           status?: string
           worker_name: string
         }
@@ -50,6 +54,7 @@ export type Database = {
           current_status?: string | null
           date_key?: string
           day?: string
+          end_time?: string | null
           id?: string
           reason?: string | null
           rejection_reason?: string | null
@@ -57,6 +62,7 @@ export type Database = {
           requester_name?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          start_time?: string | null
           status?: string
           worker_name?: string
         }

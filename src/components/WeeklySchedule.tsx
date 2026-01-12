@@ -462,46 +462,63 @@ const WeeklySchedule = () => {
     });
   };
 
-  // 출퇴근 시간 정보 가져오기 (시간휴가 반영)
+  // 시간휴가 정보 가져오기
+  const getPartialVacationInfo = (worker: string, dateKey: string) => {
+    return partialVacationData[dateKey]?.[worker] || null;
+  };
+
+  // 출퇴근 시간 정보 가져오기 (시간휴가 + 잔업 동시 반영)
   const getShiftTimes = (shift: "A" | "B", day: string, status: WorkerStatus, worker?: string, dateKey?: string) => {
     const isFirstShift = shift === "A";
     const isOvertime = status === "overtime";
     
-    // 시간휴가인 경우 시간 조정
-    if (status === "partial_vacation" && worker && dateKey) {
-      const partialInfo = partialVacationData[dateKey]?.[worker];
-      if (partialInfo) {
-        const vacationStart = partialInfo.start_time.replace(":", "").slice(0, 2);
-        const vacationEnd = partialInfo.end_time.replace(":", "").slice(0, 2);
+    // 시간휴가 정보 확인 (잔업 상태와 무관하게 확인)
+    const partialInfo = worker && dateKey ? partialVacationData[dateKey]?.[worker] : null;
+    
+    if (partialInfo) {
+      const vacationStartHour = parseInt(partialInfo.start_time.split(":")[0]);
+      const vacationEndHour = parseInt(partialInfo.end_time.split(":")[0]);
+      
+      if (isFirstShift) {
+        // 초반조 기본: 06-14, 잔업 시: 06-18
+        const baseStart = 6;
+        const baseEnd = isOvertime ? 18 : 14;
         
-        if (isFirstShift) {
-          // 초반조 (06-14)
-          const baseStart = "06";
-          const baseEnd = isOvertime ? "18" : "14";
-          
-          // 시작 시간이 휴가 종료 시간 이후면 조정
-          const adjustedStart = vacationStart === baseStart ? vacationEnd : baseStart;
-          return { start: adjustedStart, end: baseEnd };
-        } else {
-          // 중반조 (14-22)
-          const baseStart = isOvertime ? "10" : "14";
-          const baseEnd = "22";
-          
-          // 종료 시간이 휴가 시작 시간 이전으로 조정
-          const adjustedEnd = vacationEnd === baseEnd ? vacationStart : baseEnd;
-          return { start: baseStart, end: adjustedEnd };
+        // 휴가 시간이 시작 시간과 겹치면 조정
+        let adjustedStart = baseStart;
+        if (vacationStartHour <= baseStart && vacationEndHour > baseStart) {
+          adjustedStart = vacationEndHour;
         }
+        
+        return { 
+          start: adjustedStart.toString().padStart(2, "0"), 
+          end: baseEnd.toString().padStart(2, "0") 
+        };
+      } else {
+        // 중반조 기본: 14-22, 잔업 시: 10-22
+        const baseStart = isOvertime ? 10 : 14;
+        const baseEnd = 22;
+        
+        // 휴가 시간이 종료 시간과 겹치면 조정
+        let adjustedEnd = baseEnd;
+        if (vacationEndHour >= baseEnd && vacationStartHour < baseEnd) {
+          adjustedEnd = vacationStartHour;
+        }
+        
+        return { 
+          start: baseStart.toString().padStart(2, "0"), 
+          end: adjustedEnd.toString().padStart(2, "0") 
+        };
       }
     }
     
+    // 시간휴가 없는 경우 기본 시간
     if (isFirstShift) {
-      // 초반조
       return {
         start: "06",
         end: isOvertime ? "18" : "14",
       };
     } else {
-      // 중반조
       return {
         start: isOvertime ? "10" : "14",
         end: "22",
@@ -706,8 +723,13 @@ const WeeklySchedule = () => {
     });
   };
 
-  // 상태별 아이콘 및 스타일
-  const getStatusStyle = (status: WorkerStatus) => {
+  // 상태별 아이콘 및 스타일 (시간휴가 포함 여부도 체크)
+  const getStatusStyle = (status: WorkerStatus, hasPartialVacation?: boolean) => {
+    // 잔업 + 시간휴가 동시인 경우
+    if (status === "overtime" && hasPartialVacation) {
+      return { icon: <Clock className="h-3 w-3 text-orange-500" />, className: "text-orange-600 font-medium" };
+    }
+    
     switch (status) {
       case "overtime":
         return { icon: null, className: "text-orange-600 font-medium" };
@@ -716,6 +738,10 @@ const WeeklySchedule = () => {
       case "partial_vacation":
         return { icon: <Clock className="h-3 w-3 text-blue-500" />, className: "text-blue-600" };
       default:
+        // 정상 상태이지만 시간휴가가 있는 경우
+        if (hasPartialVacation) {
+          return { icon: <Clock className="h-3 w-3 text-orange-500" />, className: "text-orange-600" };
+        }
         return { icon: null, className: "" };
     }
   };
@@ -1052,7 +1078,8 @@ const WeeklySchedule = () => {
                                 {firstShiftWorkers.length > 0 ? (
                                   firstShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
-                                    const statusStyle = getStatusStyle(status);
+                                    const hasPartialVacation = !!getPartialVacationInfo(worker, dateKey);
+                                    const statusStyle = getStatusStyle(status, hasPartialVacation);
                                     const times = getShiftTimes(firstShiftKey, day, status, worker, dateKey);
                                     return (
                                       <DropdownMenu key={idx}>
@@ -1125,7 +1152,8 @@ const WeeklySchedule = () => {
                                 {secondShiftWorkers.length > 0 ? (
                                   secondShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
-                                    const statusStyle = getStatusStyle(status);
+                                    const hasPartialVacation = !!getPartialVacationInfo(worker, dateKey);
+                                    const statusStyle = getStatusStyle(status, hasPartialVacation);
                                     const times = getShiftTimes(secondShiftKey, day, status, worker, dateKey);
                                     return (
                                       <DropdownMenu key={idx}>

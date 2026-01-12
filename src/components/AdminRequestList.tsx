@@ -25,6 +25,8 @@ interface AttendanceRequest {
   created_at: string;
   rejection_reason: string | null;
   reviewed_at: string | null;
+  start_time: string | null;
+  end_time: string | null;
 }
 
 interface AdminRequestListProps {
@@ -35,6 +37,7 @@ const statusLabels: Record<string, string> = {
   normal: "정상",
   overtime: "잔업",
   vacation: "휴가",
+  partial_vacation: "시간휴가",
   dayoff: "휴무",
 };
 
@@ -255,6 +258,9 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
                           {statusLabels[request.current_status || "normal"]} → 
                           <span className="font-medium text-primary">
                             {statusLabels[request.requested_status]}
+                            {request.requested_status === "partial_vacation" && request.start_time && request.end_time && (
+                              <span className="ml-1">({request.start_time} ~ {request.end_time})</span>
+                            )}
                           </span>
                         </div>
                         {request.reason && (
@@ -312,6 +318,9 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
                           {statusLabels[request.current_status || "normal"]} → 
                           <span className="font-medium text-green-700">
                             {statusLabels[request.requested_status]}
+                            {request.requested_status === "partial_vacation" && request.start_time && request.end_time && (
+                              <span className="ml-1">({request.start_time} ~ {request.end_time})</span>
+                            )}
                           </span>
                         </div>
                         {request.reason && (
@@ -352,6 +361,9 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
                         <div className="text-sm text-muted-foreground">
                           {request.date_key} ({request.day}) • 
                           {statusLabels[request.current_status || "normal"]} → {statusLabels[request.requested_status]}
+                          {request.requested_status === "partial_vacation" && request.start_time && request.end_time && (
+                            <span className="ml-1">({request.start_time} ~ {request.end_time})</span>
+                          )}
                         </div>
                         {request.rejection_reason && (
                           <div className="text-sm text-destructive">

@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Send } from "lucide-react";
+import { Send, Clock } from "lucide-react";
 
 interface AttendanceRequestFormProps {
   open: boolean;
@@ -22,6 +22,7 @@ const statusOptions = [
   { value: "normal", label: "정상" },
   { value: "overtime", label: "잔업" },
   { value: "vacation", label: "휴가" },
+  { value: "partial_vacation", label: "시간휴가" },
   { value: "dayoff", label: "휴무" },
 ];
 
@@ -37,6 +38,8 @@ const AttendanceRequestForm = ({
   const [requesterName, setRequesterName] = useState("");
   const [requestedStatus, setRequestedStatus] = useState("");
   const [reason, setReason] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,6 +61,25 @@ const AttendanceRequestForm = ({
       return;
     }
 
+    if (requestedStatus === "partial_vacation") {
+      if (!startTime || !endTime) {
+        toast({
+          variant: "destructive",
+          title: "시간휴가 시간을 입력하세요",
+          description: "시작 시간과 종료 시간을 모두 입력해주세요",
+        });
+        return;
+      }
+      if (startTime >= endTime) {
+        toast({
+          variant: "destructive",
+          title: "시간을 확인하세요",
+          description: "종료 시간이 시작 시간보다 늦어야 합니다",
+        });
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     const { error } = await supabase.from("attendance_requests").insert({
@@ -68,6 +90,8 @@ const AttendanceRequestForm = ({
       current_status: currentStatus,
       requested_status: requestedStatus,
       reason: reason.trim() || null,
+      start_time: requestedStatus === "partial_vacation" ? startTime : null,
+      end_time: requestedStatus === "partial_vacation" ? endTime : null,
     });
 
     if (error) {
@@ -85,6 +109,8 @@ const AttendanceRequestForm = ({
       setRequesterName("");
       setRequestedStatus("");
       setReason("");
+      setStartTime("");
+      setEndTime("");
     }
 
     setIsSubmitting(false);
@@ -92,6 +118,14 @@ const AttendanceRequestForm = ({
 
   const getStatusLabel = (status: string) => {
     return statusOptions.find((opt) => opt.value === status)?.label || status;
+  };
+
+  const handleStatusChange = (value: string) => {
+    setRequestedStatus(value);
+    if (value !== "partial_vacation") {
+      setStartTime("");
+      setEndTime("");
+    }
   };
 
   return (
@@ -132,7 +166,7 @@ const AttendanceRequestForm = ({
           
           <div className="space-y-2">
             <Label htmlFor="status">변경할 상태</Label>
-            <Select value={requestedStatus} onValueChange={setRequestedStatus}>
+            <Select value={requestedStatus} onValueChange={handleStatusChange}>
               <SelectTrigger>
                 <SelectValue placeholder="상태 선택" />
               </SelectTrigger>
@@ -147,6 +181,35 @@ const AttendanceRequestForm = ({
               </SelectContent>
             </Select>
           </div>
+
+          {requestedStatus === "partial_vacation" && (
+            <div className="space-y-3 p-3 bg-muted/50 rounded-lg border">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                시간휴가 시간 설정
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="startTime">시작 시간</Label>
+                  <Input
+                    id="startTime"
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endTime">종료 시간</Label>
+                  <Input
+                    id="endTime"
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
           
           <div className="space-y-2">
             <Label htmlFor="reason">사유 (선택)</Label>

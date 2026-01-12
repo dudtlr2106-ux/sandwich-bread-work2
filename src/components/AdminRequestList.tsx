@@ -106,7 +106,17 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
       return;
     }
 
-    // 2. worker_statuses 테이블에 근태 상태 반영
+    // 2. 시간휴가(partial_vacation)는 기존 상태를 유지하고, 
+    //    attendance_requests 테이블만 참조하여 표시하므로 worker_statuses를 변경하지 않음
+    if (request.requested_status === "partial_vacation") {
+      toast({
+        title: "승인 완료",
+        description: `${request.worker_name}님의 시간휴가(${request.start_time} ~ ${request.end_time})가 승인되었습니다`,
+      });
+      return;
+    }
+
+    // 3. 시간휴가 외의 상태는 worker_statuses 테이블에 근태 상태 반영
     const { error: statusError } = await supabase
       .from("worker_statuses")
       .upsert(

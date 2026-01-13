@@ -184,7 +184,7 @@ export function useScheduleData(currentWeekStart?: Date) {
 
   // 부서별 로테이션 인원 수 설정
   const DEPARTMENT_ROTATION_SIZE: Record<'logistics' | 'equipment' | 'inspection', { early: number; mid: number }> = {
-    logistics: { early: 3, mid: 3 },    // 물류: 초반 3명, 중반 3명 (총 6명)
+    logistics: { early: 1, mid: 1 },    // 물류: 초반 1명, 중반 1명 (총 2명)
     equipment: { early: 3, mid: 3 },    // 설비: 초반 3명, 중반 3명 (총 6명)
     inspection: { early: 2, mid: 2 },   // 검사: 초반 2명, 중반 2명 (총 4명)
   };

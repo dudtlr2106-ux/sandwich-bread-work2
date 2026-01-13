@@ -183,10 +183,11 @@ export function useScheduleData(currentWeekStart?: Date) {
   }, []);
 
   // 부서별 로테이션 인원 수 설정
-  const DEPARTMENT_ROTATION_SIZE: Record<'logistics' | 'equipment' | 'inspection', { early: number; mid: number }> = {
+  const DEPARTMENT_ROTATION_SIZE: Record<'logistics' | 'equipment' | 'inspection' | 'foreman', { early: number; mid: number }> = {
     logistics: { early: 1, mid: 1 },    // 물류: 초반 1명, 중반 1명 (총 2명)
     equipment: { early: 3, mid: 3 },    // 설비: 초반 3명, 중반 3명 (총 6명)
     inspection: { early: 2, mid: 2 },   // 검사: 초반 2명, 중반 2명 (총 4명)
+    foreman: { early: 1, mid: 1 },      // 반장: 초반 1명, 중반 1명 (총 2명)
   };
 
   // 부서별 로테이션 플레이리스트 적용 함수
@@ -194,7 +195,7 @@ export function useScheduleData(currentWeekStart?: Date) {
     baseData: ScheduleData, 
     playlist: { worker_name: string; position: number }[],
     weekOffset: number,
-    department: 'logistics' | 'equipment' | 'inspection'
+    department: 'logistics' | 'equipment' | 'inspection' | 'foreman'
   ): ScheduleData => {
     const rotationSize = DEPARTMENT_ROTATION_SIZE[department];
     const totalPerWeek = rotationSize.early + rotationSize.mid;
@@ -245,7 +246,7 @@ export function useScheduleData(currentWeekStart?: Date) {
       const weekOffset = Math.floor((weekStart.getTime() - currentWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
       
       // 병렬로 모든 데이터 로드
-      const [scheduleRes, statusRes, dayOffRes, memoRes, weekendRes, patternRes, partialVacationRes, logisticsPlaylistRes, equipmentPlaylistRes, inspectionPlaylistRes] = await Promise.all([
+      const [scheduleRes, statusRes, dayOffRes, memoRes, weekendRes, patternRes, partialVacationRes, logisticsPlaylistRes, equipmentPlaylistRes, inspectionPlaylistRes, foremanPlaylistRes] = await Promise.all([
         supabase.from('schedule_data').select('*').in('date_key', weekDateKeys),
         supabase.from('worker_statuses').select('*').in('date_key', weekDateKeys),
         supabase.from('day_offs').select('*').in('date_key', weekDateKeys),
@@ -273,6 +274,10 @@ export function useScheduleData(currentWeekStart?: Date) {
         isCurrentOrFutureWeek
           ? supabase.from('inspection_rotation_playlist').select('*').order('position', { ascending: true })
           : Promise.resolve({ data: [] }),
+        // 반장 로테이션 플레이리스트 로드 (현재 주 포함)
+        isCurrentOrFutureWeek
+          ? supabase.from('foreman_rotation_playlist').select('*').order('position', { ascending: true })
+          : Promise.resolve({ data: [] }),
       ]);
 
       // 스케줄 데이터 처리 - 해당 주차 데이터가 있으면 로드, 없으면 초기 데이터 사용
@@ -297,6 +302,11 @@ export function useScheduleData(currentWeekStart?: Date) {
         });
       } else if (isCurrentOrFutureWeek) {
         // 미래 주차이고 기존 데이터가 없으면 각 부서 플레이리스트 + 마스터 룰 적용
+        
+        // 0. 반장 로테이션 플레이리스트 적용
+        if (foremanPlaylistRes.data && foremanPlaylistRes.data.length >= 2) {
+          newScheduleData = applyDepartmentPlaylist(newScheduleData, foremanPlaylistRes.data, weekOffset, 'foreman');
+        }
         
         // 1. 물류 로테이션 플레이리스트 적용
         if (logisticsPlaylistRes.data && logisticsPlaylistRes.data.length >= 2) {

@@ -182,6 +182,37 @@ export function useScheduleData(currentWeekStart?: Date) {
     return result;
   }, []);
 
+  // 물류 로테이션 플레이리스트 적용 함수
+  const applyLogisticsPlaylist = useCallback((
+    baseData: ScheduleData, 
+    playlist: { worker_name: string; position: number }[],
+    weekOffset: number // 현재 주 기준 몇 주 후인지
+  ): ScheduleData => {
+    if (playlist.length < 2) return baseData;
+    
+    const result = JSON.parse(JSON.stringify(baseData));
+    
+    // 주차 오프셋에 따라 플레이리스트에서 배정할 인원 계산 (Loop 순환)
+    const earlyIndex = (weekOffset * 2) % playlist.length;
+    const midIndex = (weekOffset * 2 + 1) % playlist.length;
+    
+    const earlyWorker = playlist[earlyIndex]?.worker_name;
+    const midWorker = playlist[midIndex]?.worker_name;
+    
+    if (!earlyWorker || !midWorker) return result;
+    
+    // 물류 부서에 배정 (월~금)
+    const weekdays = ["월", "화", "수", "목", "금"];
+    weekdays.forEach((day) => {
+      if (result.logistics && result.logistics[day]) {
+        result.logistics[day].A = [earlyWorker];
+        result.logistics[day].B = [midWorker];
+      }
+    });
+    
+    return result;
+  }, []);
+
   // 데이터베이스에서 현재 주차 데이터 로드
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -190,8 +221,12 @@ export function useScheduleData(currentWeekStart?: Date) {
       const today = startOfDay(new Date());
       const isFutureWeek = isBefore(today, weekStart);
       
+      // 주차 오프셋 계산 (현재 주 기준)
+      const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+      const weekOffset = Math.floor((weekStart.getTime() - currentWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
+      
       // 병렬로 모든 데이터 로드
-      const [scheduleRes, statusRes, dayOffRes, memoRes, weekendRes, patternRes, partialVacationRes] = await Promise.all([
+      const [scheduleRes, statusRes, dayOffRes, memoRes, weekendRes, patternRes, partialVacationRes, logisticsPlaylistRes] = await Promise.all([
         supabase.from('schedule_data').select('*').in('date_key', weekDateKeys),
         supabase.from('worker_statuses').select('*').in('date_key', weekDateKeys),
         supabase.from('day_offs').select('*').in('date_key', weekDateKeys),
@@ -207,6 +242,10 @@ export function useScheduleData(currentWeekStart?: Date) {
           .in('date_key', weekDateKeys)
           .eq('requested_status', 'partial_vacation')
           .eq('status', 'approved'),
+        // 물류 로테이션 플레이리스트 로드
+        isFutureWeek
+          ? supabase.from('logistics_rotation_playlist').select('*').order('position', { ascending: true })
+          : Promise.resolve({ data: [] }),
       ]);
 
       // 스케줄 데이터 처리 - 해당 주차 데이터가 있으면 로드, 없으면 초기 데이터 사용
@@ -229,22 +268,31 @@ export function useScheduleData(currentWeekStart?: Date) {
             newScheduleData[row.department][day][row.shift as "A" | "B"] = row.workers || [];
           }
         });
-      } else if (isFutureWeek && patternRes.data && patternRes.data.length > 0) {
-        // 미래 주차이고 기존 데이터가 없으면 마스터 룰 적용
-        const masterRules: PatternRule[] = patternRes.data.map((row) => ({
-          id: row.id,
-          command: row.command,
-          action: row.action,
-          description: row.description,
-          changes: row.changes as PatternRule['changes'],
-          previous_state: row.previous_state as ScheduleData | null,
-          applied_at: row.applied_at,
-          applied_by: row.applied_by,
-          is_active: row.is_active,
-          created_at: row.created_at,
-        }));
+      } else if (isFutureWeek) {
+        // 미래 주차이고 기존 데이터가 없으면 물류 플레이리스트 + 마스터 룰 적용
         
-        newScheduleData = applyMasterRules(newScheduleData, masterRules);
+        // 1. 물류 로테이션 플레이리스트 적용
+        if (logisticsPlaylistRes.data && logisticsPlaylistRes.data.length >= 2) {
+          newScheduleData = applyLogisticsPlaylist(newScheduleData, logisticsPlaylistRes.data, weekOffset);
+        }
+        
+        // 2. 마스터 룰 적용 (플레이리스트 적용 후)
+        if (patternRes.data && patternRes.data.length > 0) {
+          const masterRules: PatternRule[] = patternRes.data.map((row) => ({
+            id: row.id,
+            command: row.command,
+            action: row.action,
+            description: row.description,
+            changes: row.changes as PatternRule['changes'],
+            previous_state: row.previous_state as ScheduleData | null,
+            applied_at: row.applied_at,
+            applied_by: row.applied_by,
+            is_active: row.is_active,
+            created_at: row.created_at,
+          }));
+          
+          newScheduleData = applyMasterRules(newScheduleData, masterRules);
+        }
       }
       
       setScheduleDataLocal(newScheduleData);

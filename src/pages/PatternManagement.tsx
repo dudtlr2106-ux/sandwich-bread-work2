@@ -37,11 +37,14 @@ import {
   AlertTriangle,
   Circle,
   ListMusic,
+  Truck,
+  Wrench,
+  ClipboardCheck,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { toast } from "sonner";
-import { LogisticsRotationPlaylist } from "@/components/LogisticsRotationPlaylist";
+import { RotationPlaylist } from "@/components/RotationPlaylist";
 
 interface AIInterpretation {
   targetGroup: "A조" | "B조" | "전체" | "개별";
@@ -268,21 +271,39 @@ const PatternManagement = () => {
         </div>
 
         {/* 탭 네비게이션 */}
-        <Tabs defaultValue="playlist" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="playlist" className="gap-2">
-              <ListMusic className="h-4 w-4" />
-              물류 로테이션
+        <Tabs defaultValue="logistics" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="logistics" className="gap-1 text-xs px-2">
+              <Truck className="h-4 w-4" />
+              <span className="hidden sm:inline">물류</span>
             </TabsTrigger>
-            <TabsTrigger value="rules" className="gap-2">
+            <TabsTrigger value="equipment" className="gap-1 text-xs px-2">
+              <Wrench className="h-4 w-4" />
+              <span className="hidden sm:inline">설비</span>
+            </TabsTrigger>
+            <TabsTrigger value="inspection" className="gap-1 text-xs px-2">
+              <ClipboardCheck className="h-4 w-4" />
+              <span className="hidden sm:inline">검사</span>
+            </TabsTrigger>
+            <TabsTrigger value="rules" className="gap-1 text-xs px-2">
               <Sparkles className="h-4 w-4" />
-              마스터 룰
+              <span className="hidden sm:inline">마스터 룰</span>
             </TabsTrigger>
           </TabsList>
 
           {/* 물류 로테이션 플레이리스트 탭 */}
-          <TabsContent value="playlist" className="mt-4 space-y-4">
-            <LogisticsRotationPlaylist />
+          <TabsContent value="logistics" className="mt-4 space-y-4">
+            <RotationPlaylist department="logistics" />
+          </TabsContent>
+
+          {/* 설비 로테이션 플레이리스트 탭 */}
+          <TabsContent value="equipment" className="mt-4 space-y-4">
+            <RotationPlaylist department="equipment" />
+          </TabsContent>
+
+          {/* 검사 로테이션 플레이리스트 탭 */}
+          <TabsContent value="inspection" className="mt-4 space-y-4">
+            <RotationPlaylist department="inspection" />
           </TabsContent>
 
           {/* 마스터 룰 탭 */}

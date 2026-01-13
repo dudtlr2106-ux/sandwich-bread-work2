@@ -27,7 +27,8 @@ import {
   Trash2,
   Truck,
   Wrench,
-  ClipboardCheck
+  ClipboardCheck,
+  Copy
 } from 'lucide-react';
 import { useRotationPlaylist, DepartmentType, PlaylistItem, DEPARTMENT_ROTATION_SIZE } from '@/hooks/useRotationPlaylist';
 import { SORTED_ALL_WORKERS } from '@/hooks/useScheduleData';
@@ -74,6 +75,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     updateOrder,
     shufflePlaylist,
     addWorker,
+    duplicateWorker,
     removeWorker,
     getWeekPreviews,
     getCurrentAssignments,
@@ -333,6 +335,16 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                         중반
                       </Badge>
                     )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        duplicateWorker(item);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-primary/10 transition-all"
+                      title="복제"
+                    >
+                      <Copy className="h-3 w-3 text-primary" />
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

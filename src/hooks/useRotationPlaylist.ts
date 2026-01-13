@@ -159,14 +159,51 @@ export function useRotationPlaylist(department: DepartmentType) {
       if (error) throw error;
       toast.success(`${workerName}이(가) 추가되었습니다`);
     } catch (error: any) {
-      if (error.code === '23505') {
-        toast.error('이미 리스트에 있는 인원입니다');
-      } else {
-        console.error('Error adding worker:', error);
-        toast.error('인원 추가에 실패했습니다');
-      }
+      console.error('Error adding worker:', error);
+      toast.error('인원 추가에 실패했습니다');
     }
   }, [playlist.length, tableName]);
+
+  const duplicateWorker = useCallback(async (item: PlaylistItem) => {
+    try {
+      // 현재 아이템 다음 위치에 삽입
+      const newPosition = item.position + 1;
+      
+      // 뒤에 있는 모든 아이템들의 position을 1씩 증가
+      const itemsToUpdate = playlist.filter(p => p.position >= newPosition);
+      
+      for (const updateItem of itemsToUpdate) {
+        if (department === 'logistics') {
+          await supabase.from('logistics_rotation_playlist').update({ position: updateItem.position + 1 }).eq('id', updateItem.id);
+        } else if (department === 'equipment') {
+          await supabase.from('equipment_rotation_playlist').update({ position: updateItem.position + 1 }).eq('id', updateItem.id);
+        } else {
+          await supabase.from('inspection_rotation_playlist').update({ position: updateItem.position + 1 }).eq('id', updateItem.id);
+        }
+      }
+      
+      // 새 아이템 삽입
+      let error: any = null;
+      if (department === 'logistics') {
+        const result = await supabase.from('logistics_rotation_playlist').insert({ worker_name: item.worker_name, position: newPosition });
+        error = result.error;
+      } else if (department === 'equipment') {
+        const result = await supabase.from('equipment_rotation_playlist').insert({ worker_name: item.worker_name, position: newPosition });
+        error = result.error;
+      } else {
+        const result = await supabase.from('inspection_rotation_playlist').insert({ worker_name: item.worker_name, position: newPosition });
+        error = result.error;
+      }
+
+      if (error) throw error;
+      toast.success(`${item.worker_name}이(가) 복제되었습니다`);
+      loadPlaylist();
+    } catch (error) {
+      console.error('Error duplicating worker:', error);
+      toast.error('복제에 실패했습니다');
+      loadPlaylist();
+    }
+  }, [playlist, department, loadPlaylist]);
 
   const removeWorker = useCallback(async (workerId: string) => {
     try {
@@ -263,6 +300,7 @@ export function useRotationPlaylist(department: DepartmentType) {
     updateOrder,
     shufflePlaylist,
     addWorker,
+    duplicateWorker,
     removeWorker,
     getWeekPreviews,
     getCurrentAssignments,

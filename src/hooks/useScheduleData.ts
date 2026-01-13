@@ -182,6 +182,13 @@ export function useScheduleData(currentWeekStart?: Date) {
     return result;
   }, []);
 
+  // 부서별 로테이션 인원 수 설정
+  const DEPARTMENT_ROTATION_SIZE: Record<'logistics' | 'equipment' | 'inspection', { early: number; mid: number }> = {
+    logistics: { early: 1, mid: 1 },    // 물류: 초반 1명, 중반 1명 (총 2명)
+    equipment: { early: 3, mid: 3 },    // 설비: 초반 3명, 중반 3명 (총 6명)
+    inspection: { early: 2, mid: 2 },   // 검사: 초반 2명, 중반 2명 (총 4명)
+  };
+
   // 부서별 로테이션 플레이리스트 적용 함수
   const applyDepartmentPlaylist = useCallback((
     baseData: ScheduleData, 
@@ -189,25 +196,36 @@ export function useScheduleData(currentWeekStart?: Date) {
     weekOffset: number,
     department: 'logistics' | 'equipment' | 'inspection'
   ): ScheduleData => {
-    if (playlist.length < 2) return baseData;
+    const rotationSize = DEPARTMENT_ROTATION_SIZE[department];
+    const totalPerWeek = rotationSize.early + rotationSize.mid;
+    
+    if (playlist.length < totalPerWeek) return baseData;
     
     const result = JSON.parse(JSON.stringify(baseData));
     
     // 주차 오프셋에 따라 플레이리스트에서 배정할 인원 계산 (Loop 순환)
-    const earlyIndex = (weekOffset * 2) % playlist.length;
-    const midIndex = (weekOffset * 2 + 1) % playlist.length;
+    const startIndex = (weekOffset * totalPerWeek) % playlist.length;
     
-    const earlyWorker = playlist[earlyIndex]?.worker_name;
-    const midWorker = playlist[midIndex]?.worker_name;
+    // 초반조 인원 선택
+    const earlyWorkers: string[] = [];
+    for (let i = 0; i < rotationSize.early; i++) {
+      const idx = (startIndex + i) % playlist.length;
+      earlyWorkers.push(playlist[idx]?.worker_name);
+    }
     
-    if (!earlyWorker || !midWorker) return result;
+    // 중반조 인원 선택
+    const midWorkers: string[] = [];
+    for (let i = 0; i < rotationSize.mid; i++) {
+      const idx = (startIndex + rotationSize.early + i) % playlist.length;
+      midWorkers.push(playlist[idx]?.worker_name);
+    }
     
     // 해당 부서에 배정 (월~금)
     const weekdays = ["월", "화", "수", "목", "금"];
     weekdays.forEach((day) => {
       if (result[department] && result[department][day]) {
-        result[department][day].A = [earlyWorker];
-        result[department][day].B = [midWorker];
+        result[department][day].A = earlyWorkers.filter(Boolean);
+        result[department][day].B = midWorkers.filter(Boolean);
       }
     });
     

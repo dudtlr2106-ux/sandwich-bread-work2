@@ -31,6 +31,13 @@ const DEPARTMENT_LABELS: Record<DepartmentType, string> = {
   inspection: '검사',
 };
 
+// 부서별 로테이션 인원 수 설정
+const DEPARTMENT_ROTATION_SIZE: Record<DepartmentType, { early: number; mid: number }> = {
+  logistics: { early: 1, mid: 1 },    // 물류: 초반 1명, 중반 1명 (총 2명)
+  equipment: { early: 3, mid: 3 },    // 설비: 초반 3명, 중반 3명 (총 6명)
+  inspection: { early: 2, mid: 2 },   // 검사: 초반 2명, 중반 2명 (총 4명)
+};
+
 export function useRotationPlaylist(department: DepartmentType) {
   const [playlist, setPlaylist] = useState<PlaylistItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -190,7 +197,10 @@ export function useRotationPlaylist(department: DepartmentType) {
   }, [playlist, updateOrder, tableName]);
 
   const getWeekPreviews = useCallback((numWeeks: number = 4): WeekPreview[] => {
-    if (playlist.length < 2) return [];
+    const rotationSize = DEPARTMENT_ROTATION_SIZE[department];
+    const totalPerWeek = rotationSize.early + rotationSize.mid;
+    
+    if (playlist.length < totalPerWeek) return [];
 
     const previews: WeekPreview[] = [];
     const today = startOfDay(new Date());
@@ -199,8 +209,21 @@ export function useRotationPlaylist(department: DepartmentType) {
     for (let weekOffset = 1; weekOffset <= numWeeks; weekOffset++) {
       const targetWeekStart = addWeeks(currentWeekStart, weekOffset);
       
-      const earlyIndex = (weekOffset * 2) % playlist.length;
-      const midIndex = (weekOffset * 2 + 1) % playlist.length;
+      const startIndex = (weekOffset * totalPerWeek) % playlist.length;
+      
+      // 초반조 인원
+      const earlyWorkers: string[] = [];
+      for (let i = 0; i < rotationSize.early; i++) {
+        const idx = (startIndex + i) % playlist.length;
+        earlyWorkers.push(playlist[idx]?.worker_name);
+      }
+      
+      // 중반조 인원
+      const midWorkers: string[] = [];
+      for (let i = 0; i < rotationSize.mid; i++) {
+        const idx = (startIndex + rotationSize.early + i) % playlist.length;
+        midWorkers.push(playlist[idx]?.worker_name);
+      }
 
       const weekLabel = `${targetWeekStart.getMonth() + 1}/${targetWeekStart.getDate()}주`;
       const dateRange = format(targetWeekStart, 'M/d') + '~';
@@ -209,21 +232,30 @@ export function useRotationPlaylist(department: DepartmentType) {
         weekOffset,
         weekLabel,
         dateRange,
-        earlyShift: playlist[earlyIndex]?.worker_name || '-',
-        midShift: playlist[midIndex]?.worker_name || '-',
+        earlyShift: earlyWorkers.filter(Boolean).join(', ') || '-',
+        midShift: midWorkers.filter(Boolean).join(', ') || '-',
       });
     }
 
     return previews;
-  }, [playlist]);
+  }, [playlist, department]);
 
   const getCurrentAssignments = useCallback(() => {
-    if (playlist.length < 2) return { earlyShift: '-', midShift: '-' };
+    const rotationSize = DEPARTMENT_ROTATION_SIZE[department];
+    const totalPerWeek = rotationSize.early + rotationSize.mid;
+    
+    if (playlist.length < totalPerWeek) return { earlyShift: '-', midShift: '-' };
+    
+    // 초반조 인원 (playlist 앞에서부터)
+    const earlyWorkers = playlist.slice(0, rotationSize.early).map(p => p.worker_name);
+    // 중반조 인원 (초반조 다음부터)
+    const midWorkers = playlist.slice(rotationSize.early, totalPerWeek).map(p => p.worker_name);
+    
     return {
-      earlyShift: playlist[0]?.worker_name || '-',
-      midShift: playlist[1]?.worker_name || '-',
+      earlyShift: earlyWorkers.join(', ') || '-',
+      midShift: midWorkers.join(', ') || '-',
     };
-  }, [playlist]);
+  }, [playlist, department]);
 
   return {
     playlist,

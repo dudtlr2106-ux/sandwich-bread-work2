@@ -993,20 +993,57 @@ const WeeklySchedule = () => {
                   })}
                 </tr>
                 <tr className="bg-muted/30">
-                  {(isMobile ? [DAYS[selectedDayIndex]] : DAYS).map((day) => (
-                    <>
-                      <th key={`${day}-early`} className="px-2 py-1 text-center border-b border-r border-border text-xs font-semibold text-primary">
-                        초반
-                      </th>
-                      <th key={`${day}-mid`} className="px-2 py-1 text-center border-b border-r border-border text-xs font-semibold text-secondary-foreground">
-                        중반
-                      </th>
-                    </>
-                  ))}
+                  {(isMobile ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
+                    const actualIndex = isMobile ? selectedDayIndex : index;
+                    const dateKey = getDateKey(actualIndex);
+                    const isDayOffDate = isDayOff(dateKey);
+                    
+                    // 모든 부서에서 휴가자 체크 (잔업 가능 표시용)
+                    let hasFirstShiftVacation = false;
+                    let hasSecondShiftVacation = false;
+                    
+                    if (!isDayOffDate) {
+                      departments.forEach((dept) => {
+                        const workersA = getWorkers(dept.id, day, "A");
+                        const workersB = getWorkers(dept.id, day, "B");
+                        const firstVacations = workersA.filter(w => getWorkerStatus(w, dateKey, day) === "vacation");
+                        const secondVacations = workersB.filter(w => getWorkerStatus(w, dateKey, day) === "vacation");
+                        if (firstVacations.length > 0) hasFirstShiftVacation = true;
+                        if (secondVacations.length > 0) hasSecondShiftVacation = true;
+                      });
+                    }
+                    
+                    return (
+                      <React.Fragment key={`${day}-shifts`}>
+                        <th className={`px-2 py-1 text-center border-b border-r border-border text-xs font-semibold ${hasSecondShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""}`}>
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="text-primary">초반</span>
+                            {hasSecondShiftVacation && (
+                              <div className="flex items-center gap-0.5 text-[9px] text-orange-600">
+                                <Clock className="h-2.5 w-2.5" />
+                                <span>잔업가능</span>
+                              </div>
+                            )}
+                          </div>
+                        </th>
+                        <th className={`px-2 py-1 text-center border-b border-r border-border text-xs font-semibold ${hasFirstShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""}`}>
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="text-secondary-foreground">중반</span>
+                            {hasFirstShiftVacation && (
+                              <div className="flex items-center gap-0.5 text-[9px] text-orange-600">
+                                <Clock className="h-2.5 w-2.5" />
+                                <span>잔업가능</span>
+                              </div>
+                            )}
+                          </div>
+                        </th>
+                      </React.Fragment>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
-                {departments.map((dept) => (
+                {departments.map((dept, deptIndex) => (
                   <tr key={dept.id} className="hover:bg-muted/30 transition-colors">
                     <td className={`px-2 py-1 border-b border-r border-border ${dept.colorClass}`}>
                       <span className="font-medium text-xs text-foreground">
@@ -1055,26 +1092,15 @@ const WeeklySchedule = () => {
                         );
                       }
                       
-                      // 휴가자에 따른 잔업 알림 계산
-                      const overtimeNotifications = getOvertimeNotification(dateKey, day, firstShiftWorkers, secondShiftWorkers);
-                      const firstShiftNeedsOvertime = overtimeNotifications.some(n => n.shift === "first");
-                      const secondShiftNeedsOvertime = overtimeNotifications.some(n => n.shift === "second");
                       
                       return (
                         <React.Fragment key={`${dept.id}-${day}`}>
                           {/* 초반 셀 */}
                           <td
-                            className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-primary/5 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${firstShiftNeedsOvertime ? "bg-orange-50 dark:bg-orange-950/30" : ""}`}
+                            className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-primary/5 transition-colors ${isWeekend ? "bg-muted/30" : ""}`}
                             onClick={() => isSaturday ? openSaturdaySelectDialog(dept.id, firstShiftKey) : openEditDialog(dept.id, day, firstShiftKey)}
                           >
-                            <div className="flex flex-col gap-1">
-                              {firstShiftNeedsOvertime && (
-                                <div className="flex items-center gap-1 text-[10px] text-orange-600 bg-orange-100 dark:bg-orange-900/50 px-1 py-0.5 rounded">
-                                  <Clock className="h-3 w-3" />
-                                  <span>잔업 가능</span>
-                                </div>
-                              )}
-                              <div className="flex flex-wrap gap-1">
+                            <div className="flex flex-wrap gap-1">
                                 {firstShiftWorkers.length > 0 ? (
                                   firstShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
@@ -1153,23 +1179,15 @@ const WeeklySchedule = () => {
                                 ) : (
                                   <span className="text-xs text-muted-foreground italic">-</span>
                                 )}
-                              </div>
                             </div>
                           </td>
                           {/* 중반 셀 */}
                           <td
-                            className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-secondary/50 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${secondShiftNeedsOvertime ? "bg-orange-50 dark:bg-orange-950/30" : ""}`}
+                            className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-secondary/50 transition-colors ${isWeekend ? "bg-muted/30" : ""}`}
                             onClick={() => isSaturday ? openSaturdaySelectDialog(dept.id, secondShiftKey) : openEditDialog(dept.id, day, secondShiftKey)}
                           >
-                            <div className="flex flex-col gap-1">
-                              {secondShiftNeedsOvertime && (
-                                <div className="flex items-center gap-1 text-[10px] text-orange-600 bg-orange-100 dark:bg-orange-900/50 px-1 py-0.5 rounded">
-                                  <Clock className="h-3 w-3" />
-                                  <span>잔업 가능</span>
-                                </div>
-                              )}
-                              <div className="flex flex-wrap gap-1">
-                                {secondShiftWorkers.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {secondShiftWorkers.length > 0 ? (
                                   secondShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
                                     const hasPartialVacation = !!getPartialVacationInfo(worker, dateKey);
@@ -1247,7 +1265,6 @@ const WeeklySchedule = () => {
                                 ) : (
                                   <span className="text-xs text-muted-foreground italic">-</span>
                                 )}
-                              </div>
                             </div>
                           </td>
                         </React.Fragment>

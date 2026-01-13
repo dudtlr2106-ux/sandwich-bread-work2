@@ -66,6 +66,11 @@ const DEPARTMENT_CONFIG: Record<DepartmentType, {
     title: '검사 로테이션 플레이리스트',
     colorClass: 'text-purple-600',
   },
+  foreman: {
+    icon: <User className="h-5 w-5" />,
+    title: '반장 로테이션 플레이리스트',
+    colorClass: 'text-green-600',
+  },
 };
 
 export function RotationPlaylist({ department }: RotationPlaylistProps) {

@@ -40,6 +40,7 @@ import {
   Truck,
   Wrench,
   ClipboardCheck,
+  Users,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -271,8 +272,12 @@ const PatternManagement = () => {
         </div>
 
         {/* 탭 네비게이션 */}
-        <Tabs defaultValue="logistics" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="foreman" className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="foreman" className="gap-1 text-xs px-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">반장</span>
+            </TabsTrigger>
             <TabsTrigger value="logistics" className="gap-1 text-xs px-2">
               <Truck className="h-4 w-4" />
               <span className="hidden sm:inline">물류</span>
@@ -290,6 +295,11 @@ const PatternManagement = () => {
               <span className="hidden sm:inline">마스터 룰</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* 반장 로테이션 플레이리스트 탭 */}
+          <TabsContent value="foreman" className="mt-4 space-y-4">
+            <RotationPlaylist department="foreman" />
+          </TabsContent>
 
           {/* 물류 로테이션 플레이리스트 탭 */}
           <TabsContent value="logistics" className="mt-4 space-y-4">

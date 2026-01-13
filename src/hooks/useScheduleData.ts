@@ -238,7 +238,7 @@ export function useScheduleData(currentWeekStart?: Date) {
     try {
       const weekDateKeys = getWeekDateKeys(weekStart);
       const today = startOfDay(new Date());
-      const isFutureWeek = isBefore(today, weekStart);
+      const isCurrentOrFutureWeek = !isBefore(weekStart, startOfWeek(today, { weekStartsOn: 1 }));
       
       // 주차 오프셋 계산 (현재 주 기준)
       const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
@@ -251,8 +251,8 @@ export function useScheduleData(currentWeekStart?: Date) {
         supabase.from('day_offs').select('*').in('date_key', weekDateKeys),
         supabase.from('notice_memos').select('*').limit(1),
         supabase.from('weekend_availability').select('*'),
-        // 미래 주차인 경우 마스터 룰도 로드
-        isFutureWeek 
+        // 현재 주 또는 미래 주차인 경우 마스터 룰도 로드
+        isCurrentOrFutureWeek 
           ? supabase.from('pattern_rules').select('*').eq('is_active', true).order('applied_at', { ascending: true })
           : Promise.resolve({ data: [] }),
         // 시간휴가 정보 로드 (승인된 partial_vacation 요청에서)
@@ -261,16 +261,16 @@ export function useScheduleData(currentWeekStart?: Date) {
           .in('date_key', weekDateKeys)
           .eq('requested_status', 'partial_vacation')
           .eq('status', 'approved'),
-        // 물류 로테이션 플레이리스트 로드
-        isFutureWeek
+        // 물류 로테이션 플레이리스트 로드 (현재 주 포함)
+        isCurrentOrFutureWeek
           ? supabase.from('logistics_rotation_playlist').select('*').order('position', { ascending: true })
           : Promise.resolve({ data: [] }),
-        // 설비 로테이션 플레이리스트 로드
-        isFutureWeek
+        // 설비 로테이션 플레이리스트 로드 (현재 주 포함)
+        isCurrentOrFutureWeek
           ? supabase.from('equipment_rotation_playlist').select('*').order('position', { ascending: true })
           : Promise.resolve({ data: [] }),
-        // 검사 로테이션 플레이리스트 로드
-        isFutureWeek
+        // 검사 로테이션 플레이리스트 로드 (현재 주 포함)
+        isCurrentOrFutureWeek
           ? supabase.from('inspection_rotation_playlist').select('*').order('position', { ascending: true })
           : Promise.resolve({ data: [] }),
       ]);
@@ -295,7 +295,7 @@ export function useScheduleData(currentWeekStart?: Date) {
             newScheduleData[row.department][day][row.shift as "A" | "B"] = row.workers || [];
           }
         });
-      } else if (isFutureWeek) {
+      } else if (isCurrentOrFutureWeek) {
         // 미래 주차이고 기존 데이터가 없으면 각 부서 플레이리스트 + 마스터 룰 적용
         
         // 1. 물류 로테이션 플레이리스트 적용

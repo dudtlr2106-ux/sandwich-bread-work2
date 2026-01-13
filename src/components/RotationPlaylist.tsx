@@ -29,9 +29,17 @@ import {
   Wrench,
   ClipboardCheck
 } from 'lucide-react';
-import { useRotationPlaylist, DepartmentType, PlaylistItem } from '@/hooks/useRotationPlaylist';
+import { useRotationPlaylist, DepartmentType, PlaylistItem, DEPARTMENT_ROTATION_SIZE } from '@/hooks/useRotationPlaylist';
 import { SORTED_ALL_WORKERS } from '@/hooks/useScheduleData';
 import { cn } from '@/lib/utils';
+
+// 인덱스에 따른 시프트 타입 반환
+const getShiftType = (index: number, department: DepartmentType): 'early' | 'mid' | null => {
+  const size = DEPARTMENT_ROTATION_SIZE[department];
+  if (index < size.early) return 'early';
+  if (index < size.early + size.mid) return 'mid';
+  return null;
+};
 
 interface RotationPlaylistProps {
   department: DepartmentType;
@@ -306,8 +314,8 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       "flex items-center gap-2 p-2 rounded-md border bg-background cursor-grab active:cursor-grabbing transition-all group",
                       draggedItem?.id === item.id && "opacity-50",
                       dragOverIndex === index && draggedItem?.id !== item.id && "border-primary border-2",
-                      index === 0 && "border-green-500/50 bg-green-500/5",
-                      index === 1 && "border-blue-500/50 bg-blue-500/5"
+                      getShiftType(index, department) === 'early' && "border-green-500/50 bg-green-500/5",
+                      getShiftType(index, department) === 'mid' && "border-blue-500/50 bg-blue-500/5"
                     )}
                   >
                     <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -315,12 +323,12 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       {index + 1}
                     </span>
                     <span className="font-medium flex-1">{item.worker_name}</span>
-                    {index === 0 && (
+                    {getShiftType(index, department) === 'early' && (
                       <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-700">
                         초반
                       </Badge>
                     )}
-                    {index === 1 && (
+                    {getShiftType(index, department) === 'mid' && (
                       <Badge variant="secondary" className="text-[10px] bg-blue-500/10 text-blue-700">
                         중반
                       </Badge>

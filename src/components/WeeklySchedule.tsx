@@ -882,7 +882,7 @@ const WeeklySchedule = () => {
                 onClick={goToCurrentWeek}
                 className="px-3"
               >
-                이번 주
+                {format(currentWeekStart, "M/d")}
               </Button>
               <Button
                 variant="outline"

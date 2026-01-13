@@ -33,10 +33,25 @@ import {
   Shield,
   Zap,
   Info,
+  AlertTriangle,
+  Circle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { toast } from "sonner";
+
+interface AIInterpretation {
+  targetGroup: "A조" | "B조" | "전체" | "개별";
+  ruleType: string;
+  affectedWorkers: string[];
+  details: string;
+}
+
+interface AIValidation {
+  isValid: boolean;
+  warnings: string[];
+  validWorkersList: string[];
+}
 
 interface AIResponse {
   understood: boolean;
@@ -44,6 +59,9 @@ interface AIResponse {
   description: string;
   changes: PatternRule['changes'];
   message: string;
+  interpretation?: AIInterpretation;
+  validation?: AIValidation;
+  ruleStatus?: "active" | "pending" | "error";
 }
 
 const PatternManagement = () => {
@@ -341,46 +359,137 @@ const PatternManagement = () => {
 
             {/* AI 응답 표시 */}
             {response && response.understood && (
-              <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-500/30">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900">
-                    {getActionIcon(response.action)}
+              <div className="space-y-3">
+                {/* 경고 메시지 (이름 검증 실패) */}
+                {response.validation && !response.validation.isValid && (
+                  <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-500/30">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-yellow-800 dark:text-yellow-400">
+                          이름 검증 경고
+                        </p>
+                        <ul className="mt-2 space-y-1">
+                          {response.validation.warnings.map((warning, idx) => (
+                            <li key={idx} className="text-sm text-yellow-700 dark:text-yellow-300">
+                              • {warning}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="secondary">{getActionLabel(response.action)}</Badge>
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    </div>
-                    <p className="text-sm font-medium">{response.description}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{response.message}</p>
+                )}
 
-                    {/* 변경 사항 요약 */}
-                    <div className="mt-3 flex flex-wrap gap-1">
-                      {response.changes.swapShifts && (
-                        <Badge variant="outline" className="text-xs">
-                          초반↔중반 스왑
-                        </Badge>
-                      )}
-                      {response.changes.workerMoves && response.changes.workerMoves.length > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          인원 이동 {response.changes.workerMoves.length}건
-                        </Badge>
-                      )}
-                      {response.changes.individualChanges && response.changes.individualChanges.length > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          개별 변경 {response.changes.individualChanges.length}건
-                        </Badge>
-                      )}
+                {/* 구조화된 해석 정보 */}
+                {response.interpretation && (
+                  <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-500/30">
+                    <div className="flex items-start gap-3">
+                      <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-blue-800 dark:text-blue-400 mb-3">
+                          규칙 해석 결과
+                        </p>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">적용 대상:</span>
+                            <Badge variant="secondary" className="ml-2">
+                              {response.interpretation.targetGroup}
+                            </Badge>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">규칙 타입:</span>
+                            <Badge variant="secondary" className="ml-2">
+                              {response.interpretation.ruleType}
+                            </Badge>
+                          </div>
+                        </div>
+                        {response.interpretation.affectedWorkers && response.interpretation.affectedWorkers.length > 0 && (
+                          <div className="mt-3">
+                            <span className="text-sm text-muted-foreground">영향받는 인원:</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {response.interpretation.affectedWorkers.map((name, idx) => (
+                                <Badge key={idx} variant="outline" className="text-xs">
+                                  {name}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {response.interpretation.details && (
+                          <p className="mt-3 text-sm text-muted-foreground">
+                            {response.interpretation.details}
+                          </p>
+                        )}
+                      </div>
                     </div>
+                  </div>
+                )}
 
-                    <div className="mt-4 flex gap-2">
-                      <Button onClick={handleSaveAsRule} size="sm">
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        마스터 룰로 저장
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={handleReset}>
-                        취소
-                      </Button>
+                {/* 규칙 상태 및 저장 영역 */}
+                <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-500/30">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900">
+                      {getActionIcon(response.action)}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="secondary">{getActionLabel(response.action)}</Badge>
+                        {/* 상태 표시등 */}
+                        {response.ruleStatus === "active" && (
+                          <div className="flex items-center gap-1">
+                            <Circle className="h-3 w-3 fill-green-500 text-green-500" />
+                            <span className="text-xs text-green-600">Active</span>
+                          </div>
+                        )}
+                        {response.ruleStatus === "pending" && (
+                          <div className="flex items-center gap-1">
+                            <Circle className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                            <span className="text-xs text-yellow-600">Pending</span>
+                          </div>
+                        )}
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      </div>
+                      <p className="text-sm font-medium">{response.description}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{response.message}</p>
+
+                      {/* 변경 사항 요약 */}
+                      <div className="mt-3 flex flex-wrap gap-1">
+                        {response.changes.swapShifts && (
+                          <Badge variant="outline" className="text-xs">
+                            초반↔중반 스왑
+                          </Badge>
+                        )}
+                        {response.changes.workerMoves && response.changes.workerMoves.length > 0 && (
+                          <Badge variant="outline" className="text-xs">
+                            인원 이동 {response.changes.workerMoves.length}건
+                          </Badge>
+                        )}
+                        {response.changes.individualChanges && response.changes.individualChanges.length > 0 && (
+                          <Badge variant="outline" className="text-xs">
+                            개별 변경 {response.changes.individualChanges.length}건
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="mt-4 flex gap-2">
+                        <Button 
+                          onClick={handleSaveAsRule} 
+                          size="sm"
+                          disabled={response.validation && !response.validation.isValid}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          마스터 룰로 저장
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={handleReset}>
+                          취소
+                        </Button>
+                      </div>
+                      {response.validation && !response.validation.isValid && (
+                        <p className="text-xs text-yellow-600 mt-2">
+                          ⚠️ 경고를 해결한 후 저장할 수 있습니다. 명령을 수정해주세요.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -426,6 +535,10 @@ const PatternManagement = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              {/* 상태 표시등 */}
+                              <div className="flex items-center gap-1" title={rule.is_active ? "활성화됨" : "비활성화"}>
+                                <Circle className={`h-3 w-3 ${rule.is_active ? 'fill-green-500 text-green-500' : 'fill-red-500 text-red-500'}`} />
+                              </div>
                               <div className="p-1 rounded bg-muted">
                                 {getActionIcon(rule.action)}
                               </div>

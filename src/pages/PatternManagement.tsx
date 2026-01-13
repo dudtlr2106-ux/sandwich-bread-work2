@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,10 +36,12 @@ import {
   Info,
   AlertTriangle,
   Circle,
+  ListMusic,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { toast } from "sonner";
+import { LogisticsRotationPlaylist } from "@/components/LogisticsRotationPlaylist";
 
 interface AIInterpretation {
   targetGroup: "A조" | "B조" | "전체" | "개별";
@@ -264,21 +267,41 @@ const PatternManagement = () => {
           </div>
         </div>
 
-        {/* 안내 메시지 */}
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="py-4">
-            <div className="flex items-start gap-3">
-              <Info className="h-5 w-5 text-primary mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium text-foreground mb-1">마스터 룰 시스템</p>
-                <p className="text-muted-foreground">
-                  여기서 설정한 규칙들은 <strong>미래 주차의 근무표를 새로 생성할 때</strong> 자동으로 적용됩니다.
-                  현재 주차의 근무표는 직접 수정해주세요.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* 탭 네비게이션 */}
+        <Tabs defaultValue="playlist" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="playlist" className="gap-2">
+              <ListMusic className="h-4 w-4" />
+              물류 로테이션
+            </TabsTrigger>
+            <TabsTrigger value="rules" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              마스터 룰
+            </TabsTrigger>
+          </TabsList>
+
+          {/* 물류 로테이션 플레이리스트 탭 */}
+          <TabsContent value="playlist" className="mt-4 space-y-4">
+            <LogisticsRotationPlaylist />
+          </TabsContent>
+
+          {/* 마스터 룰 탭 */}
+          <TabsContent value="rules" className="mt-4 space-y-6">
+            {/* 안내 메시지 */}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="py-4">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-primary mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-foreground mb-1">마스터 룰 시스템</p>
+                    <p className="text-muted-foreground">
+                      여기서 설정한 규칙들은 <strong>미래 주차의 근무표를 새로 생성할 때</strong> 자동으로 적용됩니다.
+                      현재 주차의 근무표는 직접 수정해주세요.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
         {/* AI 명령 입력 */}
         <Card>
@@ -602,6 +625,8 @@ const PatternManagement = () => {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* 수정 다이얼로그 */}

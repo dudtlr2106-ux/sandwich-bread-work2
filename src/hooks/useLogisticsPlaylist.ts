@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { startOfWeek, addWeeks, format, startOfDay } from 'date-fns';
 
 export interface PlaylistItem {
   id: string;
@@ -11,6 +12,7 @@ export interface PlaylistItem {
 export interface WeekPreview {
   weekOffset: number;
   weekLabel: string;
+  dateRange: string;
   earlyShift: string;
   midShift: string;
 }
@@ -133,29 +135,29 @@ export function useLogisticsPlaylist() {
   }, [playlist, updateOrder]);
 
   // Generate week previews based on current playlist order
+  // Uses the same offset calculation as useScheduleData
   const getWeekPreviews = useCallback((numWeeks: number = 4): WeekPreview[] => {
     if (playlist.length < 2) return [];
 
     const previews: WeekPreview[] = [];
-    const today = new Date();
-    const currentDay = today.getDay();
-    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
-    const thisMonday = new Date(today);
-    thisMonday.setDate(today.getDate() + mondayOffset);
+    const today = startOfDay(new Date());
+    const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
 
-    for (let week = 0; week < numWeeks; week++) {
-      const weekMonday = new Date(thisMonday);
-      weekMonday.setDate(thisMonday.getDate() + (week + 1) * 7);
+    for (let weekOffset = 1; weekOffset <= numWeeks; weekOffset++) {
+      const targetWeekStart = addWeeks(currentWeekStart, weekOffset);
       
       // Calculate which workers are assigned this week (loop through playlist)
-      const earlyIndex = (week * 2) % playlist.length;
-      const midIndex = (week * 2 + 1) % playlist.length;
+      // This matches the logic in useScheduleData.applyLogisticsPlaylist
+      const earlyIndex = (weekOffset * 2) % playlist.length;
+      const midIndex = (weekOffset * 2 + 1) % playlist.length;
 
-      const weekLabel = `${weekMonday.getMonth() + 1}/${weekMonday.getDate()}주`;
+      const weekLabel = `${targetWeekStart.getMonth() + 1}/${targetWeekStart.getDate()}주`;
+      const dateRange = format(targetWeekStart, 'M/d') + '~';
 
       previews.push({
-        weekOffset: week + 1,
+        weekOffset,
         weekLabel,
+        dateRange,
         earlyShift: playlist[earlyIndex]?.worker_name || '-',
         midShift: playlist[midIndex]?.worker_name || '-',
       });
@@ -164,9 +166,10 @@ export function useLogisticsPlaylist() {
     return previews;
   }, [playlist]);
 
-  // Get current week's assignments
+  // Get current week's assignments (offset 0)
   const getCurrentAssignments = useCallback(() => {
     if (playlist.length < 2) return { earlyShift: '-', midShift: '-' };
+    // Current week uses offset 0, so indices are 0 and 1
     return {
       earlyShift: playlist[0]?.worker_name || '-',
       midShift: playlist[1]?.worker_name || '-',

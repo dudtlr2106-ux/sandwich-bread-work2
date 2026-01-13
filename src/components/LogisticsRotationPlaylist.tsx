@@ -186,7 +186,7 @@ export function LogisticsRotationPlaylist() {
                   key={preview.weekOffset}
                   className="flex items-center gap-2 p-2 rounded-md border bg-muted/30"
                 >
-                  <Badge variant="outline" className="text-xs min-w-[60px] justify-center">
+                  <Badge variant="outline" className="text-xs min-w-[70px] justify-center">
                     {preview.weekLabel}
                   </Badge>
                   <ChevronRight className="h-3 w-3 text-muted-foreground" />

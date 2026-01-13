@@ -17,18 +17,14 @@ export interface WeekPreview {
   midShift: string;
 }
 
-export type ShiftType = 'early' | 'mid';
-
-export function useLogisticsPlaylist(shiftType: ShiftType = 'early') {
+export function useLogisticsPlaylist() {
   const [playlist, setPlaylist] = useState<PlaylistItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  const tableName = shiftType === 'early' ? 'logistics_rotation_playlist' : 'logistics_mid_rotation_playlist';
 
   const loadPlaylist = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from(tableName)
+        .from('logistics_rotation_playlist')
         .select('*')
         .order('position', { ascending: true });
 
@@ -40,7 +36,7 @@ export function useLogisticsPlaylist(shiftType: ShiftType = 'early') {
     } finally {
       setIsLoading(false);
     }
-  }, [tableName]);
+  }, []);
 
   useEffect(() => {
     loadPlaylist();
@@ -49,13 +45,13 @@ export function useLogisticsPlaylist(shiftType: ShiftType = 'early') {
   // Realtime subscription
   useEffect(() => {
     const channel = supabase
-      .channel(`logistics_${shiftType}_playlist_changes`)
+      .channel('logistics_playlist_changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: tableName,
+          table: 'logistics_rotation_playlist',
         },
         () => {
           loadPlaylist();
@@ -66,14 +62,14 @@ export function useLogisticsPlaylist(shiftType: ShiftType = 'early') {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [loadPlaylist, shiftType, tableName]);
+  }, [loadPlaylist]);
 
   const updateOrder = useCallback(async (newPlaylist: PlaylistItem[]) => {
     try {
       // Update positions in parallel
       const updates = newPlaylist.map((item, index) =>
         supabase
-          .from(tableName)
+          .from('logistics_rotation_playlist')
           .update({ position: index })
           .eq('id', item.id)
       );
@@ -86,7 +82,7 @@ export function useLogisticsPlaylist(shiftType: ShiftType = 'early') {
       toast.error('순서 저장에 실패했습니다');
       loadPlaylist(); // Reload on error
     }
-  }, [loadPlaylist, tableName]);
+  }, [loadPlaylist]);
 
   const shufflePlaylist = useCallback(async () => {
     const shuffled = [...playlist];
@@ -102,49 +98,25 @@ export function useLogisticsPlaylist(shiftType: ShiftType = 'early') {
     try {
       const newPosition = playlist.length;
       const { error } = await supabase
-        .from(tableName)
+        .from('logistics_rotation_playlist')
         .insert({ worker_name: workerName, position: newPosition });
 
       if (error) throw error;
       toast.success(`${workerName}이(가) 추가되었습니다`);
     } catch (error: any) {
-      console.error('Error adding worker:', error);
-      toast.error('인원 추가에 실패했습니다');
-    }
-  }, [playlist.length, tableName]);
-
-  const duplicateWorker = useCallback(async (item: PlaylistItem) => {
-    try {
-      const newPosition = item.position + 1;
-      
-      // Increment positions of subsequent items
-      const itemsToUpdate = playlist.filter(p => p.position >= newPosition);
-      for (const itemToUpdate of itemsToUpdate) {
-        await supabase
-          .from(tableName)
-          .update({ position: itemToUpdate.position + 1 })
-          .eq('id', itemToUpdate.id);
+      if (error.code === '23505') {
+        toast.error('이미 리스트에 있는 인원입니다');
+      } else {
+        console.error('Error adding worker:', error);
+        toast.error('인원 추가에 실패했습니다');
       }
-
-      // Insert duplicated worker
-      const { error } = await supabase
-        .from(tableName)
-        .insert({ worker_name: item.worker_name, position: newPosition });
-
-      if (error) throw error;
-      toast.success(`${item.worker_name}이(가) 복제되었습니다`);
-      loadPlaylist();
-    } catch (error) {
-      console.error('Error duplicating worker:', error);
-      toast.error('복제에 실패했습니다');
-      loadPlaylist();
     }
-  }, [playlist, tableName, loadPlaylist]);
+  }, [playlist.length]);
 
   const removeWorker = useCallback(async (workerId: string) => {
     try {
       const { error } = await supabase
-        .from(tableName)
+        .from('logistics_rotation_playlist')
         .delete()
         .eq('id', workerId);
 
@@ -160,71 +132,12 @@ export function useLogisticsPlaylist(shiftType: ShiftType = 'early') {
       console.error('Error removing worker:', error);
       toast.error('인원 제거에 실패했습니다');
     }
-  }, [playlist, updateOrder, tableName]);
+  }, [playlist, updateOrder]);
 
-  // Get current week's assignment for this shift type
-  const getCurrentAssignment = useCallback(() => {
-    if (playlist.length < 1) return '-';
-    return playlist[0]?.worker_name || '-';
-  }, [playlist]);
-
-  // Generate week previews
-  const getWeekPreviews = useCallback((numWeeks: number = 4): { weekOffset: number; weekLabel: string; dateRange: string; worker: string }[] => {
-    if (playlist.length < 1) return [];
-
-    const previews: { weekOffset: number; weekLabel: string; dateRange: string; worker: string }[] = [];
-    const today = startOfDay(new Date());
-    const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-
-    for (let weekOffset = 1; weekOffset <= numWeeks; weekOffset++) {
-      const targetWeekStart = addWeeks(currentWeekStart, weekOffset);
-      
-      // Calculate which worker is assigned this week
-      const workerIndex = weekOffset % playlist.length;
-
-      const weekLabel = `${targetWeekStart.getMonth() + 1}/${targetWeekStart.getDate()}주`;
-      const dateRange = format(targetWeekStart, 'M/d') + '~';
-
-      previews.push({
-        weekOffset,
-        weekLabel,
-        dateRange,
-        worker: playlist[workerIndex]?.worker_name || '-',
-      });
-    }
-
-    return previews;
-  }, [playlist]);
-
-  return {
-    playlist,
-    isLoading,
-    updateOrder,
-    shufflePlaylist,
-    addWorker,
-    duplicateWorker,
-    removeWorker,
-    getCurrentAssignment,
-    getWeekPreviews,
-    refreshPlaylist: loadPlaylist,
-    shiftType,
-  };
-}
-
-// Combined hook for getting both early and mid shift data
-export function useLogisticsCombinedPlaylists() {
-  const earlyPlaylist = useLogisticsPlaylist('early');
-  const midPlaylist = useLogisticsPlaylist('mid');
-
-  const getCurrentAssignments = useCallback(() => {
-    return {
-      earlyShift: earlyPlaylist.playlist[0]?.worker_name || '-',
-      midShift: midPlaylist.playlist[0]?.worker_name || '-',
-    };
-  }, [earlyPlaylist.playlist, midPlaylist.playlist]);
-
+  // Generate week previews based on current playlist order
+  // Uses the same offset calculation as useScheduleData
   const getWeekPreviews = useCallback((numWeeks: number = 4): WeekPreview[] => {
-    if (earlyPlaylist.playlist.length < 1 && midPlaylist.playlist.length < 1) return [];
+    if (playlist.length < 2) return [];
 
     const previews: WeekPreview[] = [];
     const today = startOfDay(new Date());
@@ -233,8 +146,10 @@ export function useLogisticsCombinedPlaylists() {
     for (let weekOffset = 1; weekOffset <= numWeeks; weekOffset++) {
       const targetWeekStart = addWeeks(currentWeekStart, weekOffset);
       
-      const earlyIndex = earlyPlaylist.playlist.length > 0 ? weekOffset % earlyPlaylist.playlist.length : -1;
-      const midIndex = midPlaylist.playlist.length > 0 ? weekOffset % midPlaylist.playlist.length : -1;
+      // Calculate which workers are assigned this week (loop through playlist)
+      // This matches the logic in useScheduleData.applyLogisticsPlaylist
+      const earlyIndex = (weekOffset * 2) % playlist.length;
+      const midIndex = (weekOffset * 2 + 1) % playlist.length;
 
       const weekLabel = `${targetWeekStart.getMonth() + 1}/${targetWeekStart.getDate()}주`;
       const dateRange = format(targetWeekStart, 'M/d') + '~';
@@ -243,19 +158,33 @@ export function useLogisticsCombinedPlaylists() {
         weekOffset,
         weekLabel,
         dateRange,
-        earlyShift: earlyIndex >= 0 ? earlyPlaylist.playlist[earlyIndex]?.worker_name || '-' : '-',
-        midShift: midIndex >= 0 ? midPlaylist.playlist[midIndex]?.worker_name || '-' : '-',
+        earlyShift: playlist[earlyIndex]?.worker_name || '-',
+        midShift: playlist[midIndex]?.worker_name || '-',
       });
     }
 
     return previews;
-  }, [earlyPlaylist.playlist, midPlaylist.playlist]);
+  }, [playlist]);
+
+  // Get current week's assignments (offset 0)
+  const getCurrentAssignments = useCallback(() => {
+    if (playlist.length < 2) return { earlyShift: '-', midShift: '-' };
+    // Current week uses offset 0, so indices are 0 and 1
+    return {
+      earlyShift: playlist[0]?.worker_name || '-',
+      midShift: playlist[1]?.worker_name || '-',
+    };
+  }, [playlist]);
 
   return {
-    earlyPlaylist,
-    midPlaylist,
-    getCurrentAssignments,
+    playlist,
+    isLoading,
+    updateOrder,
+    shufflePlaylist,
+    addWorker,
+    removeWorker,
     getWeekPreviews,
-    isLoading: earlyPlaylist.isLoading || midPlaylist.isLoading,
+    getCurrentAssignments,
+    refreshPlaylist: loadPlaylist,
   };
 }

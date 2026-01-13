@@ -1103,6 +1103,26 @@ const WeeklySchedule = () => {
                                                 <ArrowRightLeft className="h-4 w-4 mr-2" />
                                                 중반으로 이동
                                               </DropdownMenuItem>
+                                              <DropdownMenuSeparator />
+                                              {dept.id !== "equipment" && (
+                                                <DropdownMenuItem onClick={() => moveWorker(worker, dept.id, day, firstShiftKey, "equipment", day, firstShiftKey)} className="text-equipment">
+                                                  <Wrench className="h-4 w-4 mr-2" />
+                                                  설비로 이동
+                                                </DropdownMenuItem>
+                                              )}
+                                              {dept.id !== "inspection" && (
+                                                <DropdownMenuItem onClick={() => moveWorker(worker, dept.id, day, firstShiftKey, "inspection", day, firstShiftKey)} className="text-inspection">
+                                                  <Search className="h-4 w-4 mr-2" />
+                                                  검사로 이동
+                                                </DropdownMenuItem>
+                                              )}
+                                              {dept.id !== "logistics" && (
+                                                <DropdownMenuItem onClick={() => moveWorker(worker, dept.id, day, firstShiftKey, "logistics", day, firstShiftKey)} className="text-logistics">
+                                                  <Package className="h-4 w-4 mr-2" />
+                                                  물류로 이동
+                                                </DropdownMenuItem>
+                                              )}
+                                              <DropdownMenuSeparator />
                                               <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
                                                 <Users className="h-4 w-4 mr-2" />
                                                 정상 근무
@@ -1177,6 +1197,26 @@ const WeeklySchedule = () => {
                                                 <ArrowRightLeft className="h-4 w-4 mr-2" />
                                                 초반으로 이동
                                               </DropdownMenuItem>
+                                              <DropdownMenuSeparator />
+                                              {dept.id !== "equipment" && (
+                                                <DropdownMenuItem onClick={() => moveWorker(worker, dept.id, day, secondShiftKey, "equipment", day, secondShiftKey)} className="text-equipment">
+                                                  <Wrench className="h-4 w-4 mr-2" />
+                                                  설비로 이동
+                                                </DropdownMenuItem>
+                                              )}
+                                              {dept.id !== "inspection" && (
+                                                <DropdownMenuItem onClick={() => moveWorker(worker, dept.id, day, secondShiftKey, "inspection", day, secondShiftKey)} className="text-inspection">
+                                                  <Search className="h-4 w-4 mr-2" />
+                                                  검사로 이동
+                                                </DropdownMenuItem>
+                                              )}
+                                              {dept.id !== "logistics" && (
+                                                <DropdownMenuItem onClick={() => moveWorker(worker, dept.id, day, secondShiftKey, "logistics", day, secondShiftKey)} className="text-logistics">
+                                                  <Package className="h-4 w-4 mr-2" />
+                                                  물류로 이동
+                                                </DropdownMenuItem>
+                                              )}
+                                              <DropdownMenuSeparator />
                                               <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
                                                 <Users className="h-4 w-4 mr-2" />
                                                 정상 근무

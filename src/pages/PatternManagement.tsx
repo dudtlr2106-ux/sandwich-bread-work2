@@ -550,8 +550,8 @@ const PatternManagement = () => {
                                 {format(new Date(rule.applied_at), "M/d HH:mm", { locale: ko })}
                               </span>
                             </div>
-                            <p className="text-sm font-medium truncate">{rule.command}</p>
-                            <p className="text-xs text-muted-foreground mt-1 truncate">
+                            <p className="text-sm font-medium break-words whitespace-pre-wrap">{rule.command}</p>
+                            <p className="text-xs text-muted-foreground mt-1 break-words whitespace-pre-wrap">
                               {rule.description}
                             </p>
 

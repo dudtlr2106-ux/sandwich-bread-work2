@@ -278,10 +278,6 @@ const PatternManagement = () => {
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">반장</span>
             </TabsTrigger>
-            <TabsTrigger value="logistics" className="gap-1 text-xs px-2">
-              <Truck className="h-4 w-4" />
-              <span className="hidden sm:inline">물류</span>
-            </TabsTrigger>
             <TabsTrigger value="equipment" className="gap-1 text-xs px-2">
               <Wrench className="h-4 w-4" />
               <span className="hidden sm:inline">설비</span>
@@ -289,6 +285,10 @@ const PatternManagement = () => {
             <TabsTrigger value="inspection" className="gap-1 text-xs px-2">
               <ClipboardCheck className="h-4 w-4" />
               <span className="hidden sm:inline">검사</span>
+            </TabsTrigger>
+            <TabsTrigger value="logistics" className="gap-1 text-xs px-2">
+              <Truck className="h-4 w-4" />
+              <span className="hidden sm:inline">물류</span>
             </TabsTrigger>
             <TabsTrigger value="rules" className="gap-1 text-xs px-2">
               <Sparkles className="h-4 w-4" />
@@ -301,11 +301,6 @@ const PatternManagement = () => {
             <RotationPlaylist department="foreman" />
           </TabsContent>
 
-          {/* 물류 로테이션 플레이리스트 탭 */}
-          <TabsContent value="logistics" className="mt-4 space-y-4">
-            <RotationPlaylist department="logistics" />
-          </TabsContent>
-
           {/* 설비 로테이션 플레이리스트 탭 */}
           <TabsContent value="equipment" className="mt-4 space-y-4">
             <RotationPlaylist department="equipment" />
@@ -314,6 +309,11 @@ const PatternManagement = () => {
           {/* 검사 로테이션 플레이리스트 탭 */}
           <TabsContent value="inspection" className="mt-4 space-y-4">
             <RotationPlaylist department="inspection" />
+          </TabsContent>
+
+          {/* 물류 로테이션 플레이리스트 탭 */}
+          <TabsContent value="logistics" className="mt-4 space-y-4">
+            <RotationPlaylist department="logistics" />
           </TabsContent>
 
           {/* 마스터 룰 탭 */}

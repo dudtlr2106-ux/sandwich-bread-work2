@@ -134,3 +134,81 @@
     @apply bg-[hsl(var(--logistics-bg))] border-l-4 border-l-[hsl(var(--logistics))];
   }
 }
+
+/* Print styles */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Hide non-printable elements */
+  .no-print,
+  .print-hide,
+  button:not(.print-show),
+  [data-radix-popper-content-wrapper],
+  .fixed,
+  nav,
+  header:not(.print-header),
+  .sonner-toaster {
+    display: none !important;
+  }
+
+  /* Show print header */
+  .print-header {
+    display: block !important;
+  }
+
+  /* Print-only title */
+  .print-title {
+    display: block !important;
+    text-align: center;
+    font-size: 18pt;
+    font-weight: bold;
+    margin-bottom: 16px;
+    color: black;
+  }
+
+  /* Schedule table adjustments for print */
+  .schedule-table-container {
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 9pt !important;
+  }
+
+  th, td {
+    border: 1px solid #333 !important;
+    padding: 4px !important;
+  }
+
+  /* Ensure backgrounds print */
+  .department-equipment,
+  .department-inspection,
+  .department-logistics,
+  [class*="bg-"] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Remove shadows and unnecessary styling */
+  .shadow, .shadow-sm, .shadow-md, .shadow-lg {
+    box-shadow: none !important;
+  }
+
+  /* Compact layout for print */
+  .schedule-cell {
+    min-height: auto !important;
+    padding: 2px !important;
+  }
+}

@@ -184,21 +184,10 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                 <CardTitle className="text-lg">{config.title}</CardTitle>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="gap-1">
-                <RotateCcw className="h-3 w-3" />
-                Loop
-              </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={shufflePlaylist}
-                className="gap-1"
-              >
-                <Shuffle className="h-4 w-4" />
-                셔플
-              </Button>
-            </div>
+            <Badge variant="outline" className="gap-1">
+              <RotateCcw className="h-3 w-3" />
+              Loop
+            </Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">

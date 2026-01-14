@@ -53,6 +53,7 @@ import {
   Shield,
   Settings,
   Sparkles,
+  Printer,
 } from "lucide-react";
 import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -877,6 +878,17 @@ const WeeklySchedule = () => {
                   </Button>
                 </Link>
               )}
+
+              {/* 근무표 인쇄 버튼 */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.print()}
+                className="print-hide"
+              >
+                <Printer className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">근무표 인쇄</span>
+              </Button>
               
               <Button
                 variant="outline"
@@ -932,7 +944,12 @@ const WeeklySchedule = () => {
             </Collapsible>
           )}
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 schedule-table-container">
+          {/* 인쇄 전용 제목 */}
+          <h1 className="print-title hidden">
+            {format(currentWeekStart, "yyyy년 M월", { locale: ko })} 주간 근무표 ({formatWeekRange()})
+          </h1>
+          
           {/* 모바일 요일 네비게이션 */}
           {isMobile && (
             <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border">

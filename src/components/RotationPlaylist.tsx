@@ -182,9 +182,6 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
               </div>
               <div>
                 <CardTitle className="text-lg">{config.title}</CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  드래그로 순서 변경 • 자동 순환 모드
-                </p>
               </div>
             </div>
             <div className="flex items-center gap-2">

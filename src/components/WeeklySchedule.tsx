@@ -158,7 +158,14 @@ const WeeklySchedule = () => {
 
   const [tempMemo, setTempMemo] = useState("");
   const [memoSheetOpen, setMemoSheetOpen] = useState(false);
-  const [noticeCollapsed, setNoticeCollapsed] = useState(false);
+  const [noticeCollapsed, setNoticeCollapsed] = useState(() => {
+    const saved = localStorage.getItem('noticeCollapsed');
+    return saved === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('noticeCollapsed', String(noticeCollapsed));
+  }, [noticeCollapsed]);
 
   // 토요일 근무자 선택 다이얼로그 상태
   const [saturdaySelectDialogOpen, setSaturdaySelectDialogOpen] = useState(false);

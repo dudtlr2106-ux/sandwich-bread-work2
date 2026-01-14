@@ -53,22 +53,22 @@ const DEPARTMENT_CONFIG: Record<DepartmentType, {
 }> = {
   logistics: {
     icon: <Truck className="h-5 w-5" />,
-    title: '물류 로테이션 플레이리스트',
+    title: '물류',
     colorClass: 'text-blue-600',
   },
   equipment: {
     icon: <Wrench className="h-5 w-5" />,
-    title: '설비 로테이션 플레이리스트',
+    title: '설비',
     colorClass: 'text-orange-600',
   },
   inspection: {
     icon: <ClipboardCheck className="h-5 w-5" />,
-    title: '검사 로테이션 플레이리스트',
+    title: '검사',
     colorClass: 'text-purple-600',
   },
   foreman: {
     icon: <User className="h-5 w-5" />,
-    title: '반장 로테이션 플레이리스트',
+    title: '반장',
     colorClass: 'text-green-600',
   },
 };

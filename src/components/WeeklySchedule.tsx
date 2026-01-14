@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,6 +37,7 @@ import {
   Search,
   Package,
   ChevronLeft,
+  ChevronDown,
   ChevronRight,
   Plus,
   X,
@@ -156,6 +158,7 @@ const WeeklySchedule = () => {
 
   const [tempMemo, setTempMemo] = useState("");
   const [memoSheetOpen, setMemoSheetOpen] = useState(false);
+  const [noticeCollapsed, setNoticeCollapsed] = useState(false);
 
   // 토요일 근무자 선택 다이얼로그 상태
   const [saturdaySelectDialogOpen, setSaturdaySelectDialogOpen] = useState(false);
@@ -899,18 +902,27 @@ const WeeklySchedule = () => {
 
           {/* Notice display */}
           {noticeMemo && (
-            <div className="mt-4 bg-muted/50 border border-border rounded-lg p-4">
-              <div className="flex items-start gap-2">
-                <StickyNote className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground mb-1">공지사항</p>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">{noticeMemo}</p>
+            <Collapsible open={!noticeCollapsed} onOpenChange={(open) => setNoticeCollapsed(!open)}>
+              <div className="mt-4 bg-muted/50 border border-border rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <StickyNote className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <CollapsibleTrigger asChild>
+                      <button className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-primary transition-colors cursor-pointer">
+                        공지사항
+                        <ChevronDown className={`h-4 w-4 transition-transform ${noticeCollapsed ? '-rotate-90' : ''}`} />
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words mt-1">{noticeMemo}</p>
+                    </CollapsibleContent>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => setNoticeMemo("")}>
+                    <X className="h-3 w-3" />
+                  </Button>
                 </div>
-                <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => setNoticeMemo("")}>
-                  <X className="h-3 w-3" />
-                </Button>
               </div>
-            </div>
+            </Collapsible>
           )}
         </CardHeader>
         <CardContent className="p-0">

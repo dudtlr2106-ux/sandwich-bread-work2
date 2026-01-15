@@ -38,7 +38,7 @@ export const DEPARTMENT_ROTATION_SIZE: Record<DepartmentType, { early: number; m
   logistics: { early: 1, mid: 1 },    // 물류: 초반 1명, 중반 1명 (총 2명)
   equipment: { early: 3, mid: 3 },    // 설비: 초반 3명, 중반 3명 (총 6명)
   inspection: { early: 2, mid: 2 },   // 검사: 초반 2명, 중반 2명 (총 4명)
-  foreman: { early: 1, mid: 1 },      // 반장: 초반 1명, 중반 1명 (총 2명)
+  foreman: { early: 2, mid: 2 },      // 반장: 초반 2명, 중반 2명 (총 4명)
 };
 
 export function useRotationPlaylist(department: DepartmentType) {

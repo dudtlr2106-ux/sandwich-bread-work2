@@ -210,16 +210,19 @@ export type Database = {
         Row: {
           content: string
           id: string
+          is_public: boolean
           updated_at: string
         }
         Insert: {
           content?: string
           id?: string
+          is_public?: boolean
           updated_at?: string
         }
         Update: {
           content?: string
           id?: string
+          is_public?: boolean
           updated_at?: string
         }
         Relationships: []

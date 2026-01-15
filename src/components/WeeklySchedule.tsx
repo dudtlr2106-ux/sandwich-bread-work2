@@ -808,7 +808,7 @@ const WeeklySchedule = () => {
                 <Link to="/auth">
                   <Button variant="outline" size="sm">
                     <LogIn className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">관리자 로그인</span>
+                    <span className="hidden sm:inline">로그인</span>
                   </Button>
                 </Link>
               )}

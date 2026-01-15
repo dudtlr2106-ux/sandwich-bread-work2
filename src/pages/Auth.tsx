@@ -116,7 +116,7 @@ const Auth = () => {
           <div className="mx-auto p-3 rounded-full bg-primary/10 w-fit mb-4">
             <Lock className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl">관리자 로그인</CardTitle>
+          <CardTitle className="text-2xl">로그인</CardTitle>
           <CardDescription>
             근태 수정 요청을 관리하려면 로그인하세요
           </CardDescription>

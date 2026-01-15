@@ -129,6 +129,7 @@ export function useScheduleData(currentWeekStart?: Date) {
   const [partialVacationData, setPartialVacationData] = useState<PartialVacationData>({});
   const [dayOffDates, setDayOffDatesLocal] = useState<Set<string>>(new Set());
   const [noticeMemo, setNoticeMemoLocal] = useState("");
+  const [noticeMemoIsPublic, setNoticeMemoIsPublicLocal] = useState(true);
   const [weekendAvailability, setWeekendAvailabilityLocal] = useState<{ [workerName: string]: boolean }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -370,6 +371,7 @@ export function useScheduleData(currentWeekStart?: Date) {
       // 공지 메모 처리
       if (memoRes.data && memoRes.data.length > 0) {
         setNoticeMemoLocal(memoRes.data[0].content || '');
+        setNoticeMemoIsPublicLocal(memoRes.data[0].is_public ?? true);
       }
 
       // 주말 출근 가능 여부 처리
@@ -626,16 +628,24 @@ export function useScheduleData(currentWeekStart?: Date) {
   }, [dayOffDates]);
 
   // 공지 메모 저장
-  const setNoticeMemo = useCallback(async (content: string) => {
+  const setNoticeMemo = useCallback(async (content: string, isPublic?: boolean) => {
     setNoticeMemoLocal(content);
+    if (isPublic !== undefined) {
+      setNoticeMemoIsPublicLocal(isPublic);
+    }
     
     // 먼저 기존 레코드 확인
     const { data: existingMemo } = await supabase.from('notice_memos').select('id').limit(1);
     
     if (existingMemo && existingMemo.length > 0) {
+      const updateData: { content: string; is_public?: boolean } = { content };
+      if (isPublic !== undefined) {
+        updateData.is_public = isPublic;
+      }
+      
       const { error } = await supabase
         .from('notice_memos')
-        .update({ content })
+        .update(updateData)
         .eq('id', existingMemo[0].id);
 
       if (error) {
@@ -686,6 +696,7 @@ export function useScheduleData(currentWeekStart?: Date) {
     dayOffDates,
     toggleDayOff,
     noticeMemo,
+    noticeMemoIsPublic,
     setNoticeMemo,
     weekendAvailability,
     toggleWeekendAvailability,

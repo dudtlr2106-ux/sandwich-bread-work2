@@ -30,6 +30,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Calendar,
   Users,
@@ -132,6 +134,7 @@ const WeeklySchedule = () => {
     dayOffDates,
     toggleDayOff: toggleDayOffDb,
     noticeMemo,
+    noticeMemoIsPublic,
     setNoticeMemo,
     weekendAvailability,
     toggleWeekendAvailability: toggleWeekendAvailabilityDb,
@@ -158,6 +161,7 @@ const WeeklySchedule = () => {
   } | null>(null);
 
   const [tempMemo, setTempMemo] = useState("");
+  const [tempMemoIsPublic, setTempMemoIsPublic] = useState(true);
   const [memoSheetOpen, setMemoSheetOpen] = useState(false);
   const [noticeCollapsed, setNoticeCollapsed] = useState(() => {
     const saved = localStorage.getItem('noticeCollapsed');
@@ -208,11 +212,12 @@ const WeeklySchedule = () => {
 
   const openMemoSheet = () => {
     setTempMemo(noticeMemo);
+    setTempMemoIsPublic(noticeMemoIsPublic);
     setMemoSheetOpen(true);
   };
 
   const saveMemo = () => {
-    setNoticeMemo(tempMemo);
+    setNoticeMemo(tempMemo, tempMemoIsPublic);
     setMemoSheetOpen(false);
   };
 
@@ -815,7 +820,7 @@ const WeeklySchedule = () => {
                   <Button variant="outline" size="sm" onClick={openMemoSheet}>
                     <StickyNote className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">공지 메모</span>
-                    {noticeMemo && <Badge variant="secondary" className="ml-2">1</Badge>}
+                    {noticeMemo && (noticeMemoIsPublic || isAdmin) && <Badge variant="secondary" className="ml-2">1</Badge>}
                   </Button>
                 </SheetTrigger>
                 <SheetContent>
@@ -829,6 +834,28 @@ const WeeklySchedule = () => {
                       onChange={(e) => setTempMemo(e.target.value)}
                       className="min-h-[300px]"
                     />
+                    {isAdmin && (
+                      <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
+                        <Label htmlFor="notice-visibility" className="text-sm font-medium flex items-center gap-2">
+                          {tempMemoIsPublic ? (
+                            <>
+                              <span className="text-green-600">공개</span>
+                              <span className="text-muted-foreground text-xs">- 모든 사용자에게 표시됩니다</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-orange-600">비공개</span>
+                              <span className="text-muted-foreground text-xs">- 관리자만 볼 수 있습니다</span>
+                            </>
+                          )}
+                        </Label>
+                        <Switch
+                          id="notice-visibility"
+                          checked={tempMemoIsPublic}
+                          onCheckedChange={setTempMemoIsPublic}
+                        />
+                      </div>
+                    )}
                     <div className="flex gap-2">
                       <Button onClick={saveMemo} className="flex-1">
                         저장
@@ -919,16 +946,19 @@ const WeeklySchedule = () => {
           </div>
           
 
-          {/* Notice display */}
-          {noticeMemo && (
+          {/* Notice display - 공개이거나 관리자인 경우에만 표시 */}
+          {noticeMemo && (noticeMemoIsPublic || isAdmin) && (
             <Collapsible open={!noticeCollapsed} onOpenChange={(open) => setNoticeCollapsed(!open)}>
-              <div className="mt-4 bg-muted/50 border border-border rounded-lg p-4">
+              <div className={`mt-4 border rounded-lg p-4 ${noticeMemoIsPublic ? 'bg-muted/50 border-border' : 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800'}`}>
                 <div className="flex items-start gap-2">
-                  <StickyNote className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                  <StickyNote className={`h-4 w-4 mt-0.5 flex-shrink-0 ${noticeMemoIsPublic ? 'text-muted-foreground' : 'text-orange-500'}`} />
                   <div className="flex-1 min-w-0">
                     <CollapsibleTrigger asChild>
                       <button className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-primary transition-colors cursor-pointer">
                         공지사항
+                        {!noticeMemoIsPublic && isAdmin && (
+                          <Badge variant="outline" className="ml-2 text-xs text-orange-600 border-orange-300">비공개</Badge>
+                        )}
                         <ChevronDown className={`h-4 w-4 transition-transform ${noticeCollapsed ? '-rotate-90' : ''}`} />
                       </button>
                     </CollapsibleTrigger>
@@ -936,9 +966,11 @@ const WeeklySchedule = () => {
                       <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words mt-1">{noticeMemo}</p>
                     </CollapsibleContent>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => setNoticeMemo("")}>
-                    <X className="h-3 w-3" />
-                  </Button>
+                  {isAdmin && (
+                    <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => setNoticeMemo("", noticeMemoIsPublic)}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </Collapsible>

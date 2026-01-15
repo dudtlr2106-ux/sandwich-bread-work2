@@ -793,10 +793,9 @@ const WeeklySchedule = () => {
                 <div className="h-9 w-20 bg-muted animate-pulse rounded" />
               ) : user ? (
                 <div className="flex items-center gap-2">
-                  {isAdmin && (
-                    <span className="flex items-center gap-1 text-sm text-primary">
+                {isAdmin && (
+                    <span className="flex items-center text-primary">
                       <Shield className="h-4 w-4" />
-                      관리자
                     </span>
                   )}
                   <Button variant="outline" size="sm" onClick={signOut}>

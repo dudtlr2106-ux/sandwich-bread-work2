@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Clock } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Send, Clock, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface AttendanceRequestFormProps {
   open: boolean;
@@ -35,15 +37,57 @@ const AttendanceRequestForm = ({
   currentStatus,
 }: AttendanceRequestFormProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [requesterName, setRequesterName] = useState("");
   const [requestedStatus, setRequestedStatus] = useState("");
   const [reason, setReason] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
+  const [isNameMismatch, setIsNameMismatch] = useState(false);
+
+  // Fetch user's display name from profile
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (data) {
+          setUserDisplayName(data.display_name);
+          setRequesterName(data.display_name);
+        }
+      }
+    };
+    
+    if (open) {
+      fetchUserProfile();
+    }
+  }, [user, open]);
+
+  // Check if worker name matches user's display name
+  useEffect(() => {
+    if (userDisplayName) {
+      setIsNameMismatch(workerName !== userDisplayName);
+    }
+  }, [workerName, userDisplayName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Block submission if names don't match
+    if (userDisplayName && workerName !== userDisplayName) {
+      toast({
+        variant: "destructive",
+        title: "요청 불가",
+        description: "본인의 근태만 수정 요청할 수 있습니다",
+      });
+      return;
+    }
     
     if (!requesterName.trim()) {
       toast({
@@ -139,6 +183,16 @@ const AttendanceRequestForm = ({
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-3">
+          {/* 본인 확인 불일치 경고 */}
+          {userDisplayName && isNameMismatch && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                본인({userDisplayName})의 근태만 수정 요청할 수 있습니다.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* 대상 정보 요약 - 한눈에 보기 */}
           <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border text-sm">
             <div className="flex items-center gap-3">
@@ -218,7 +272,11 @@ const AttendanceRequestForm = ({
             <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               취소
             </Button>
-            <Button type="submit" size="sm" disabled={isSubmitting}>
+            <Button 
+              type="submit" 
+              size="sm" 
+              disabled={isSubmitting || (userDisplayName !== null && isNameMismatch)}
+            >
               {isSubmitting ? "요청 중..." : "요청"}
             </Button>
           </DialogFooter>

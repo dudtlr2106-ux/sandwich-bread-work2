@@ -89,6 +89,24 @@ const Auth = () => {
     if (!validateForm(true)) return;
     
     setIsSubmitting(true);
+    
+    // Check if display name already exists
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('display_name', displayName.trim())
+      .maybeSingle();
+    
+    if (existingProfile) {
+      toast({
+        variant: "destructive",
+        title: "회원가입 실패",
+        description: "이미 사용 중인 이름입니다. 다른 이름을 입력해주세요.",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+    
     const { error, data } = await signUp(email, password);
     
     if (error) {
@@ -112,6 +130,15 @@ const Auth = () => {
       
       if (profileError) {
         console.error('Profile creation error:', profileError);
+        if (profileError.message.includes('duplicate') || profileError.code === '23505') {
+          toast({
+            variant: "destructive",
+            title: "회원가입 실패",
+            description: "이미 사용 중인 이름입니다. 다른 이름을 입력해주세요.",
+          });
+          setIsSubmitting(false);
+          return;
+        }
       }
       
       toast({

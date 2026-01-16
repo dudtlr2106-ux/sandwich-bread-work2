@@ -79,6 +79,16 @@ const AttendanceRequestForm = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Block submission if not logged in
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "요청 불가",
+        description: "로그인 후 근태 수정 요청이 가능합니다",
+      });
+      return;
+    }
+    
     // Block submission if names don't match
     if (userDisplayName && workerName !== userDisplayName) {
       toast({
@@ -183,8 +193,18 @@ const AttendanceRequestForm = ({
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-3">
+          {/* 비로그인 사용자 경고 */}
+          {!user && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                로그인 후 근태 수정 요청이 가능합니다.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* 본인 확인 불일치 경고 */}
-          {userDisplayName && isNameMismatch && (
+          {user && userDisplayName && isNameMismatch && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
@@ -275,7 +295,7 @@ const AttendanceRequestForm = ({
             <Button 
               type="submit" 
               size="sm" 
-              disabled={isSubmitting || (userDisplayName !== null && isNameMismatch)}
+              disabled={isSubmitting || !user || (userDisplayName !== null && isNameMismatch)}
             >
               {isSubmitting ? "요청 중..." : "요청"}
             </Button>

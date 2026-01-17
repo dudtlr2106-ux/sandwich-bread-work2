@@ -3,7 +3,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
-import { useScheduleData, WorkerStatus, WorkerStatusData, ScheduleData, initialScheduleData, SORTED_ALL_WORKERS, PartialVacationData } from "@/hooks/useScheduleData";
+import { useScheduleData, WorkerStatus, WorkerStatusData, ScheduleData, initialScheduleData, SORTED_ALL_WORKERS, PartialVacationData, PartialOvertimeData } from "@/hooks/useScheduleData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -131,6 +131,7 @@ const WeeklySchedule = () => {
     setWorkerStatusData,
     saveWorkerStatus,
     partialVacationData,
+    partialOvertimeData,
     dayOffDates,
     toggleDayOff: toggleDayOffDb,
     noticeMemo,
@@ -483,63 +484,73 @@ const WeeklySchedule = () => {
     return partialVacationData[dateKey]?.[worker] || null;
   };
 
-  // 출퇴근 시간 정보 가져오기 (시간휴가 + 잔업 동시 반영)
+  // 시간잔업 정보 가져오기
+  const getPartialOvertimeInfo = (worker: string, dateKey: string) => {
+    return partialOvertimeData[dateKey]?.[worker] || null;
+  };
+
+  // 출퇴근 시간 정보 가져오기 (시간휴가 + 시간잔업 + 잔업 동시 반영)
   const getShiftTimes = (shift: "A" | "B", day: string, status: WorkerStatus, worker?: string, dateKey?: string) => {
     const isFirstShift = shift === "A";
     const isOvertime = status === "overtime";
     
-    // 시간휴가 정보 확인 (잔업 상태와 무관하게 확인)
-    const partialInfo = worker && dateKey ? partialVacationData[dateKey]?.[worker] : null;
+    // 시간휴가 정보 확인
+    const partialVacationInfo = worker && dateKey ? partialVacationData[dateKey]?.[worker] : null;
+    // 시간잔업 정보 확인
+    const partialOvertimeInfo = worker && dateKey ? partialOvertimeData[dateKey]?.[worker] : null;
     
-    if (partialInfo) {
-      const vacationStartHour = parseInt(partialInfo.start_time.split(":")[0]);
-      const vacationEndHour = parseInt(partialInfo.end_time.split(":")[0]);
+    // 기본 시간 계산
+    let baseStart: number;
+    let baseEnd: number;
+    
+    if (isFirstShift) {
+      baseStart = 6;
+      baseEnd = isOvertime ? 18 : 14;
+    } else {
+      baseStart = isOvertime ? 10 : 14;
+      baseEnd = 22;
+    }
+    
+    // 시간잔업이 있으면 잔업 시간을 반영
+    if (partialOvertimeInfo) {
+      const overtimeStartHour = parseInt(partialOvertimeInfo.start_time.split(":")[0]);
+      const overtimeEndHour = parseInt(partialOvertimeInfo.end_time.split(":")[0]);
       
       if (isFirstShift) {
-        // 초반조 기본: 06-14, 잔업 시: 06-18
-        const baseStart = 6;
-        const baseEnd = isOvertime ? 18 : 14;
-        
-        // 휴가 시간이 시작 시간과 겹치면 조정
-        let adjustedStart = baseStart;
-        if (vacationStartHour <= baseStart && vacationEndHour > baseStart) {
-          adjustedStart = vacationEndHour;
+        // 초반조: 잔업 시간이 정규 근무 이후이면 퇴근 시간 연장
+        if (overtimeEndHour > baseEnd) {
+          baseEnd = overtimeEndHour;
         }
-        
-        return { 
-          start: adjustedStart.toString().padStart(2, "0"), 
-          end: baseEnd.toString().padStart(2, "0") 
-        };
       } else {
-        // 중반조 기본: 14-22, 잔업 시: 10-22
-        const baseStart = isOvertime ? 10 : 14;
-        const baseEnd = 22;
-        
-        // 휴가 시간이 종료 시간과 겹치면 조정
-        let adjustedEnd = baseEnd;
-        if (vacationEndHour >= baseEnd && vacationStartHour < baseEnd) {
-          adjustedEnd = vacationStartHour;
+        // 중반조: 잔업 시간이 정규 근무 이전이면 출근 시간 앞당김
+        if (overtimeStartHour < baseStart) {
+          baseStart = overtimeStartHour;
         }
-        
-        return { 
-          start: baseStart.toString().padStart(2, "0"), 
-          end: adjustedEnd.toString().padStart(2, "0") 
-        };
       }
     }
     
-    // 시간휴가 없는 경우 기본 시간
-    if (isFirstShift) {
-      return {
-        start: "06",
-        end: isOvertime ? "18" : "14",
-      };
-    } else {
-      return {
-        start: isOvertime ? "10" : "14",
-        end: "22",
-      };
+    // 시간휴가가 있으면 휴가 시간을 반영
+    if (partialVacationInfo) {
+      const vacationStartHour = parseInt(partialVacationInfo.start_time.split(":")[0]);
+      const vacationEndHour = parseInt(partialVacationInfo.end_time.split(":")[0]);
+      
+      if (isFirstShift) {
+        // 초반조: 휴가 시간이 시작 시간과 겹치면 조정
+        if (vacationStartHour <= baseStart && vacationEndHour > baseStart) {
+          baseStart = vacationEndHour;
+        }
+      } else {
+        // 중반조: 휴가 시간이 종료 시간과 겹치면 조정
+        if (vacationEndHour >= baseEnd && vacationStartHour < baseEnd) {
+          baseEnd = vacationStartHour;
+        }
+      }
     }
+    
+    return { 
+      start: baseStart.toString().padStart(2, "0"), 
+      end: baseEnd.toString().padStart(2, "0") 
+    };
   };
 
   // 전체 근무자 목록 가져오기 (조별 정렬: A조 → B조, 반장 → 1조 → 2조)

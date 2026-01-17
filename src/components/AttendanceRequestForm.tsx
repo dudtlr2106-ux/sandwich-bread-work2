@@ -175,6 +175,23 @@ const AttendanceRequestForm = ({
     }
   };
 
+  // 시간 입력 시 자동 콜론 추가
+  const formatTimeInput = (value: string): string => {
+    // 숫자만 추출
+    const digits = value.replace(/\D/g, "");
+    
+    // 2자리 이상이면 콜론 자동 추가
+    if (digits.length >= 2) {
+      return `${digits.slice(0, 2)}:${digits.slice(2, 4)}`;
+    }
+    return digits;
+  };
+
+  const handleTimeChange = (value: string, setter: (val: string) => void) => {
+    const formatted = formatTimeInput(value);
+    setter(formatted);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[360px]">
@@ -245,7 +262,7 @@ const AttendanceRequestForm = ({
                 type="text"
                 placeholder="14:00"
                 value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
+                onChange={(e) => handleTimeChange(e.target.value, setStartTime)}
                 className="h-8 text-sm text-center w-20"
                 maxLength={5}
               />
@@ -254,7 +271,7 @@ const AttendanceRequestForm = ({
                 type="text"
                 placeholder="18:00"
                 value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
+                onChange={(e) => handleTimeChange(e.target.value, setEndTime)}
                 className="h-8 text-sm text-center w-20"
                 maxLength={5}
               />

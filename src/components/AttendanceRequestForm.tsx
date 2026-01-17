@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -214,23 +214,25 @@ const AttendanceRequestForm = ({
             </span>
           </div>
           
-          {/* 변경 상태 선택 */}
-          <div className="space-y-1">
-            <Label htmlFor="status" className="text-xs">변경 상태</Label>
-            <Select value={requestedStatus} onValueChange={handleStatusChange}>
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="선택" />
-              </SelectTrigger>
-              <SelectContent>
-                {statusOptions
-                  .filter((opt) => opt.value !== currentStatus)
-                  .map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+          {/* 변경 상태 버튼 */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">변경 상태</Label>
+            <div className="flex flex-wrap gap-2">
+              {statusOptions
+                .filter((opt) => opt.value !== currentStatus)
+                .map((opt) => (
+                  <Button
+                    key={opt.value}
+                    type="button"
+                    variant={requestedStatus === opt.value ? "default" : "outline"}
+                    size="sm"
+                    className="h-8 px-3"
+                    onClick={() => handleStatusChange(opt.value)}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+            </div>
           </div>
 
           {/* 시간휴가 시간 선택 */}

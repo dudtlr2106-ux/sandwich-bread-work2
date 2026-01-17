@@ -38,7 +38,7 @@ const AttendanceRequestForm = ({
 }: AttendanceRequestFormProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [requesterName, setRequesterName] = useState("");
+  
   const [requestedStatus, setRequestedStatus] = useState("");
   const [reason, setReason] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -59,7 +59,6 @@ const AttendanceRequestForm = ({
         
         if (data) {
           setUserDisplayName(data.display_name);
-          setRequesterName(data.display_name);
         }
       }
     };
@@ -99,14 +98,6 @@ const AttendanceRequestForm = ({
       return;
     }
     
-    if (!requesterName.trim()) {
-      toast({
-        variant: "destructive",
-        title: "요청자 이름을 입력하세요",
-      });
-      return;
-    }
-    
     if (!requestedStatus) {
       toast({
         variant: "destructive",
@@ -137,7 +128,7 @@ const AttendanceRequestForm = ({
     setIsSubmitting(true);
 
     const { error } = await supabase.from("attendance_requests").insert({
-      requester_name: requesterName.trim(),
+      requester_name: userDisplayName || workerName,
       worker_name: workerName,
       date_key: dateKey,
       day: day,
@@ -160,7 +151,6 @@ const AttendanceRequestForm = ({
         description: "관리자 승인을 기다려주세요",
       });
       onOpenChange(false);
-      setRequesterName("");
       setRequestedStatus("");
       setReason("");
       setStartTime("");
@@ -224,35 +214,23 @@ const AttendanceRequestForm = ({
             </span>
           </div>
           
-          {/* 요청자 + 변경상태 한 줄 */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <Label htmlFor="requester" className="text-xs">요청자</Label>
-              <Input
-                id="requester"
-                placeholder="이름"
-                value={requesterName}
-                onChange={(e) => setRequesterName(e.target.value)}
-                className="h-9"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="status" className="text-xs">변경 상태</Label>
-              <Select value={requestedStatus} onValueChange={handleStatusChange}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions
-                    .filter((opt) => opt.value !== currentStatus)
-                    .map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* 변경 상태 선택 */}
+          <div className="space-y-1">
+            <Label htmlFor="status" className="text-xs">변경 상태</Label>
+            <Select value={requestedStatus} onValueChange={handleStatusChange}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="선택" />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions
+                  .filter((opt) => opt.value !== currentStatus)
+                  .map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* 시간휴가 시간 선택 */}

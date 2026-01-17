@@ -23,6 +23,7 @@ interface AttendanceRequestFormProps {
 const statusOptions = [
   { value: "normal", label: "정상" },
   { value: "overtime", label: "잔업" },
+  { value: "partial_overtime", label: "시간잔업" },
   { value: "vacation", label: "휴가" },
   { value: "partial_vacation", label: "시간휴가" },
   { value: "dayoff", label: "휴무" },
@@ -106,11 +107,13 @@ const AttendanceRequestForm = ({
       return;
     }
 
-    if (requestedStatus === "partial_vacation") {
+    const needsTimeInput = requestedStatus === "partial_vacation" || requestedStatus === "partial_overtime";
+    
+    if (needsTimeInput) {
       if (!startTime || !endTime) {
         toast({
           variant: "destructive",
-          title: "시간휴가 시간을 입력하세요",
+          title: requestedStatus === "partial_vacation" ? "시간휴가 시간을 입력하세요" : "시간잔업 시간을 입력하세요",
           description: "시작 시간과 종료 시간을 모두 입력해주세요",
         });
         return;
@@ -135,8 +138,8 @@ const AttendanceRequestForm = ({
       current_status: currentStatus,
       requested_status: requestedStatus,
       reason: reason.trim() || null,
-      start_time: requestedStatus === "partial_vacation" ? startTime : null,
-      end_time: requestedStatus === "partial_vacation" ? endTime : null,
+      start_time: needsTimeInput ? startTime : null,
+      end_time: needsTimeInput ? endTime : null,
     });
 
     if (error) {
@@ -166,7 +169,7 @@ const AttendanceRequestForm = ({
 
   const handleStatusChange = (value: string) => {
     setRequestedStatus(value);
-    if (value !== "partial_vacation") {
+    if (value !== "partial_vacation" && value !== "partial_overtime") {
       setStartTime("");
       setEndTime("");
     }
@@ -235,8 +238,8 @@ const AttendanceRequestForm = ({
             </div>
           </div>
 
-          {/* 시간휴가 시간 선택 */}
-          {requestedStatus === "partial_vacation" && (
+          {/* 시간휴가/시간잔업 시간 선택 */}
+          {(requestedStatus === "partial_vacation" || requestedStatus === "partial_overtime") && (
             <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border">
               <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
               <Input

@@ -750,26 +750,31 @@ const WeeklySchedule = () => {
     });
   };
 
-  // 상태별 아이콘 및 스타일 (시간휴가 포함 여부도 체크)
-  const getStatusStyle = (status: WorkerStatus, hasPartialVacation?: boolean) => {
+  // 상태별 아이콘 및 스타일 (시간휴가/시간잔업 포함 여부도 체크)
+  const getStatusStyle = (status: WorkerStatus, hasPartialVacation?: boolean, hasPartialOvertime?: boolean) => {
+    // 시간휴가 또는 시간잔업이 있는 경우 파란색 스타일
+    const hasPartialTime = hasPartialVacation || hasPartialOvertime;
+    
     // 잔업 + 시간휴가 동시인 경우
     if (status === "overtime" && hasPartialVacation) {
-      return { icon: <Clock className="h-3 w-3 text-orange-500" />, className: "text-orange-600 font-medium" };
+      return { icon: <Clock className="h-3 w-3 text-blue-500" />, className: "text-foreground", timeClassName: "text-blue-500 font-medium" };
     }
     
     switch (status) {
       case "overtime":
-        return { icon: null, className: "text-orange-600 font-medium" };
+        return { icon: null, className: "text-orange-600 font-medium", timeClassName: "" };
       case "vacation":
-        return { icon: <Palmtree className="h-3 w-3 text-green-500" />, className: "text-green-600 line-through" };
+        return { icon: <Palmtree className="h-3 w-3 text-green-500" />, className: "text-green-600 line-through", timeClassName: "" };
       case "partial_vacation":
-        return { icon: <Clock className="h-3 w-3 text-blue-500" />, className: "text-blue-600" };
+        return { icon: <Clock className="h-3 w-3 text-blue-500" />, className: "text-foreground", timeClassName: "text-blue-500 font-medium" };
+      case "partial_overtime":
+        return { icon: <Clock className="h-3 w-3 text-blue-500" />, className: "text-foreground", timeClassName: "text-blue-500 font-medium" };
       default:
-        // 정상 상태이지만 시간휴가가 있는 경우
-        if (hasPartialVacation) {
-          return { icon: <Clock className="h-3 w-3 text-orange-500" />, className: "text-orange-600" };
+        // 정상 상태이지만 시간휴가 또는 시간잔업이 있는 경우
+        if (hasPartialTime) {
+          return { icon: <Clock className="h-3 w-3 text-blue-500" />, className: "text-foreground", timeClassName: "text-blue-500 font-medium" };
         }
-        return { icon: null, className: "" };
+        return { icon: null, className: "", timeClassName: "" };
     }
   };
 
@@ -1183,7 +1188,8 @@ const WeeklySchedule = () => {
                                   firstShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
                                     const hasPartialVacation = !!getPartialVacationInfo(worker, dateKey);
-                                    const statusStyle = getStatusStyle(status, hasPartialVacation);
+                                    const hasPartialOvertime = !!getPartialOvertimeInfo(worker, dateKey);
+                                    const statusStyle = getStatusStyle(status, hasPartialVacation, hasPartialOvertime);
                                     const times = getShiftTimes(firstShiftKey, day, status, worker, dateKey);
                                     return (
                                       <DropdownMenu key={idx}>
@@ -1192,12 +1198,12 @@ const WeeklySchedule = () => {
                                             className="flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 rounded px-0.5"
                                             onClick={(e) => e.stopPropagation()}
                                           >
-                                            <span className="text-[10px] text-muted-foreground">{times.start}</span>
+                                            <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.start}</span>
                                             {statusStyle.icon}
                                             <span className={`text-sm whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
                                               {worker}
                                             </span>
-                                            <span className="text-[10px] text-muted-foreground">{times.end}</span>
+                                            <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.end}</span>
                                           </div>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>
@@ -1269,7 +1275,8 @@ const WeeklySchedule = () => {
                                   secondShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
                                     const hasPartialVacation = !!getPartialVacationInfo(worker, dateKey);
-                                    const statusStyle = getStatusStyle(status, hasPartialVacation);
+                                    const hasPartialOvertime = !!getPartialOvertimeInfo(worker, dateKey);
+                                    const statusStyle = getStatusStyle(status, hasPartialVacation, hasPartialOvertime);
                                     const times = getShiftTimes(secondShiftKey, day, status, worker, dateKey);
                                     return (
                                       <DropdownMenu key={idx}>
@@ -1278,12 +1285,12 @@ const WeeklySchedule = () => {
                                             className="flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 rounded px-0.5"
                                             onClick={(e) => e.stopPropagation()}
                                           >
-                                            <span className="text-[10px] text-muted-foreground">{times.start}</span>
+                                            <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.start}</span>
                                             {statusStyle.icon}
                                             <span className={`text-sm whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
                                               {worker}
                                             </span>
-                                            <span className="text-[10px] text-muted-foreground">{times.end}</span>
+                                            <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.end}</span>
                                           </div>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>

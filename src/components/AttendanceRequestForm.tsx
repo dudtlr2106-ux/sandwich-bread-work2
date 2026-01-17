@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Send, Clock, AlertCircle } from "lucide-react";
+import { Send, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface AttendanceRequestFormProps {
@@ -241,19 +241,22 @@ const AttendanceRequestForm = ({
           {/* 시간휴가/시간잔업 시간 선택 */}
           {(requestedStatus === "partial_vacation" || requestedStatus === "partial_overtime") && (
             <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border">
-              <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
               <Input
-                type="time"
+                type="text"
+                placeholder="14:00"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="h-8 text-sm"
+                className="h-8 text-sm text-center w-20"
+                maxLength={5}
               />
               <span className="text-muted-foreground">~</span>
               <Input
-                type="time"
+                type="text"
+                placeholder="18:00"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="h-8 text-sm"
+                className="h-8 text-sm text-center w-20"
+                maxLength={5}
               />
             </div>
           )}

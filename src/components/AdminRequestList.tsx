@@ -36,6 +36,7 @@ interface AdminRequestListProps {
 const statusLabels: Record<string, string> = {
   normal: "정상",
   overtime: "잔업",
+  partial_overtime: "시간잔업",
   vacation: "휴가",
   partial_vacation: "시간휴가",
   dayoff: "휴무",
@@ -112,6 +113,15 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
       toast({
         title: "승인 완료",
         description: `${request.worker_name}님의 시간휴가(${request.start_time} ~ ${request.end_time})가 승인되었습니다`,
+      });
+      return;
+    }
+
+    // 3. 시간잔업(partial_overtime)도 동일하게 처리
+    if (request.requested_status === "partial_overtime") {
+      toast({
+        title: "승인 완료",
+        description: `${request.worker_name}님의 시간잔업(${request.start_time} ~ ${request.end_time})이 승인되었습니다`,
       });
       return;
     }
@@ -268,7 +278,7 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
                           {statusLabels[request.current_status || "normal"]} → 
                           <span className="font-medium text-primary">
                             {statusLabels[request.requested_status]}
-                            {request.requested_status === "partial_vacation" && request.start_time && request.end_time && (
+                            {(request.requested_status === "partial_vacation" || request.requested_status === "partial_overtime") && request.start_time && request.end_time && (
                               <span className="ml-1">({request.start_time} ~ {request.end_time})</span>
                             )}
                           </span>
@@ -328,7 +338,7 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
                           {statusLabels[request.current_status || "normal"]} → 
                           <span className="font-medium text-green-700">
                             {statusLabels[request.requested_status]}
-                            {request.requested_status === "partial_vacation" && request.start_time && request.end_time && (
+                            {(request.requested_status === "partial_vacation" || request.requested_status === "partial_overtime") && request.start_time && request.end_time && (
                               <span className="ml-1">({request.start_time} ~ {request.end_time})</span>
                             )}
                           </span>
@@ -371,7 +381,7 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
                         <div className="text-sm text-muted-foreground">
                           {request.date_key} ({request.day}) • 
                           {statusLabels[request.current_status || "normal"]} → {statusLabels[request.requested_status]}
-                          {request.requested_status === "partial_vacation" && request.start_time && request.end_time && (
+                          {(request.requested_status === "partial_vacation" || request.requested_status === "partial_overtime") && request.start_time && request.end_time && (
                             <span className="ml-1">({request.start_time} ~ {request.end_time})</span>
                           )}
                         </div>

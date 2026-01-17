@@ -5,10 +5,16 @@ import { format, addDays, startOfWeek, isBefore, startOfDay } from 'date-fns';
 import { PatternRule } from '@/hooks/usePatternRules';
 
 // 잔업/휴가/휴무 상태 타입
-export type WorkerStatus = "normal" | "overtime" | "vacation" | "partial_vacation" | "dayoff";
+export type WorkerStatus = "normal" | "overtime" | "vacation" | "partial_vacation" | "partial_overtime" | "dayoff";
 
-// 시간휴가 정보 타입
+// 시간휴가/시간잔업 정보 타입
 export type PartialVacationInfo = {
+  start_time: string;
+  end_time: string;
+};
+
+// 시간잔업 정보 타입
+export type PartialOvertimeInfo = {
   start_time: string;
   end_time: string;
 };
@@ -24,6 +30,13 @@ export type WorkerStatusData = {
 export type PartialVacationData = {
   [dateKey: string]: {
     [workerName: string]: PartialVacationInfo;
+  };
+};
+
+// 시간잔업 정보 데이터
+export type PartialOvertimeData = {
+  [dateKey: string]: {
+    [workerName: string]: PartialOvertimeInfo;
   };
 };
 
@@ -127,6 +140,7 @@ export function useScheduleData(currentWeekStart?: Date) {
   const [savedScheduleData, setSavedScheduleData] = useState<ScheduleData>(initialScheduleData);
   const [workerStatusData, setWorkerStatusDataLocal] = useState<WorkerStatusData>({});
   const [partialVacationData, setPartialVacationData] = useState<PartialVacationData>({});
+  const [partialOvertimeData, setPartialOvertimeData] = useState<PartialOvertimeData>({});
   const [dayOffDates, setDayOffDatesLocal] = useState<Set<string>>(new Set());
   const [noticeMemo, setNoticeMemoLocal] = useState("");
   const [noticeMemoIsPublic, setNoticeMemoIsPublicLocal] = useState(true);
@@ -247,7 +261,7 @@ export function useScheduleData(currentWeekStart?: Date) {
       const weekOffset = Math.floor((weekStart.getTime() - currentWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
       
       // 병렬로 모든 데이터 로드
-      const [scheduleRes, statusRes, dayOffRes, memoRes, weekendRes, patternRes, partialVacationRes, logisticsPlaylistRes, equipmentPlaylistRes, inspectionPlaylistRes, foremanPlaylistRes] = await Promise.all([
+      const [scheduleRes, statusRes, dayOffRes, memoRes, weekendRes, patternRes, partialVacationRes, partialOvertimeRes, logisticsPlaylistRes, equipmentPlaylistRes, inspectionPlaylistRes, foremanPlaylistRes] = await Promise.all([
         supabase.from('schedule_data').select('*').in('date_key', weekDateKeys),
         supabase.from('worker_statuses').select('*').in('date_key', weekDateKeys),
         supabase.from('day_offs').select('*').in('date_key', weekDateKeys),
@@ -262,6 +276,12 @@ export function useScheduleData(currentWeekStart?: Date) {
           .select('worker_name, date_key, start_time, end_time')
           .in('date_key', weekDateKeys)
           .eq('requested_status', 'partial_vacation')
+          .eq('status', 'approved'),
+        // 시간잔업 정보 로드 (승인된 partial_overtime 요청에서)
+        supabase.from('attendance_requests')
+          .select('worker_name, date_key, start_time, end_time')
+          .in('date_key', weekDateKeys)
+          .eq('requested_status', 'partial_overtime')
           .eq('status', 'approved'),
         // 물류 로테이션 플레이리스트 로드 (현재 주 포함)
         isCurrentOrFutureWeek
@@ -400,6 +420,25 @@ export function useScheduleData(currentWeekStart?: Date) {
         setPartialVacationData(partialData);
       } else {
         setPartialVacationData({});
+      }
+
+      // 시간잔업 정보 처리
+      if (partialOvertimeRes.data && partialOvertimeRes.data.length > 0) {
+        const partialData: PartialOvertimeData = {};
+        partialOvertimeRes.data.forEach((row) => {
+          if (row.start_time && row.end_time) {
+            if (!partialData[row.date_key]) {
+              partialData[row.date_key] = {};
+            }
+            partialData[row.date_key][row.worker_name] = {
+              start_time: row.start_time,
+              end_time: row.end_time,
+            };
+          }
+        });
+        setPartialOvertimeData(partialData);
+      } else {
+        setPartialOvertimeData({});
       }
     } catch (error) {
       console.error('Failed to load data from database:', error);
@@ -693,6 +732,7 @@ export function useScheduleData(currentWeekStart?: Date) {
     setWorkerStatusData,
     saveWorkerStatus,
     partialVacationData,
+    partialOvertimeData,
     dayOffDates,
     toggleDayOff,
     noticeMemo,

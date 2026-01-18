@@ -109,6 +109,14 @@ const departments: Department[] = [
     colorClass: "department-logistics",
     badgeClass: "bg-logistics text-primary-foreground",
   },
+  {
+    id: "package",
+    name: "패키지",
+    count: 1,
+    icon: <Package className="h-4 w-4" />,
+    colorClass: "department-package",
+    badgeClass: "bg-amber-500 text-white",
+  },
 ];
 
 const WeeklySchedule = () => {

@@ -43,6 +43,8 @@
     --inspection-bg: 160 70% 93%;
     --logistics: 280 70% 55%;
     --logistics-bg: 280 70% 95%;
+    --package: 38 92% 50%;
+    --package-bg: 38 92% 95%;
 
     /* Weekend colors */
     --saturday: 215 80% 50%;
@@ -133,6 +135,10 @@
   .department-logistics {
     @apply bg-[hsl(var(--logistics-bg))] border-l-4 border-l-[hsl(var(--logistics))];
   }
+
+  .department-package {
+    @apply bg-[hsl(var(--package-bg))] border-l-4 border-l-[hsl(var(--package))];
+  }
 }
 
 /* Print styles */
@@ -196,6 +202,7 @@
   .department-equipment,
   .department-inspection,
   .department-logistics,
+  .department-package,
   [class*="bg-"] {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;

@@ -227,6 +227,30 @@ export type Database = {
         }
         Relationships: []
       }
+      package_rotation_playlist: {
+        Row: {
+          created_at: string
+          id: string
+          position: number
+          updated_at: string
+          worker_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          position?: number
+          updated_at?: string
+          worker_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          position?: number
+          updated_at?: string
+          worker_name?: string
+        }
+        Relationships: []
+      }
       pattern_rules: {
         Row: {
           action: string

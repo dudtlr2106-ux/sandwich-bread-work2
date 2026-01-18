@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { startOfWeek, addWeeks, format, startOfDay } from 'date-fns';
 
-export type DepartmentType = 'logistics' | 'equipment' | 'inspection' | 'foreman';
+export type DepartmentType = 'logistics' | 'equipment' | 'inspection' | 'foreman' | 'package';
 
 export interface PlaylistItem {
   id: string;
@@ -24,6 +24,7 @@ const TABLE_NAMES: Record<DepartmentType, string> = {
   equipment: 'equipment_rotation_playlist',
   inspection: 'inspection_rotation_playlist',
   foreman: 'foreman_rotation_playlist',
+  package: 'package_rotation_playlist',
 };
 
 const DEPARTMENT_LABELS: Record<DepartmentType, string> = {
@@ -31,6 +32,7 @@ const DEPARTMENT_LABELS: Record<DepartmentType, string> = {
   equipment: '설비',
   inspection: '검사',
   foreman: '반장',
+  package: '패키지',
 };
 
 // 부서별 로테이션 인원 수 설정
@@ -39,6 +41,7 @@ export const DEPARTMENT_ROTATION_SIZE: Record<DepartmentType, { early: number; m
   equipment: { early: 3, mid: 3 },    // 설비: 초반 3명, 중반 3명 (총 6명)
   inspection: { early: 2, mid: 2 },   // 검사: 초반 2명, 중반 2명 (총 4명)
   foreman: { early: 2, mid: 2 },      // 반장: 초반 2명, 중반 2명 (총 4명)
+  package: { early: 1, mid: 1 },      // 패키지: 초반 1명, 중반 1명 (총 2명) - 3조 전용
 };
 
 export function useRotationPlaylist(department: DepartmentType) {
@@ -77,6 +80,13 @@ export function useRotationPlaylist(department: DepartmentType) {
       } else if (department === 'foreman') {
         const result = await supabase
           .from('foreman_rotation_playlist')
+          .select('id, worker_name, position')
+          .order('position', { ascending: true });
+        data = result.data;
+        error = result.error;
+      } else if (department === 'package') {
+        const result = await supabase
+          .from('package_rotation_playlist')
           .select('id, worker_name, position')
           .order('position', { ascending: true });
         data = result.data;
@@ -128,8 +138,10 @@ export function useRotationPlaylist(department: DepartmentType) {
           return supabase.from('equipment_rotation_playlist').update({ position: index }).eq('id', item.id);
         } else if (department === 'inspection') {
           return supabase.from('inspection_rotation_playlist').update({ position: index }).eq('id', item.id);
-        } else {
+        } else if (department === 'foreman') {
           return supabase.from('foreman_rotation_playlist').update({ position: index }).eq('id', item.id);
+        } else {
+          return supabase.from('package_rotation_playlist').update({ position: index }).eq('id', item.id);
         }
       });
 
@@ -166,8 +178,11 @@ export function useRotationPlaylist(department: DepartmentType) {
       } else if (department === 'inspection') {
         const result = await supabase.from('inspection_rotation_playlist').insert({ worker_name: workerName, position: newPosition });
         error = result.error;
-      } else {
+      } else if (department === 'foreman') {
         const result = await supabase.from('foreman_rotation_playlist').insert({ worker_name: workerName, position: newPosition });
+        error = result.error;
+      } else {
+        const result = await supabase.from('package_rotation_playlist').insert({ worker_name: workerName, position: newPosition });
         error = result.error;
       }
 
@@ -194,8 +209,10 @@ export function useRotationPlaylist(department: DepartmentType) {
           await supabase.from('equipment_rotation_playlist').update({ position: updateItem.position + 1 }).eq('id', updateItem.id);
         } else if (department === 'inspection') {
           await supabase.from('inspection_rotation_playlist').update({ position: updateItem.position + 1 }).eq('id', updateItem.id);
-        } else {
+        } else if (department === 'foreman') {
           await supabase.from('foreman_rotation_playlist').update({ position: updateItem.position + 1 }).eq('id', updateItem.id);
+        } else {
+          await supabase.from('package_rotation_playlist').update({ position: updateItem.position + 1 }).eq('id', updateItem.id);
         }
       }
       
@@ -210,8 +227,11 @@ export function useRotationPlaylist(department: DepartmentType) {
       } else if (department === 'inspection') {
         const result = await supabase.from('inspection_rotation_playlist').insert({ worker_name: item.worker_name, position: newPosition });
         error = result.error;
-      } else {
+      } else if (department === 'foreman') {
         const result = await supabase.from('foreman_rotation_playlist').insert({ worker_name: item.worker_name, position: newPosition });
+        error = result.error;
+      } else {
+        const result = await supabase.from('package_rotation_playlist').insert({ worker_name: item.worker_name, position: newPosition });
         error = result.error;
       }
 
@@ -238,8 +258,11 @@ export function useRotationPlaylist(department: DepartmentType) {
       } else if (department === 'inspection') {
         const result = await supabase.from('inspection_rotation_playlist').delete().eq('id', workerId);
         error = result.error;
-      } else {
+      } else if (department === 'foreman') {
         const result = await supabase.from('foreman_rotation_playlist').delete().eq('id', workerId);
+        error = result.error;
+      } else {
+        const result = await supabase.from('package_rotation_playlist').delete().eq('id', workerId);
         error = result.error;
       }
 

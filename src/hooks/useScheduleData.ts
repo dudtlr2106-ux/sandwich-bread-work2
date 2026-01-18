@@ -117,10 +117,19 @@ export const initialScheduleData: ScheduleData = {
     토: { A: [], B: [] },
     일: { A: [], B: [] },
   },
+  package: {
+    월: { A: [], B: [] },
+    화: { A: [], B: [] },
+    수: { A: [], B: [] },
+    목: { A: [], B: [] },
+    금: { A: [], B: [] },
+    토: { A: [], B: [] },
+    일: { A: [], B: [] },
+  },
 };
 
 const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
-const DEPARTMENTS = ["foreman", "equipment", "inspection", "logistics"];
+const DEPARTMENTS = ["foreman", "equipment", "inspection", "logistics", "package"];
 
 // 주차 시작일을 기반으로 각 요일의 날짜 키(yyyy-MM-dd) 생성
 const getDateKeyForDay = (weekStart: Date, dayIndex: number): string => {
@@ -198,11 +207,12 @@ export function useScheduleData(currentWeekStart?: Date) {
   }, []);
 
   // 부서별 로테이션 인원 수 설정
-  const DEPARTMENT_ROTATION_SIZE: Record<'logistics' | 'equipment' | 'inspection' | 'foreman', { early: number; mid: number }> = {
+  const DEPARTMENT_ROTATION_SIZE: Record<'logistics' | 'equipment' | 'inspection' | 'foreman' | 'package', { early: number; mid: number }> = {
     logistics: { early: 1, mid: 1 },    // 물류: 초반 1명, 중반 1명 (총 2명)
     equipment: { early: 3, mid: 3 },    // 설비: 초반 3명, 중반 3명 (총 6명)
     inspection: { early: 2, mid: 2 },   // 검사: 초반 2명, 중반 2명 (총 4명)
     foreman: { early: 2, mid: 2 },      // 반장: 초반 2명, 중반 2명 (총 4명)
+    package: { early: 1, mid: 1 },      // 패키지: 초반 1명, 중반 1명 (총 2명) - 3조 전용
   };
 
   // 부서별 로테이션 플레이리스트 적용 함수
@@ -210,7 +220,7 @@ export function useScheduleData(currentWeekStart?: Date) {
     baseData: ScheduleData, 
     playlist: { worker_name: string; position: number }[],
     weekOffset: number,
-    department: 'logistics' | 'equipment' | 'inspection' | 'foreman'
+    department: 'logistics' | 'equipment' | 'inspection' | 'foreman' | 'package'
   ): ScheduleData => {
     const rotationSize = DEPARTMENT_ROTATION_SIZE[department];
     const totalPerWeek = rotationSize.early + rotationSize.mid;
@@ -261,7 +271,7 @@ export function useScheduleData(currentWeekStart?: Date) {
       const weekOffset = Math.floor((weekStart.getTime() - currentWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
       
       // 병렬로 모든 데이터 로드
-      const [scheduleRes, statusRes, dayOffRes, memoRes, weekendRes, patternRes, partialVacationRes, partialOvertimeRes, logisticsPlaylistRes, equipmentPlaylistRes, inspectionPlaylistRes, foremanPlaylistRes] = await Promise.all([
+      const [scheduleRes, statusRes, dayOffRes, memoRes, weekendRes, patternRes, partialVacationRes, partialOvertimeRes, logisticsPlaylistRes, equipmentPlaylistRes, inspectionPlaylistRes, foremanPlaylistRes, packagePlaylistRes] = await Promise.all([
         supabase.from('schedule_data').select('*').in('date_key', weekDateKeys),
         supabase.from('worker_statuses').select('*').in('date_key', weekDateKeys),
         supabase.from('day_offs').select('*').in('date_key', weekDateKeys),
@@ -298,6 +308,10 @@ export function useScheduleData(currentWeekStart?: Date) {
         // 반장 로테이션 플레이리스트 로드 (현재 주 포함)
         isCurrentOrFutureWeek
           ? supabase.from('foreman_rotation_playlist').select('*').order('position', { ascending: true })
+          : Promise.resolve({ data: [] }),
+        // 패키지 로테이션 플레이리스트 로드 (현재 주 포함) - 3조 전용
+        isCurrentOrFutureWeek
+          ? supabase.from('package_rotation_playlist').select('*').order('position', { ascending: true })
           : Promise.resolve({ data: [] }),
       ]);
 
@@ -344,7 +358,12 @@ export function useScheduleData(currentWeekStart?: Date) {
           newScheduleData = applyDepartmentPlaylist(newScheduleData, inspectionPlaylistRes.data, weekOffset, 'inspection');
         }
         
-        // 4. 마스터 룰 적용 (플레이리스트 적용 후)
+        // 4. 패키지 로테이션 플레이리스트 적용 (3조 전용)
+        if (packagePlaylistRes.data && packagePlaylistRes.data.length >= 2) {
+          newScheduleData = applyDepartmentPlaylist(newScheduleData, packagePlaylistRes.data, weekOffset, 'package');
+        }
+        
+        // 5. 마스터 룰 적용 (플레이리스트 적용 후)
         if (patternRes.data && patternRes.data.length > 0) {
           const masterRules: PatternRule[] = patternRes.data.map((row) => ({
             id: row.id,

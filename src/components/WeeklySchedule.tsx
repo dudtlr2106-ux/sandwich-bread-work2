@@ -681,7 +681,7 @@ const WeeklySchedule = () => {
 
       // 조 스왑 (A조 ↔ B조)
       if (changes.swapShifts) {
-        const deptIds = ["foreman", "equipment", "inspection", "logistics"];
+        const deptIds = ["foreman", "equipment", "inspection", "logistics", "package"];
         deptIds.forEach((deptId) => {
           DAYS.forEach((day) => {
             const aWorkers = newData[deptId]?.[day]?.A || [];
@@ -712,7 +712,7 @@ const WeeklySchedule = () => {
       // 인원 이동 (조 변경)
       if (changes.workerMoves) {
         changes.workerMoves.forEach((move) => {
-          const deptIds = ["foreman", "equipment", "inspection", "logistics"];
+          const deptIds = ["foreman", "equipment", "inspection", "logistics", "package"];
           deptIds.forEach((deptId) => {
             DAYS.forEach((day) => {
               // fromShift에서 제거

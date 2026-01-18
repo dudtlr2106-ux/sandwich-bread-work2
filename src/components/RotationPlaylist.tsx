@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,10 +28,12 @@ import {
   Truck,
   Wrench,
   ClipboardCheck,
-  Copy
+  Copy,
+  Package
 } from 'lucide-react';
 import { useRotationPlaylist, DepartmentType, PlaylistItem, DEPARTMENT_ROTATION_SIZE } from '@/hooks/useRotationPlaylist';
 import { SORTED_ALL_WORKERS } from '@/hooks/useScheduleData';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 // 인덱스에 따른 시프트 타입 반환
@@ -71,6 +73,11 @@ const DEPARTMENT_CONFIG: Record<DepartmentType, {
     title: '반장',
     colorClass: 'text-green-600',
   },
+  package: {
+    icon: <Package className="h-5 w-5" />,
+    title: '패키지',
+    colorClass: 'text-amber-600',
+  },
 };
 
 export function RotationPlaylist({ department }: RotationPlaylistProps) {
@@ -96,6 +103,25 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<PlaylistItem | null>(null);
+  const [team3Workers, setTeam3Workers] = useState<string[]>([]);
+
+  // 패키지 부서의 경우 3조 인원만 로드
+  useEffect(() => {
+    if (department === 'package') {
+      const loadTeam3Workers = async () => {
+        const { data, error } = await supabase
+          .from('team_members')
+          .select('worker_name')
+          .eq('role', '3조')
+          .order('team', { ascending: true });
+        
+        if (!error && data) {
+          setTeam3Workers(data.map(d => d.worker_name));
+        }
+      };
+      loadTeam3Workers();
+    }
+  }, [department]);
 
   const handleDragStart = (e: React.DragEvent, item: PlaylistItem, index: number) => {
     setDraggedItem(item);
@@ -136,7 +162,9 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     setDragOverIndex(null);
   };
 
-  const availableWorkers = SORTED_ALL_WORKERS.filter(
+  // 패키지 부서는 3조 인원만, 나머지 부서는 전체 인원
+  const baseWorkers = department === 'package' ? team3Workers : SORTED_ALL_WORKERS;
+  const availableWorkers = baseWorkers.filter(
     (worker) => !playlist.some((p) => p.worker_name === worker)
   );
 

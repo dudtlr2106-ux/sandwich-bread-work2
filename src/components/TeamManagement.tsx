@@ -28,7 +28,7 @@ type TeamMember = {
   display_order: number;
 };
 
-type TeamRole = "반장" | "1조" | "2조";
+type TeamRole = "반장" | "1조" | "2조" | "3조";
 type Team = "A조" | "B조";
 
 interface TeamManagementProps {
@@ -177,11 +177,13 @@ const TeamManagement = ({ onClose }: TeamManagementProps) => {
       반장: members.filter((m) => m.team === "A조" && m.role === "반장"),
       "1조": members.filter((m) => m.team === "A조" && m.role === "1조"),
       "2조": members.filter((m) => m.team === "A조" && m.role === "2조"),
+      "3조": members.filter((m) => m.team === "A조" && m.role === "3조"),
     },
     B조: {
       반장: members.filter((m) => m.team === "B조" && m.role === "반장"),
       "1조": members.filter((m) => m.team === "B조" && m.role === "1조"),
       "2조": members.filter((m) => m.team === "B조" && m.role === "2조"),
+      "3조": members.filter((m) => m.team === "B조" && m.role === "3조"),
     },
   };
 
@@ -199,7 +201,7 @@ const TeamManagement = ({ onClose }: TeamManagementProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {(["반장", "1조", "2조"] as TeamRole[]).map((role) => (
+        {(["반장", "1조", "2조", "3조"] as TeamRole[]).map((role) => (
           <div key={role} className="space-y-2">
             <div className="text-sm font-medium text-muted-foreground">{role}</div>
             <div className="space-y-1">
@@ -303,6 +305,7 @@ const TeamManagement = ({ onClose }: TeamManagementProps) => {
                   <SelectItem value="반장">반장</SelectItem>
                   <SelectItem value="1조">1조</SelectItem>
                   <SelectItem value="2조">2조</SelectItem>
+                  <SelectItem value="3조">3조</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -360,6 +363,7 @@ const TeamManagement = ({ onClose }: TeamManagementProps) => {
                     <SelectItem value="반장">반장</SelectItem>
                     <SelectItem value="1조">1조</SelectItem>
                     <SelectItem value="2조">2조</SelectItem>
+                    <SelectItem value="3조">3조</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

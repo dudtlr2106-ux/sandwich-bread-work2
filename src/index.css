@@ -166,6 +166,16 @@
     display: none !important;
   }
 
+  /* Hide Sunday column in print */
+  .print-hide-sunday {
+    display: none !important;
+  }
+
+  /* Hide card header and non-table elements */
+  .card-header-print-hide {
+    display: none !important;
+  }
+
   /* Show print header */
   .print-header {
     display: block !important;
@@ -217,5 +227,12 @@
   .schedule-cell {
     min-height: auto !important;
     padding: 2px !important;
+  }
+
+  /* Remove card styling for clean print */
+  .print-card {
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
   }
 }

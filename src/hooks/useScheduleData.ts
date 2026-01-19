@@ -212,7 +212,7 @@ export function useScheduleData(currentWeekStart?: Date) {
     equipment: { early: 3, mid: 3 },    // 설비: 초반 3명, 중반 3명 (총 6명)
     inspection: { early: 2, mid: 2 },   // 검사: 초반 2명, 중반 2명 (총 4명)
     foreman: { early: 2, mid: 2 },      // 반장: 초반 2명, 중반 2명 (총 4명)
-    package: { early: 4, mid: 4 },      // 패키지: 초반 4명, 중반 4명 (총 8명) - 3조 전용
+    package: { early: 3, mid: 3 },      // 패키지: 초반 3명, 중반 3명 (총 6명) - 3조 전용
   };
 
   // 부서별 로테이션 플레이리스트 적용 함수

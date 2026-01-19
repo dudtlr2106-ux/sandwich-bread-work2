@@ -112,7 +112,7 @@ const departments: Department[] = [
   {
     id: "package",
     name: "패키지",
-    count: 4,
+    count: 3,
     icon: <Package className="h-4 w-4" />,
     colorClass: "department-package",
     badgeClass: "bg-amber-500 text-white",

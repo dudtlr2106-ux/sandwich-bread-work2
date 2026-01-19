@@ -793,8 +793,8 @@ const WeeklySchedule = () => {
 
   return (
     <>
-      <Card className="w-full mx-auto shadow-lg border-0 bg-card animate-fade-in">
-        <CardHeader className="pb-4 border-b border-border">
+      <Card className="w-full mx-auto shadow-lg border-0 bg-card animate-fade-in print-card">
+        <CardHeader className="pb-4 border-b border-border card-header-print-hide">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
@@ -1051,11 +1051,13 @@ const WeeklySchedule = () => {
                     const holiday = getHoliday(date);
                     const isSpecialWork = isSpecialWorkDay(date, day);
                     const isOff = isDayOff(dateKey);
+                    // 일요일은 인쇄 시 숨김
+                    const isSunday = day === "일";
                     return (
                       <th
                         key={day}
                         colSpan={2}
-                        className={`p-2 text-center border-b border-r border-border cursor-pointer hover:bg-muted/70 transition-colors ${getDayHeaderClass(day, date)} ${isOff ? "bg-muted/50" : ""}`}
+                        className={`p-2 text-center border-b border-r border-border cursor-pointer hover:bg-muted/70 transition-colors ${getDayHeaderClass(day, date)} ${isOff ? "bg-muted/50" : ""} ${isSunday ? "print-hide-sunday" : ""}`}
                         onClick={() => toggleDayOff(dateKey)}
                       >
                         <div className="flex items-center justify-center gap-1 flex-wrap">
@@ -1104,9 +1106,11 @@ const WeeklySchedule = () => {
                       });
                     }
                     
+                    // 일요일은 인쇄 시 숨김
+                    const isSundayShift = day === "일";
                     return (
                       <React.Fragment key={`${day}-shifts`}>
-                        <th className={`px-2 py-1 text-center border-b border-r border-border text-xs font-semibold ${hasSecondShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""}`}>
+                        <th className={`px-2 py-1 text-center border-b border-r border-border text-xs font-semibold ${hasSecondShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""} ${isSundayShift ? "print-hide-sunday" : ""}`}>
                           <div className="flex flex-col items-center gap-0.5">
                             <span className="text-primary">초반</span>
                             {hasSecondShiftVacation && (
@@ -1117,7 +1121,7 @@ const WeeklySchedule = () => {
                             )}
                           </div>
                         </th>
-                        <th className={`px-2 py-1 text-center border-b border-r border-border text-xs font-semibold ${hasFirstShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""}`}>
+                        <th className={`px-2 py-1 text-center border-b border-r border-border text-xs font-semibold ${hasFirstShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""} ${isSundayShift ? "print-hide-sunday" : ""}`}>
                           <div className="flex flex-col items-center gap-0.5">
                             <span className="text-secondary-foreground">중반</span>
                             {hasFirstShiftVacation && (
@@ -1144,6 +1148,7 @@ const WeeklySchedule = () => {
                     {(isMobile ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
                       const isWeekend = day === "토" || day === "일";
                       const isSaturday = day === "토";
+                      const isSundayCell = day === "일";
                       const dateKey = getDateKey(dayIndex);
                       const isOff = isDayOff(dateKey);
                       
@@ -1166,14 +1171,14 @@ const WeeklySchedule = () => {
                         return (
                           <React.Fragment key={`${dept.id}-${day}`}>
                             <td
-                              className="schedule-cell border-b border-r border-border p-0 bg-muted/50"
+                              className={`schedule-cell border-b border-r border-border p-0 bg-muted/50 ${isSundayCell ? "print-hide-sunday" : ""}`}
                             >
                               <div className="flex items-center justify-center min-h-[40px]">
                                 <span className="text-xs text-muted-foreground">휴무</span>
                               </div>
                             </td>
                             <td
-                              className="schedule-cell border-b border-r border-border p-0 bg-muted/50"
+                              className={`schedule-cell border-b border-r border-border p-0 bg-muted/50 ${isSundayCell ? "print-hide-sunday" : ""}`}
                             >
                               <div className="flex items-center justify-center min-h-[40px]">
                                 <span className="text-xs text-muted-foreground">휴무</span>
@@ -1188,7 +1193,7 @@ const WeeklySchedule = () => {
                         <React.Fragment key={`${dept.id}-${day}`}>
                           {/* 초반 셀 */}
                           <td
-                            className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-primary/5 transition-colors ${isWeekend ? "bg-muted/30" : ""}`}
+                            className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-primary/5 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${isSundayCell ? "print-hide-sunday" : ""}`}
                             onClick={() => isSaturday ? openSaturdaySelectDialog(dept.id, firstShiftKey) : openEditDialog(dept.id, day, firstShiftKey)}
                           >
                             <div className="flex flex-wrap gap-1">
@@ -1275,7 +1280,7 @@ const WeeklySchedule = () => {
                           </td>
                           {/* 중반 셀 */}
                           <td
-                            className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-secondary/50 transition-colors ${isWeekend ? "bg-muted/30" : ""}`}
+                            className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-secondary/50 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${isSundayCell ? "print-hide-sunday" : ""}`}
                             onClick={() => isSaturday ? openSaturdaySelectDialog(dept.id, secondShiftKey) : openEditDialog(dept.id, day, secondShiftKey)}
                           >
                             <div className="flex flex-wrap gap-1">

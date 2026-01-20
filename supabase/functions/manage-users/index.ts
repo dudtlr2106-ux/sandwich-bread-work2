@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
 
     // Get the authorization header to verify the requester is an admin
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'No authorization header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -31,18 +31,27 @@ Deno.serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
     
-    if (authError || !user) {
+    // Create a client with the user's token for verification
+    const supabaseClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: authHeader } }
+    })
+    
+    const { data: claimsData, error: authError } = await supabaseClient.auth.getClaims(token)
+    
+    if (authError || !claimsData?.claims) {
+      console.error('Auth error:', authError)
       return new Response(JSON.stringify({ error: 'Invalid token' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
+    
+    const requesterId = claimsData.claims.sub as string
 
     // Check if requester is admin
     const { data: isAdmin } = await supabaseAdmin.rpc('has_role', {
-      _user_id: user.id,
+      _user_id: requesterId,
       _role: 'admin'
     })
 
@@ -53,7 +62,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { action, userId, role } = await req.json()
+    const { action, userId: targetUserId, role } = await req.json()
 
     if (action === 'list') {
       // List all users from auth.users
@@ -86,7 +95,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'assign_role') {
-      if (!userId || !role) {
+      if (!targetUserId || !role) {
         return new Response(JSON.stringify({ error: 'userId and role required' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -96,7 +105,7 @@ Deno.serve(async (req) => {
       // Upsert the role
       const { error: upsertError } = await supabaseAdmin
         .from('user_roles')
-        .upsert({ user_id: userId, role }, { onConflict: 'user_id' })
+        .upsert({ user_id: targetUserId, role }, { onConflict: 'user_id' })
 
       if (upsertError) {
         throw upsertError
@@ -108,7 +117,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'remove_role') {
-      if (!userId) {
+      if (!targetUserId) {
         return new Response(JSON.stringify({ error: 'userId required' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -118,7 +127,7 @@ Deno.serve(async (req) => {
       const { error: deleteError } = await supabaseAdmin
         .from('user_roles')
         .delete()
-        .eq('user_id', userId)
+        .eq('user_id', targetUserId)
 
       if (deleteError) {
         throw deleteError

@@ -62,6 +62,7 @@ import { ko } from "date-fns/locale";
 import AttendanceRequestForm from "@/components/AttendanceRequestForm";
 import TeamManagement from "@/components/TeamManagement";
 import ScheduleModifier from "@/components/ScheduleModifier";
+import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 // 기준 주차 (이번 주가 짝수 주차인지 홀수 주차인지 판단용)
 const BASE_WEEK_START = startOfWeek(new Date(), { weekStartsOn: 1 });
 
@@ -817,6 +818,7 @@ const WeeklySchedule = () => {
                 <div className="h-9 w-20 bg-muted animate-pulse rounded" />
               ) : user ? (
                 <div className="flex items-center gap-2">
+                  <PushNotificationToggle />
                 {isAdmin && (
                     <span className="flex items-center text-primary">
                       <Shield className="h-4 w-4" />

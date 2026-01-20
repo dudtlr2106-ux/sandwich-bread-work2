@@ -3,9 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
-// VAPID public key - this needs to be set by admin
-// You can generate VAPID keys at: https://vapidkeys.com/
-const VAPID_PUBLIC_KEY = '';
+// VAPID public key for push notifications
+const VAPID_PUBLIC_KEY = '000000';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);

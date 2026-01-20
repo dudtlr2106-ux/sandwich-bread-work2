@@ -153,6 +153,21 @@ const AttendanceRequestForm = ({
         title: "요청 완료",
         description: "관리자 승인을 기다려주세요",
       });
+      
+      // Send push notification to admins
+      try {
+        await supabase.functions.invoke('send-push-notification', {
+          body: {
+            requesterName: userDisplayName || workerName,
+            workerName,
+            dateKey,
+            requestedStatus,
+          },
+        });
+      } catch (pushError) {
+        console.error('Failed to send push notification:', pushError);
+      }
+      
       onOpenChange(false);
       setRequestedStatus("");
       setReason("");

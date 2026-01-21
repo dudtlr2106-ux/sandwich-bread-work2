@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +25,44 @@ export function usePushNotifications() {
   const [isLoading, setIsLoading] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission | null>(null);
+  const lastPermissionCheck = useRef<number>(0);
+
+  // Force request permission - always tries to show the browser popup
+  const forceRequestPermission = useCallback(async (): Promise<NotificationPermission> => {
+    if (!('Notification' in window)) {
+      return 'denied';
+    }
+
+    try {
+      // Always request permission - this will show popup if not already decided
+      // or return cached value if already decided
+      const result = await Notification.requestPermission();
+      console.log('Permission request result:', result);
+      setPermissionStatus(result);
+      return result;
+    } catch (error) {
+      console.error('Error requesting permission:', error);
+      return 'denied';
+    }
+  }, []);
+
+  // Check and update permission status (non-blocking)
+  const checkPermissionStatus = useCallback(() => {
+    if ('Notification' in window) {
+      const status = Notification.permission;
+      const now = Date.now();
+      
+      // Only log if status changed or enough time passed
+      if (status !== permissionStatus || now - lastPermissionCheck.current > 5000) {
+        console.log('Notification permission status:', status);
+        lastPermissionCheck.current = now;
+      }
+      
+      setPermissionStatus(status);
+      return status;
+    }
+    return null;
+  }, [permissionStatus]);
 
   // Force update service worker and re-register
   const forceUpdateServiceWorker = useCallback(async () => {
@@ -63,18 +101,7 @@ export function usePushNotifications() {
     }
   }, []);
 
-  // Check and update permission status
-  const checkPermissionStatus = useCallback(() => {
-    if ('Notification' in window) {
-      const status = Notification.permission;
-      setPermissionStatus(status);
-      console.log('Notification permission status:', status);
-      return status;
-    }
-    return null;
-  }, []);
-
-  // Reset all data including localStorage and cache
+  // Reset all data including localStorage and cache, then re-request permission
   const resetAllData = useCallback(async () => {
     setIsLoading(true);
     
@@ -113,35 +140,47 @@ export function usePushNotifications() {
         console.log('All caches cleared');
       }
 
-      // 5. Clear localStorage items related to notifications
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (key.includes('push') || key.includes('notification') || key.includes('sw'))) {
-          keysToRemove.push(key);
-        }
-      }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-      console.log('LocalStorage notification data cleared');
+      // 5. Clear ALL localStorage (complete reset)
+      localStorage.clear();
+      console.log('LocalStorage completely cleared');
 
-      // 6. Reset states
+      // 6. Clear sessionStorage too
+      sessionStorage.clear();
+      console.log('SessionStorage cleared');
+
+      // 7. Reset states
       setIsSubscribed(false);
       setRegistration(null);
       setPermissionStatus(null);
 
-      // 7. Re-register service worker after a delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      await forceUpdateServiceWorker();
-      
-      // 8. Re-check permission
-      checkPermissionStatus();
+      // 8. Force request permission again - this may show the popup
+      const newPermission = await forceRequestPermission();
+      console.log('New permission after reset:', newPermission);
+
+      // 9. Re-register service worker after a delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const newReg = await forceUpdateServiceWorker();
+
+      // 10. If permission is granted, try to subscribe immediately
+      if (newPermission === 'granted' && newReg && user && isAdmin) {
+        toast({
+          title: '초기화 완료',
+          description: '권한이 허용되었습니다. 알림을 구독합니다...',
+        });
+        
+        // Auto-subscribe after reset if permission granted
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return true; // Signal to retry subscription
+      }
 
       toast({
         title: '초기화 완료',
-        description: '모든 알림 데이터가 삭제되었습니다. 페이지를 새로고침해주세요.',
+        description: newPermission === 'granted' 
+          ? '권한이 허용되었습니다. 알림 켜기를 눌러주세요.'
+          : '페이지를 새로고침하고 다시 시도해주세요.',
       });
 
-      return true;
+      return newPermission === 'granted';
     } catch (error) {
       console.error('Error resetting data:', error);
       toast({
@@ -153,7 +192,36 @@ export function usePushNotifications() {
     } finally {
       setIsLoading(false);
     }
-  }, [registration, user, forceUpdateServiceWorker, checkPermissionStatus, toast]);
+  }, [registration, user, isAdmin, forceUpdateServiceWorker, forceRequestPermission, toast]);
+
+  // Auto-sync subscription status when permission becomes granted
+  const syncSubscriptionStatus = useCallback(async () => {
+    if (!user || !isAdmin || !registration) return;
+
+    const currentPermission = checkPermissionStatus();
+    
+    if (currentPermission === 'granted') {
+      try {
+        const subscription = await registration.pushManager.getSubscription();
+        if (subscription) {
+          // Verify subscription exists in database
+          const { data } = await supabase
+            .from('push_subscriptions')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('endpoint', subscription.endpoint)
+            .maybeSingle();
+          
+          if (data) {
+            setIsSubscribed(true);
+            console.log('Subscription synced: already subscribed');
+          }
+        }
+      } catch (error) {
+        console.error('Error syncing subscription:', error);
+      }
+    }
+  }, [user, isAdmin, registration, checkPermissionStatus]);
 
   // Check if push notifications are supported and register service worker
   useEffect(() => {
@@ -161,7 +229,8 @@ export function usePushNotifications() {
     setIsSupported(supported);
     
     // Initial permission check
-    checkPermissionStatus();
+    const initialStatus = checkPermissionStatus();
+    console.log('Initial permission status:', initialStatus);
     
     if (supported) {
       // Register service worker with cache-busting to ensure fresh version
@@ -179,35 +248,60 @@ export function usePushNotifications() {
           console.error('Service Worker registration failed:', error);
         });
     }
-  }, [checkPermissionStatus]);
+  }, []);
 
-  // Re-check permission status periodically and on visibility change
+  // Re-check permission status on visibility change and sync subscription
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        checkPermissionStatus();
+        const newStatus = checkPermissionStatus();
+        // If permission changed to granted, sync subscription
+        if (newStatus === 'granted') {
+          syncSubscriptionStatus();
+        }
+      }
+    };
+
+    // Check on focus as well (mobile browsers may update permission on focus)
+    const handleFocus = () => {
+      const newStatus = checkPermissionStatus();
+      if (newStatus === 'granted') {
+        syncSubscriptionStatus();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
     
-    // Also check every 5 seconds when visible
+    // Also check every 3 seconds when visible
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
-        checkPermissionStatus();
+        const newStatus = checkPermissionStatus();
+        if (newStatus === 'granted' && !isSubscribed) {
+          syncSubscriptionStatus();
+        }
       }
-    }, 5000);
+    }, 3000);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
       clearInterval(interval);
     };
-  }, [checkPermissionStatus]);
+  }, [checkPermissionStatus, syncSubscriptionStatus, isSubscribed]);
 
-  // Check subscription status when user logs in
+  // Check subscription status when user logs in or registration changes
   useEffect(() => {
     const checkSubscription = async () => {
       if (!user || !isAdmin || !registration) {
+        setIsSubscribed(false);
+        return;
+      }
+
+      // First check permission
+      const currentPermission = checkPermissionStatus();
+      
+      if (currentPermission !== 'granted') {
         setIsSubscribed(false);
         return;
       }
@@ -234,7 +328,7 @@ export function usePushNotifications() {
     };
 
     checkSubscription();
-  }, [user, isAdmin, registration]);
+  }, [user, isAdmin, registration, checkPermissionStatus]);
 
   const subscribe = useCallback(async () => {
     if (!user || !isAdmin) {
@@ -244,20 +338,6 @@ export function usePushNotifications() {
         description: '관리자로 로그인해야 알림을 받을 수 있습니다.',
       });
       return false;
-    }
-
-    // Ensure we have a fresh service worker registration
-    let currentReg = registration;
-    if (!currentReg) {
-      currentReg = await forceUpdateServiceWorker();
-      if (!currentReg) {
-        toast({
-          variant: 'destructive',
-          title: '서비스 워커 오류',
-          description: '서비스 워커 등록에 실패했습니다. 페이지를 새로고침해주세요.',
-        });
-        return false;
-      }
     }
 
     if (!VAPID_PUBLIC_KEY) {
@@ -273,24 +353,16 @@ export function usePushNotifications() {
     setIsLoading(true);
 
     try {
-      // First check current permission without prompting
-      let permission = checkPermissionStatus();
-      console.log('Current permission before request:', permission);
-
-      // If not granted, request permission
-      if (permission !== 'granted') {
-        permission = await Notification.requestPermission();
-        setPermissionStatus(permission);
-        console.log('Permission after request:', permission);
-      }
+      // ALWAYS force request permission first - this will show popup if possible
+      const permission = await forceRequestPermission();
+      console.log('Permission after force request:', permission);
 
       if (permission !== 'granted') {
-        // Check if permission is denied or default
         if (permission === 'denied') {
           toast({
             variant: 'destructive',
             title: '알림 권한 차단됨',
-            description: '브라우저 설정에서 이 사이트의 알림 권한을 허용으로 변경해주세요.',
+            description: '브라우저/휴대폰 설정에서 이 사이트의 알림 권한을 허용으로 변경한 후, 데이터 삭제 및 초기화를 눌러주세요.',
           });
         } else {
           toast({
@@ -300,6 +372,20 @@ export function usePushNotifications() {
           });
         }
         return false;
+      }
+
+      // Ensure we have a fresh service worker registration
+      let currentReg = registration;
+      if (!currentReg) {
+        currentReg = await forceUpdateServiceWorker();
+        if (!currentReg) {
+          toast({
+            variant: 'destructive',
+            title: '서비스 워커 오류',
+            description: '서비스 워커 등록에 실패했습니다. 페이지를 새로고침해주세요.',
+          });
+          return false;
+        }
       }
 
       // Subscribe to push notifications
@@ -355,7 +441,7 @@ export function usePushNotifications() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, isAdmin, registration, toast, checkPermissionStatus, forceUpdateServiceWorker]);
+  }, [user, isAdmin, registration, toast, forceRequestPermission, forceUpdateServiceWorker]);
 
   const unsubscribe = useCallback(async () => {
     if (!user || !registration) return false;
@@ -408,5 +494,6 @@ export function usePushNotifications() {
     forceUpdateServiceWorker,
     resetAllData,
     checkPermissionStatus,
+    forceRequestPermission,
   };
 }

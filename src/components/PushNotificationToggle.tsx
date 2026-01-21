@@ -25,6 +25,7 @@ export function PushNotificationToggle() {
     permissionStatus,
     forceUpdateServiceWorker,
     resetAllData,
+    forceRequestPermission,
   } = usePushNotifications();
 
   // Only show for admins
@@ -46,17 +47,24 @@ export function PushNotificationToggle() {
   };
 
   const handleForceUpdate = async () => {
+    // First request permission again
+    await forceRequestPermission();
     await forceUpdateServiceWorker();
     // Retry subscription after force update
     await subscribe();
   };
 
   const handleReset = async () => {
-    await resetAllData();
-    // Reload page after reset
-    setTimeout(() => {
-      window.location.reload();
-    }, 1500);
+    const success = await resetAllData();
+    // If permission was granted after reset, try to subscribe automatically
+    if (success) {
+      await subscribe();
+    } else {
+      // Reload page after reset if not auto-subscribed
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    }
   };
 
   const getPermissionStatusText = () => {

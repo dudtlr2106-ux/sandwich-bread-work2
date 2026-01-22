@@ -1372,6 +1372,65 @@ const WeeklySchedule = () => {
                     })}
                   </tr>
                 ))}
+                {/* 인원수 요약 행 */}
+                <tr className="bg-muted/70 font-semibold">
+                  <td className="px-2 py-2 border-b border-r border-border text-center">
+                    <span className="text-xs font-bold text-foreground">인원</span>
+                  </td>
+                  {(isMobile ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
+                    const dateKey = getDateKey(dayIndex);
+                    const isOff = isDayOff(dateKey);
+                    const isSundayCell = day === "일";
+                    
+                    // 모든 부서의 초반/중반 인원수 계산 (휴무/휴가 제외)
+                    let totalFirstShift = 0;
+                    let totalSecondShift = 0;
+                    
+                    if (!isOff) {
+                      departments.forEach(dept => {
+                        const workersA = getWorkers(dept.id, day, "A");
+                        const workersB = getWorkers(dept.id, day, "B");
+                        
+                        // 휴무(dayoff), 휴가(vacation) 제외
+                        const activeFirstShift = workersA.filter(worker => {
+                          const status = getWorkerStatus(worker, dateKey, day);
+                          return status !== "dayoff" && status !== "vacation";
+                        });
+                        const activeSecondShift = workersB.filter(worker => {
+                          const status = getWorkerStatus(worker, dateKey, day);
+                          return status !== "dayoff" && status !== "vacation";
+                        });
+                        
+                        totalFirstShift += activeFirstShift.length;
+                        totalSecondShift += activeSecondShift.length;
+                      });
+                    }
+                    
+                    if (isOff) {
+                      return (
+                        <React.Fragment key={`count-${day}`}>
+                          <td className={`border-b border-r border-border p-2 bg-muted/50 text-center ${isSundayCell ? "print-hide-sunday" : ""}`}>
+                            <span className="text-xs text-muted-foreground">-</span>
+                          </td>
+                          <td className={`border-b border-r border-border p-2 bg-muted/50 text-center ${isSundayCell ? "print-hide-sunday" : ""}`}>
+                            <span className="text-xs text-muted-foreground">-</span>
+                          </td>
+                        </React.Fragment>
+                      );
+                    }
+                    
+                    return (
+                      <React.Fragment key={`count-${day}`}>
+                        <td className={`border-b border-r border-border p-2 text-center ${isSundayCell ? "print-hide-sunday" : ""}`}>
+                          <span className="text-sm font-bold text-primary">{totalFirstShift}명</span>
+                        </td>
+                        <td className={`border-b border-r border-border p-2 text-center ${isSundayCell ? "print-hide-sunday" : ""}`}>
+                          <span className="text-sm font-bold text-secondary-foreground">{totalSecondShift}명</span>
+                        </td>
+                      </React.Fragment>
+                    );
+                  })}
+                </tr>
               </tbody>
             </table>
           </div>

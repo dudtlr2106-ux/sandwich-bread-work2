@@ -1372,7 +1372,7 @@ const WeeklySchedule = () => {
                     })}
                   </tr>
                 ))}
-                {/* 인원수 요약 행 */}
+                {/* 출근 시간대별 인원수 요약 행 */}
                 <tr className="bg-muted/70 font-semibold">
                   <td className="px-2 py-2 border-b border-r border-border text-center">
                     <span className="text-xs font-bold text-foreground">인원</span>
@@ -1383,46 +1383,53 @@ const WeeklySchedule = () => {
                     const isSundayCell = day === "일";
                     const isWeekendDay = day === "토" || day === "일";
                     
-                    // 모든 부서의 초반/중반 인원수 계산
-                    let totalFirstShift = 0;
-                    let totalSecondShift = 0;
+                    // 시간대별 인원수 계산: 06시, 10시, 14시, 기타
+                    let count06 = 0;
+                    let count10 = 0;
+                    let count14 = 0;
+                    let countOther = 0;
                     
                     if (!isOff) {
                       departments.forEach(dept => {
                         const workersA = getWorkers(dept.id, day, "A");
                         const workersB = getWorkers(dept.id, day, "B");
                         
-                        // 평일: 휴무(dayoff), 휴가(vacation) 제외
-                        // 주말: 잔업(overtime, partial_overtime) 상태인 인원만 카운트
-                        const activeFirstShift = workersA.filter(worker => {
+                        // A조(초반) 인원 체크
+                        workersA.forEach(worker => {
                           const status = getWorkerStatus(worker, dateKey, day);
-                          if (status === "dayoff" || status === "vacation") return false;
-                          if (isWeekendDay) {
-                            return status === "overtime" || status === "partial_overtime";
-                          }
-                          return true;
-                        });
-                        const activeSecondShift = workersB.filter(worker => {
-                          const status = getWorkerStatus(worker, dateKey, day);
-                          if (status === "dayoff" || status === "vacation") return false;
-                          if (isWeekendDay) {
-                            return status === "overtime" || status === "partial_overtime";
-                          }
-                          return true;
+                          if (status === "dayoff" || status === "vacation") return;
+                          if (isWeekendDay && status !== "overtime" && status !== "partial_overtime") return;
+                          
+                          const times = getShiftTimes("A", day, status, worker, dateKey);
+                          const startHour = parseInt(times.start);
+                          
+                          if (startHour === 6) count06++;
+                          else if (startHour === 10) count10++;
+                          else if (startHour === 14) count14++;
+                          else countOther++;
                         });
                         
-                        totalFirstShift += activeFirstShift.length;
-                        totalSecondShift += activeSecondShift.length;
+                        // B조(중반) 인원 체크
+                        workersB.forEach(worker => {
+                          const status = getWorkerStatus(worker, dateKey, day);
+                          if (status === "dayoff" || status === "vacation") return;
+                          if (isWeekendDay && status !== "overtime" && status !== "partial_overtime") return;
+                          
+                          const times = getShiftTimes("B", day, status, worker, dateKey);
+                          const startHour = parseInt(times.start);
+                          
+                          if (startHour === 6) count06++;
+                          else if (startHour === 10) count10++;
+                          else if (startHour === 14) count14++;
+                          else countOther++;
+                        });
                       });
                     }
                     
                     if (isOff) {
                       return (
                         <React.Fragment key={`count-${day}`}>
-                          <td className={`border-b border-r border-border p-2 bg-muted/50 text-center ${isSundayCell ? "print-hide-sunday" : ""}`}>
-                            <span className="text-xs text-muted-foreground">-</span>
-                          </td>
-                          <td className={`border-b border-r border-border p-2 bg-muted/50 text-center ${isSundayCell ? "print-hide-sunday" : ""}`}>
+                          <td colSpan={2} className={`border-b border-r border-border p-2 bg-muted/50 text-center ${isSundayCell ? "print-hide-sunday" : ""}`}>
                             <span className="text-xs text-muted-foreground">-</span>
                           </td>
                         </React.Fragment>
@@ -1431,11 +1438,15 @@ const WeeklySchedule = () => {
                     
                     return (
                       <React.Fragment key={`count-${day}`}>
-                        <td className={`border-b border-r border-border p-2 text-center ${isSundayCell ? "print-hide-sunday" : ""}`}>
-                          <span className="text-sm font-bold text-primary">{totalFirstShift}명</span>
-                        </td>
-                        <td className={`border-b border-r border-border p-2 text-center ${isSundayCell ? "print-hide-sunday" : ""}`}>
-                          <span className="text-sm font-bold text-secondary-foreground">{totalSecondShift}명</span>
+                        <td colSpan={2} className={`border-b border-r border-border p-1 text-center ${isSundayCell ? "print-hide-sunday" : ""}`}>
+                          <div className="flex flex-wrap justify-center gap-1 text-[10px]">
+                            <span className="px-1 py-0.5 rounded bg-primary/20 text-primary font-bold">06시:{count06}</span>
+                            <span className="px-1 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold">10시:{count10}</span>
+                            <span className="px-1 py-0.5 rounded bg-secondary/50 text-secondary-foreground font-bold">14시:{count14}</span>
+                            {countOther > 0 && (
+                              <span className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-bold">기타:{countOther}</span>
+                            )}
+                          </div>
                         </td>
                       </React.Fragment>
                     );

@@ -1215,7 +1215,7 @@ const WeeklySchedule = () => {
                                           >
                                             <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.start}</span>
                                             {statusStyle.icon}
-                                            <span className={`text-sm whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
+                                            <span className={`text-sm font-semibold whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
                                               {worker}
                                             </span>
                                             <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.end}</span>
@@ -1302,7 +1302,7 @@ const WeeklySchedule = () => {
                                           >
                                             <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.start}</span>
                                             {statusStyle.icon}
-                                            <span className={`text-sm whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
+                                            <span className={`text-sm font-semibold whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
                                               {worker}
                                             </span>
                                             <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.end}</span>

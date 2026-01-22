@@ -145,24 +145,31 @@
 @media print {
   @page {
     size: A4 landscape;
-    margin: 10mm;
+    margin: 5mm;
   }
 
-  body {
+  html, body {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     color-adjust: exact !important;
+    background: white !important;
   }
 
-  /* Hide non-printable elements */
+  /* Hide everything except the schedule */
   .no-print,
   .print-hide,
-  button:not(.print-show),
+  button,
   [data-radix-popper-content-wrapper],
   .fixed,
   nav,
-  header:not(.print-header),
-  .sonner-toaster {
+  header,
+  .sonner-toaster,
+  .card-header-print-hide {
     display: none !important;
   }
 
@@ -171,41 +178,66 @@
     display: none !important;
   }
 
-  /* Hide card header and non-table elements */
-  .card-header-print-hide {
-    display: none !important;
-  }
-
-  /* Show print header */
-  .print-header {
-    display: block !important;
-  }
-
-  /* Print-only title */
+  /* Show print title */
   .print-title {
     display: block !important;
     text-align: center;
-    font-size: 18pt;
+    font-size: 14pt;
     font-weight: bold;
-    margin-bottom: 16px;
+    margin: 0 0 8px 0;
+    padding: 0;
     color: black;
   }
 
-  /* Schedule table adjustments for print */
-  .schedule-table-container {
+  /* Main card - full width, no styling */
+  .print-card {
     width: 100% !important;
-    overflow: visible !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    border-radius: 0 !important;
   }
 
+  /* Schedule table container */
+  .schedule-table-container {
+    width: 100% !important;
+    max-width: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Table takes full width and auto-scales */
   table {
     width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
     border-collapse: collapse !important;
-    font-size: 9pt !important;
+    font-size: 8pt !important;
+    page-break-inside: avoid !important;
   }
 
   th, td {
     border: 1px solid #333 !important;
-    padding: 4px !important;
+    padding: 2px 3px !important;
+    word-wrap: break-word !important;
+    overflow: hidden !important;
+  }
+
+  th {
+    font-size: 9pt !important;
+    font-weight: 600 !important;
+    background-color: #f0f0f0 !important;
+  }
+
+  /* Compact schedule cells */
+  .schedule-cell {
+    min-height: auto !important;
+    height: auto !important;
+    padding: 2px !important;
   }
 
   /* Ensure backgrounds print */
@@ -218,21 +250,13 @@
     print-color-adjust: exact !important;
   }
 
-  /* Remove shadows and unnecessary styling */
+  /* Remove all shadows */
   .shadow, .shadow-sm, .shadow-md, .shadow-lg {
     box-shadow: none !important;
   }
 
-  /* Compact layout for print */
-  .schedule-cell {
-    min-height: auto !important;
-    padding: 2px !important;
-  }
-
-  /* Remove card styling for clean print */
-  .print-card {
-    border: none !important;
-    box-shadow: none !important;
-    background: white !important;
+  /* Hide mobile navigation */
+  .flex.items-center.justify-between.px-4.py-2 {
+    display: none !important;
   }
 }

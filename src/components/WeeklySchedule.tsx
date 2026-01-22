@@ -1506,7 +1506,7 @@ const WeeklySchedule = () => {
 
           {/* 주말 출근 가능 여부 체크란 - 토요일이 휴무가 아닌 경우에만 표시 */}
           {isSaturdayWorkday() && (
-            <div className="p-4 border-t border-border bg-blue-50/50 dark:bg-blue-950/20">
+            <div className="p-4 border-t border-border bg-blue-50/50 dark:bg-blue-950/20 print-hide">
               <div className="flex items-center gap-2 mb-3">
                 <Calendar className="h-4 w-4 text-blue-600" />
                 <span className="text-sm font-medium text-foreground">주말 출근 가능 여부</span>
@@ -1541,7 +1541,7 @@ const WeeklySchedule = () => {
           )}
 
           {/* Legend */}
-          <div className="p-4 border-t border-border bg-muted/30">
+          <div className="p-4 border-t border-border bg-muted/30 print-hide">
             <div className="flex flex-wrap items-center gap-4 text-sm">
               <span className="text-muted-foreground font-medium">범례:</span>
               {departments.map((dept) => (

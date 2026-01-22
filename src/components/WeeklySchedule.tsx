@@ -1372,10 +1372,10 @@ const WeeklySchedule = () => {
                     })}
                   </tr>
                 ))}
-                {/* 인원수 요약 행 */}
+                {/* 인원수 요약 행 - 출근 인원 */}
                 <tr className="bg-muted/70 font-semibold">
                   <td className="px-2 py-2 border-b border-r border-border text-center">
-                    <span className="text-xs font-bold text-foreground">인원</span>
+                    <span className="text-xs font-bold text-foreground">출근</span>
                   </td>
                   {(isMobile ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
                     const dateKey = getDateKey(dayIndex);
@@ -1436,6 +1436,65 @@ const WeeklySchedule = () => {
                         </td>
                         <td className={`border-b border-r border-border p-2 text-center ${isSundayCell ? "print-hide-sunday" : ""}`}>
                           <span className="text-sm font-bold text-secondary-foreground">{totalSecondShift}명</span>
+                        </td>
+                      </React.Fragment>
+                    );
+                  })}
+                </tr>
+                {/* 잔업 인원 행 */}
+                <tr className="bg-orange-50/50 dark:bg-orange-950/20 font-semibold">
+                  <td className="px-2 py-2 border-b border-r border-border text-center">
+                    <span className="text-xs font-bold text-orange-600">잔업</span>
+                  </td>
+                  {(isMobile ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
+                    const dateKey = getDateKey(dayIndex);
+                    const isOff = isDayOff(dateKey);
+                    const isSundayCell = day === "일";
+                    
+                    // 모든 부서의 초반/중반 잔업 인원수 계산
+                    let overtimeFirstShift = 0;
+                    let overtimeSecondShift = 0;
+                    
+                    if (!isOff) {
+                      departments.forEach(dept => {
+                        const workersA = getWorkers(dept.id, day, "A");
+                        const workersB = getWorkers(dept.id, day, "B");
+                        
+                        // 잔업(overtime, partial_overtime) 상태인 인원만 카운트
+                        const overtimeA = workersA.filter(worker => {
+                          const status = getWorkerStatus(worker, dateKey, day);
+                          return status === "overtime" || status === "partial_overtime";
+                        });
+                        const overtimeB = workersB.filter(worker => {
+                          const status = getWorkerStatus(worker, dateKey, day);
+                          return status === "overtime" || status === "partial_overtime";
+                        });
+                        
+                        overtimeFirstShift += overtimeA.length;
+                        overtimeSecondShift += overtimeB.length;
+                      });
+                    }
+                    
+                    if (isOff) {
+                      return (
+                        <React.Fragment key={`overtime-${day}`}>
+                          <td className={`border-b border-r border-border p-2 bg-muted/50 text-center ${isSundayCell ? "print-hide-sunday" : ""}`}>
+                            <span className="text-xs text-muted-foreground">-</span>
+                          </td>
+                          <td className={`border-b border-r border-border p-2 bg-muted/50 text-center ${isSundayCell ? "print-hide-sunday" : ""}`}>
+                            <span className="text-xs text-muted-foreground">-</span>
+                          </td>
+                        </React.Fragment>
+                      );
+                    }
+                    
+                    return (
+                      <React.Fragment key={`overtime-${day}`}>
+                        <td className={`border-b border-r border-border p-2 text-center ${isSundayCell ? "print-hide-sunday" : ""}`}>
+                          <span className="text-sm font-bold text-orange-600">{overtimeFirstShift}명</span>
+                        </td>
+                        <td className={`border-b border-r border-border p-2 text-center ${isSundayCell ? "print-hide-sunday" : ""}`}>
+                          <span className="text-sm font-bold text-orange-600">{overtimeSecondShift}명</span>
                         </td>
                       </React.Fragment>
                     );

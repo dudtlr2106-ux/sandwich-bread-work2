@@ -1381,8 +1381,9 @@ const WeeklySchedule = () => {
                     const dateKey = getDateKey(dayIndex);
                     const isOff = isDayOff(dateKey);
                     const isSundayCell = day === "일";
+                    const isWeekendDay = day === "토" || day === "일";
                     
-                    // 모든 부서의 초반/중반 인원수 계산 (휴무/휴가 제외)
+                    // 모든 부서의 초반/중반 인원수 계산
                     let totalFirstShift = 0;
                     let totalSecondShift = 0;
                     
@@ -1391,14 +1392,23 @@ const WeeklySchedule = () => {
                         const workersA = getWorkers(dept.id, day, "A");
                         const workersB = getWorkers(dept.id, day, "B");
                         
-                        // 휴무(dayoff), 휴가(vacation) 제외
+                        // 평일: 휴무(dayoff), 휴가(vacation) 제외
+                        // 주말: 잔업(overtime, partial_overtime) 상태인 인원만 카운트
                         const activeFirstShift = workersA.filter(worker => {
                           const status = getWorkerStatus(worker, dateKey, day);
-                          return status !== "dayoff" && status !== "vacation";
+                          if (status === "dayoff" || status === "vacation") return false;
+                          if (isWeekendDay) {
+                            return status === "overtime" || status === "partial_overtime";
+                          }
+                          return true;
                         });
                         const activeSecondShift = workersB.filter(worker => {
                           const status = getWorkerStatus(worker, dateKey, day);
-                          return status !== "dayoff" && status !== "vacation";
+                          if (status === "dayoff" || status === "vacation") return false;
+                          if (isWeekendDay) {
+                            return status === "overtime" || status === "partial_overtime";
+                          }
+                          return true;
                         });
                         
                         totalFirstShift += activeFirstShift.length;

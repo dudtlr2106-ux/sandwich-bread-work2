@@ -195,53 +195,81 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
   const handleCancel = async () => {
     if (!selectedRequest) return;
 
-    // 1. 시간휴가/시간잔업이 아닌 경우 worker_statuses를 원래 상태로 되돌림
-    if (selectedRequest.requested_status !== "partial_vacation" && 
-        selectedRequest.requested_status !== "partial_overtime") {
-      
-      const originalStatus = selectedRequest.current_status || "normal";
-      
-      if (originalStatus === "normal") {
-        // 원래 상태가 normal이면 worker_statuses에서 삭제
-        await supabase
-          .from("worker_statuses")
-          .delete()
-          .eq("worker_name", selectedRequest.worker_name)
-          .eq("date_key", selectedRequest.date_key);
-      } else {
-        // 그 외의 경우 원래 상태로 업데이트
-        await supabase
-          .from("worker_statuses")
-          .upsert(
-            {
-              worker_name: selectedRequest.worker_name,
-              date_key: selectedRequest.date_key,
-              status: originalStatus,
-            },
-            { onConflict: "worker_name,date_key" }
-          );
+    try {
+      // 1. 시간휴가/시간잔업이 아닌 경우 worker_statuses를 원래 상태로 되돌림
+      if (selectedRequest.requested_status !== "partial_vacation" && 
+          selectedRequest.requested_status !== "partial_overtime") {
+        
+        const originalStatus = selectedRequest.current_status || "normal";
+        
+        if (originalStatus === "normal") {
+          // 원래 상태가 normal이면 worker_statuses에서 삭제
+          const { error: deleteError } = await supabase
+            .from("worker_statuses")
+            .delete()
+            .eq("worker_name", selectedRequest.worker_name)
+            .eq("date_key", selectedRequest.date_key);
+          
+          if (deleteError) {
+            console.error("worker_statuses 삭제 오류:", deleteError);
+            // 삭제 실패해도 계속 진행 (레코드가 없을 수 있음)
+          }
+        } else {
+          // 그 외의 경우 원래 상태로 업데이트
+          const { error: upsertError } = await supabase
+            .from("worker_statuses")
+            .upsert(
+              {
+                worker_name: selectedRequest.worker_name,
+                date_key: selectedRequest.date_key,
+                status: originalStatus,
+              },
+              { onConflict: "worker_name,date_key" }
+            );
+          
+          if (upsertError) {
+            console.error("worker_statuses 업데이트 오류:", upsertError);
+            toast({
+              variant: "destructive",
+              title: "취소 실패",
+              description: "근태 상태 복원에 실패했습니다",
+            });
+            setCancelDialogOpen(false);
+            setSelectedRequest(null);
+            return;
+          }
+        }
       }
-    }
 
-    // 2. 요청 상태를 cancelled로 업데이트
-    const { error } = await supabase
-      .from("attendance_requests")
-      .update({
-        status: "cancelled",
-        reviewed_by: user?.id,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", selectedRequest.id);
+      // 2. 요청 상태를 cancelled로 업데이트
+      const { error } = await supabase
+        .from("attendance_requests")
+        .update({
+          status: "cancelled",
+          reviewed_by: user?.id,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", selectedRequest.id);
 
-    if (error) {
+      if (error) {
+        console.error("요청 취소 오류:", error);
+        toast({
+          variant: "destructive",
+          title: "취소 실패",
+          description: error.message,
+        });
+      } else {
+        toast({
+          title: "취소 완료",
+          description: `${selectedRequest.worker_name}님의 근태가 ${statusLabels[selectedRequest.current_status || "normal"]}(으)로 되돌려졌습니다`,
+        });
+      }
+    } catch (err) {
+      console.error("취소 처리 중 예외:", err);
       toast({
         variant: "destructive",
         title: "취소 실패",
-      });
-    } else {
-      toast({
-        title: "취소 완료",
-        description: `${selectedRequest.worker_name}님의 근태가 ${statusLabels[selectedRequest.current_status || "normal"]}(으)로 되돌려졌습니다`,
+        description: "알 수 없는 오류가 발생했습니다",
       });
     }
 

@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Check, X, Clock, FileText, RefreshCw, History } from "lucide-react";
+import { Check, X, Clock, FileText, RefreshCw, History, Undo2 } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 
@@ -48,6 +48,7 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
   const [requests, setRequests] = useState<AttendanceRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<AttendanceRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
 
@@ -186,6 +187,68 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
     setSelectedRequest(null);
   };
 
+  const openCancelDialog = (request: AttendanceRequest) => {
+    setSelectedRequest(request);
+    setCancelDialogOpen(true);
+  };
+
+  const handleCancel = async () => {
+    if (!selectedRequest) return;
+
+    // 1. 시간휴가/시간잔업이 아닌 경우 worker_statuses를 원래 상태로 되돌림
+    if (selectedRequest.requested_status !== "partial_vacation" && 
+        selectedRequest.requested_status !== "partial_overtime") {
+      
+      const originalStatus = selectedRequest.current_status || "normal";
+      
+      if (originalStatus === "normal") {
+        // 원래 상태가 normal이면 worker_statuses에서 삭제
+        await supabase
+          .from("worker_statuses")
+          .delete()
+          .eq("worker_name", selectedRequest.worker_name)
+          .eq("date_key", selectedRequest.date_key);
+      } else {
+        // 그 외의 경우 원래 상태로 업데이트
+        await supabase
+          .from("worker_statuses")
+          .upsert(
+            {
+              worker_name: selectedRequest.worker_name,
+              date_key: selectedRequest.date_key,
+              status: originalStatus,
+            },
+            { onConflict: "worker_name,date_key" }
+          );
+      }
+    }
+
+    // 2. 요청 상태를 cancelled로 업데이트
+    const { error } = await supabase
+      .from("attendance_requests")
+      .update({
+        status: "cancelled",
+        reviewed_by: user?.id,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", selectedRequest.id);
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "취소 실패",
+      });
+    } else {
+      toast({
+        title: "취소 완료",
+        description: `${selectedRequest.worker_name}님의 근태가 ${statusLabels[selectedRequest.current_status || "normal"]}(으)로 되돌려졌습니다`,
+      });
+    }
+
+    setCancelDialogOpen(false);
+    setSelectedRequest(null);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
@@ -194,6 +257,8 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
         return <Badge className="bg-green-100 text-green-800"><Check className="h-3 w-3 mr-1" />승인됨</Badge>;
       case "rejected":
         return <Badge variant="destructive"><X className="h-3 w-3 mr-1" />반려됨</Badge>;
+      case "cancelled":
+        return <Badge variant="outline" className="bg-gray-100 text-gray-800"><Undo2 className="h-3 w-3 mr-1" />취소됨</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -202,6 +267,7 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
   const pendingRequests = requests.filter((r) => r.status === "pending");
   const approvedRequests = requests.filter((r) => r.status === "approved");
   const rejectedRequests = requests.filter((r) => r.status === "rejected");
+  const cancelledRequests = requests.filter((r) => r.status === "cancelled");
 
   if (!isAdmin) {
     return null;
@@ -227,10 +293,10 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
           <div className="text-center py-8 text-muted-foreground">로딩 중...</div>
         ) : (
           <Tabs defaultValue="pending" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="pending" className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                대기 중
+                <span className="hidden sm:inline">대기 중</span>
                 {pendingRequests.length > 0 && (
                   <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center">
                     {pendingRequests.length}
@@ -239,7 +305,7 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
               </TabsTrigger>
               <TabsTrigger value="approved" className="flex items-center gap-1">
                 <Check className="h-3 w-3" />
-                승인 내역
+                <span className="hidden sm:inline">승인</span>
                 {approvedRequests.length > 0 && (
                   <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center">
                     {approvedRequests.length}
@@ -248,10 +314,19 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
               </TabsTrigger>
               <TabsTrigger value="rejected" className="flex items-center gap-1">
                 <X className="h-3 w-3" />
-                반려 내역
+                <span className="hidden sm:inline">반려</span>
                 {rejectedRequests.length > 0 && (
                   <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center">
                     {rejectedRequests.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="cancelled" className="flex items-center gap-1">
+                <Undo2 className="h-3 w-3" />
+                <span className="hidden sm:inline">취소</span>
+                {cancelledRequests.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center">
+                    {cancelledRequests.length}
                   </Badge>
                 )}
               </TabsTrigger>
@@ -356,6 +431,17 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
                           )}
                         </div>
                       </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openCancelDialog(request)}
+                          className="text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                        >
+                          <Undo2 className="h-4 w-4 mr-1" />
+                          취소
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -403,6 +489,51 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
                 </div>
               )}
             </TabsContent>
+
+            {/* 취소 내역 탭 */}
+            <TabsContent value="cancelled" className="mt-4">
+              {cancelledRequests.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">취소된 내역이 없습니다</div>
+              ) : (
+                <div className="space-y-2">
+                  {cancelledRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4 border rounded-lg bg-gray-50/50"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(request.status)}
+                          <span className="font-medium">{request.worker_name}</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {request.date_key} ({request.day}) • 
+                          {statusLabels[request.current_status || "normal"]} → 
+                          <span className="line-through text-gray-500">
+                            {statusLabels[request.requested_status]}
+                          </span>
+                          {(request.requested_status === "partial_vacation" || request.requested_status === "partial_overtime") && request.start_time && request.end_time && (
+                            <span className="ml-1 line-through text-gray-500">({request.start_time} ~ {request.end_time})</span>
+                          )}
+                        </div>
+                        {request.reason && (
+                          <div className="text-sm text-muted-foreground">
+                            사유: {request.reason}
+                          </div>
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          요청자: {request.requester_name} • 
+                          요청: {format(new Date(request.created_at), "M월 d일 HH:mm", { locale: ko })}
+                          {request.reviewed_at && (
+                            <> • 취소: {format(new Date(request.reviewed_at), "M월 d일 HH:mm", { locale: ko })}</>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
         )}
       </CardContent>
@@ -430,6 +561,42 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
             </Button>
             <Button variant="destructive" onClick={handleReject}>
               반려
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 취소 확인 다이얼로그 */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>승인 취소</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              {selectedRequest?.worker_name}님의 근태 변경을 취소하고 
+              <span className="font-medium text-foreground"> {statusLabels[selectedRequest?.current_status || "normal"]}</span>
+              (으)로 되돌리시겠습니까?
+            </div>
+            <div className="p-3 bg-muted rounded-lg text-sm">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-muted-foreground">변경 내용:</span>
+              </div>
+              <div className="text-foreground">
+                {statusLabels[selectedRequest?.current_status || "normal"]} → 
+                <span className="line-through ml-1 text-muted-foreground">
+                  {statusLabels[selectedRequest?.requested_status || "normal"]}
+                </span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+              닫기
+            </Button>
+            <Button variant="secondary" onClick={handleCancel}>
+              <Undo2 className="h-4 w-4 mr-1" />
+              취소하기
             </Button>
           </DialogFooter>
         </DialogContent>

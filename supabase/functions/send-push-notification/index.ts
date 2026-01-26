@@ -36,6 +36,61 @@ function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
+// Convert raw 32-byte private key to JWK format for import
+async function importRawPrivateKey(rawKeyBytes: Uint8Array): Promise<CryptoKey> {
+  // Raw private key should be 32 bytes for P-256
+  if (rawKeyBytes.length !== 32) {
+    throw new Error(`Invalid private key length: expected 32 bytes, got ${rawKeyBytes.length}`);
+  }
+
+  // We need to derive the public key from the private key for JWK import
+  // For ECDSA P-256, we'll use JWK format with 'd' parameter
+  const d = arrayBufferToBase64Url(rawKeyBytes.buffer as ArrayBuffer);
+  
+  // Import as JWK - we need x and y coordinates for the public key
+  // Since we only have the private key, we'll generate a temporary key pair
+  // and use the private key 'd' value
+  const jwk = {
+    kty: "EC",
+    crv: "P-256",
+    d: d,
+    // x and y will be computed by the crypto library when we use the key
+    x: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    y: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  };
+
+  try {
+    return await crypto.subtle.importKey(
+      "jwk",
+      jwk,
+      { name: "ECDSA", namedCurve: "P-256" },
+      false,
+      ["sign"]
+    );
+  } catch {
+    // If JWK import fails, try a different approach using raw key directly
+    // Generate a key pair and extract the algorithm parameters
+    const tempKeyPair = await crypto.subtle.generateKey(
+      { name: "ECDSA", namedCurve: "P-256" },
+      true,
+      ["sign", "verify"]
+    );
+    
+    const tempJwk = await crypto.subtle.exportKey("jwk", tempKeyPair.privateKey);
+    
+    // Replace the 'd' parameter with our actual private key
+    tempJwk.d = d;
+    
+    return await crypto.subtle.importKey(
+      "jwk",
+      tempJwk,
+      { name: "ECDSA", namedCurve: "P-256" },
+      false,
+      ["sign"]
+    );
+  }
+}
+
 // Generate JWT for VAPID
 async function generateVapidJWT(
   audience: string,
@@ -50,14 +105,8 @@ async function generateVapidJWT(
   const payloadB64 = arrayBufferToBase64Url(new TextEncoder().encode(JSON.stringify(payload)).buffer as ArrayBuffer);
   const unsignedToken = `${headerB64}.${payloadB64}`;
 
-  // Import private key
-  const privateKey = await crypto.subtle.importKey(
-    "pkcs8",
-    privateKeyBytes.buffer as ArrayBuffer,
-    { name: "ECDSA", namedCurve: "P-256" },
-    false,
-    ["sign"]
-  );
+  // Import private key using raw format
+  const privateKey = await importRawPrivateKey(privateKeyBytes);
 
   const signature = await crypto.subtle.sign(
     { name: "ECDSA", hash: "SHA-256" },

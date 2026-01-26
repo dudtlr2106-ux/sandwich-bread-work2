@@ -405,9 +405,24 @@ export function usePushNotifications() {
         throw new Error('Failed to get subscription keys');
       }
 
-      // Convert keys to base64
-      const p256dhBase64 = btoa(String.fromCharCode(...new Uint8Array(p256dh)));
-      const authBase64 = btoa(String.fromCharCode(...new Uint8Array(auth)));
+      // Convert keys to base64url (required for Web Push protocol)
+      const arrayBufferToBase64Url = (buffer: ArrayBuffer): string => {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      };
+
+      const p256dhBase64 = arrayBufferToBase64Url(p256dh);
+      const authBase64 = arrayBufferToBase64Url(auth);
+      
+      console.log('Subscription keys converted to base64url:', { 
+        endpoint: subscription.endpoint,
+        p256dhLength: p256dhBase64.length,
+        authLength: authBase64.length 
+      });
 
       // Save subscription to database
       const { error } = await supabase.from('push_subscriptions').upsert({

@@ -127,7 +127,26 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
       return;
     }
 
-    // 3. 시간휴가 외의 상태는 worker_statuses 테이블에 근태 상태 반영
+    // 4. 정상/잔업/휴가/휴무로 변경 시, 기존 시간휴가/시간잔업 요청을 취소 처리
+    //    (이렇게 해야 시간 표시가 제거됨)
+    const { error: cancelPartialError } = await supabase
+      .from("attendance_requests")
+      .update({
+        status: "cancelled",
+        reviewed_by: user?.id,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("worker_name", request.worker_name)
+      .eq("date_key", request.date_key)
+      .eq("status", "approved")
+      .in("requested_status", ["partial_vacation", "partial_overtime"])
+      .neq("id", request.id);
+
+    if (cancelPartialError) {
+      console.error("기존 시간휴가/시간잔업 취소 오류:", cancelPartialError);
+    }
+
+    // 5. worker_statuses 테이블에 근태 상태 반영
     const { error: statusError } = await supabase
       .from("worker_statuses")
       .upsert(

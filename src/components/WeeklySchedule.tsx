@@ -542,12 +542,20 @@ const WeeklySchedule = () => {
       const vacationEndHour = parseInt(partialVacationInfo.end_time.split(":")[0]);
       
       if (isFirstShift) {
-        // 초반조: 휴가 시간이 시작 시간과 겹치면 조정
+        // 초반조: 휴가 시간이 시작 시간과 겹치면 출근 시간을 늦춤
         if (vacationStartHour <= baseStart && vacationEndHour > baseStart) {
           baseStart = vacationEndHour;
         }
+        // 초반조: 휴가 시간이 퇴근 시간과 겹치면 퇴근 시간을 앞당김
+        if (vacationEndHour >= baseEnd && vacationStartHour < baseEnd) {
+          baseEnd = vacationStartHour;
+        }
       } else {
-        // 중반조: 휴가 시간이 종료 시간과 겹치면 조정
+        // 중반조: 휴가 시간이 시작 시간(14시)과 겹치면 출근 시간을 늦춤
+        if (vacationStartHour <= baseStart && vacationEndHour > baseStart) {
+          baseStart = vacationEndHour;
+        }
+        // 중반조: 휴가 시간이 종료 시간(22시)과 겹치면 퇴근 시간을 앞당김
         if (vacationEndHour >= baseEnd && vacationStartHour < baseEnd) {
           baseEnd = vacationStartHour;
         }

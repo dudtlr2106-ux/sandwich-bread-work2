@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, BellOff, Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { Bell, BellOff, Loader2, RefreshCw, Trash2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import {
@@ -13,6 +13,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { NotificationSettingsPanel } from './NotificationSettingsPanel';
+import { Separator } from '@/components/ui/separator';
 
 export function PushNotificationToggle() {
   const { 
@@ -114,7 +116,7 @@ export function PushNotificationToggle() {
                   <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary" />
                 )}
                 {permissionStatus === 'denied' && !isSubscribed && (
-                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500" />
+                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-destructive" />
                 )}
               </Button>
             </PopoverTrigger>
@@ -124,10 +126,13 @@ export function PushNotificationToggle() {
           </TooltipContent>
         </Tooltip>
 
-        <PopoverContent className="w-72 p-4" align="end">
+        <PopoverContent className="w-80 p-4" align="end">
           <div className="space-y-4">
             <div className="space-y-2">
-              <h4 className="font-medium text-sm">푸시 알림 설정</h4>
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                푸시 알림 설정
+              </h4>
               <div className={`text-xs ${getPermissionStatusColor()}`}>
                 권한 상태: {getPermissionStatusText()}
               </div>
@@ -155,44 +160,54 @@ export function PushNotificationToggle() {
               </Button>
 
               {permissionStatus === 'denied' && (
-                <div className="text-xs text-red-600 bg-red-50 dark:bg-red-950 p-2 rounded">
+                <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
                   ⚠️ 브라우저에서 알림이 차단되어 있습니다.
                   <br />
                   브라우저 설정에서 이 사이트의 알림을 허용해주세요.
                 </div>
               )}
+            </div>
 
-              <div className="pt-2 border-t space-y-2">
-                <p className="text-xs text-muted-foreground">
-                  문제가 있으신가요?
-                </p>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={handleForceUpdate}
-                  disabled={isLoading}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  서비스 워커 새로고침
-                </Button>
+            {/* 알림 방식 설정 - 구독 중일 때만 표시 */}
+            {isSubscribed && (
+              <>
+                <Separator />
+                <NotificationSettingsPanel />
+              </>
+            )}
 
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={handleReset}
-                  disabled={isLoading}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  데이터 삭제 및 초기화
-                </Button>
+            <Separator />
+            
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                문제가 있으신가요?
+              </p>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+                onClick={handleForceUpdate}
+                disabled={isLoading}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                서비스 워커 새로고침
+              </Button>
 
-                <p className="text-xs text-muted-foreground">
-                  초기화 후 페이지가 자동으로 새로고침됩니다.
-                </p>
-              </div>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-full justify-start"
+                onClick={handleReset}
+                disabled={isLoading}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                데이터 삭제 및 초기화
+              </Button>
+
+              <p className="text-xs text-muted-foreground">
+                초기화 후 페이지가 자동으로 새로고침됩니다.
+              </p>
             </div>
           </div>
         </PopoverContent>

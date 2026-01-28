@@ -12,7 +12,13 @@ export function TestPushButton() {
 
   if (!isAdmin) return null;
 
-  const handleTestPush = async () => {
+  const handleTestPush = async (e: React.MouseEvent) => {
+    // Prevent any default behavior and event propagation
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isLoading) return;
+    
     setIsLoading(true);
     
     try {
@@ -57,6 +63,7 @@ export function TestPushButton() {
       size="sm"
       onClick={handleTestPush}
       disabled={isLoading}
+      type="button"
       className="gap-2"
     >
       {isLoading ? (

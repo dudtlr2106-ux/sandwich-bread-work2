@@ -78,9 +78,20 @@ self.addEventListener('push', (event) => {
 
     if (event.data) {
       try {
-        data = { ...data, ...event.data.json() };
+        // JSON 형식인 경우 파싱
+        const jsonData = event.data.json();
+        data = { ...data, ...jsonData };
       } catch (e) {
-        console.error('Error parsing push data:', e);
+        // JSON이 아닌 경우 텍스트로 처리
+        console.log('Push data is not JSON, using as text');
+        try {
+          const textData = event.data.text();
+          if (textData) {
+            data.body = textData;
+          }
+        } catch (textError) {
+          console.error('Error reading push data as text:', textError);
+        }
       }
     }
 

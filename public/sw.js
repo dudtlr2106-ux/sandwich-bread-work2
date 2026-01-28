@@ -84,7 +84,7 @@ self.addEventListener('push', (event) => {
       }
     }
 
-    // Build notification options based on settings
+    // Build notification options with forced sound and vibration
     const options = {
       body: data.body,
       icon: data.icon || '/favicon.ico',
@@ -95,37 +95,13 @@ self.addEventListener('push', (event) => {
         { action: 'view', title: '확인' },
         { action: 'close', title: '닫기' }
       ],
-      // Default: both sound and vibration
-      silent: false,
-      vibrate: [200, 100, 200, 100, 200]
+      vibrate: [200, 100, 200],  // 진동 패턴 강제 주입
+      silent: false,             // 무음 모드 해제
+      renotify: true,            // 새로운 알림 시 매번 소리/진동 발생
+      tag: 'attendance-alert'    // 알림 묶기
     };
 
-    // Apply settings
-    switch (settings.mode) {
-      case 'sound':
-        // Sound only - no vibration
-        options.silent = false;
-        options.vibrate = [];
-        break;
-      case 'vibration':
-        // Vibration only - silent notification but with vibration
-        options.silent = true;
-        options.vibrate = [200, 100, 200, 100, 200, 100, 200];
-        break;
-      case 'silent':
-        // Silent - no sound, no vibration
-        options.silent = true;
-        options.vibrate = [];
-        break;
-      case 'all':
-      default:
-        // Both sound and vibration
-        options.silent = false;
-        options.vibrate = [200, 100, 200, 100, 200];
-        break;
-    }
-
-    console.log('Showing notification with options:', { mode: settings.mode, silent: options.silent, vibrate: options.vibrate });
+    console.log('Showing notification with forced options:', options);
 
     return self.registration.showNotification(data.title, options);
   };

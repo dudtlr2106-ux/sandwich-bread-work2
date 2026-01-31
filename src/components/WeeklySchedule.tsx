@@ -860,7 +860,7 @@ const WeeklySchedule = () => {
                 size="sm"
                 onClick={goToCurrentWeek}
                 className="px-3"
-                aria-label="현재 주로 이동"
+                aria-label={`${format(currentWeekStart, "M/d")} - 현재 주로 이동`}
               >
                 {format(currentWeekStart, "M/d")}
               </Button>

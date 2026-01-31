@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, addDays, startOfWeek, isBefore, startOfDay } from 'date-fns';
 import { PatternRule } from '@/hooks/usePatternRules';
+import { waitForRealtimeReady } from '@/lib/realtimeUtils';
 
 // 잔업/휴가/휴무 상태 타입
 export type WorkerStatus = "normal" | "overtime" | "vacation" | "partial_vacation" | "partial_overtime" | "dayoff";
@@ -477,81 +478,87 @@ export function useScheduleData(currentWeekStart?: Date) {
     loadData();
   }, [weekStartKey, loadData]);
 
-  // 실시간 구독 설정
+  // 실시간 구독 설정 (지연된 연결)
   useEffect(() => {
-    const weekDateKeys = getWeekDateKeys(weekStart);
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let isMounted = true;
     
-    const channel = supabase
-      .channel(`schedule-realtime-${weekStartKey}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'schedule_data' },
-        (payload) => {
-          // 현재 주차의 데이터 변경만 반영
-          const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
-          if (weekDateKeys.includes(dateKey)) {
-            console.log('Schedule data changed for current week, reloading...');
+    const setupRealtime = async () => {
+      await waitForRealtimeReady();
+      if (!isMounted) return;
+      
+      const weekDateKeys = getWeekDateKeys(weekStart);
+      
+      channel = supabase
+        .channel(`schedule-realtime-${weekStartKey}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'schedule_data' },
+          (payload) => {
+            const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
+            if (weekDateKeys.includes(dateKey)) {
+              loadData();
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'worker_statuses' },
+          (payload) => {
+            const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
+            if (weekDateKeys.includes(dateKey)) {
+              loadData();
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'day_offs' },
+          (payload) => {
+            const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
+            if (weekDateKeys.includes(dateKey)) {
+              loadData();
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'notice_memos' },
+          () => {
             loadData();
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'worker_statuses' },
-        (payload) => {
-          const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
-          if (weekDateKeys.includes(dateKey)) {
-            console.log('Worker statuses changed for current week, reloading...');
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'weekend_availability' },
+          () => {
             loadData();
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'day_offs' },
-        (payload) => {
-          const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
-          if (weekDateKeys.includes(dateKey)) {
-            console.log('Day offs changed for current week, reloading...');
-            loadData();
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'attendance_requests' },
+          (payload) => {
+            const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
+            if (weekDateKeys.includes(dateKey)) {
+              loadData();
+            }
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'notice_memos' },
-        () => {
-          console.log('Notice memos changed, reloading...');
-          loadData();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'weekend_availability' },
-        () => {
-          console.log('Weekend availability changed, reloading...');
-          loadData();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'attendance_requests' },
-        (payload) => {
-          const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
-          if (weekDateKeys.includes(dateKey)) {
-            console.log('Attendance requests changed for current week, reloading...');
-            loadData();
+        )
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR') {
+            console.warn('Realtime subscription error, will retry on reconnect');
           }
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.warn('Realtime subscription error, will retry on reconnect');
-        }
-      });
+        });
+    };
+    
+    setupRealtime();
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [weekStartKey, weekStart, loadData]);
 

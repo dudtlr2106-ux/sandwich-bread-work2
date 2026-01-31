@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Trash2, Edit2, X, ArrowLeft, Users } from "lucide-react";
+import { waitForRealtimeReady } from "@/lib/realtimeUtils";
 
 type TeamMember = {
   id: string;
@@ -70,24 +71,37 @@ const TeamManagement = ({ onClose }: TeamManagementProps) => {
   useEffect(() => {
     loadMembers();
 
-    // 실시간 구독
-    const channel = supabase
-      .channel("team-members-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "team_members" },
-        () => {
-          loadMembers();
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.warn('Realtime subscription error, will retry on reconnect');
-        }
-      });
+    // 실시간 구독 (지연된 연결)
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let isMounted = true;
+    
+    const setupRealtime = async () => {
+      await waitForRealtimeReady();
+      if (!isMounted) return;
+      
+      channel = supabase
+        .channel("team-members-realtime")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "team_members" },
+          () => {
+            loadMembers();
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR') {
+            console.warn('Realtime subscription error, will retry on reconnect');
+          }
+        });
+    };
+    
+    setupRealtime();
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { startOfWeek, addWeeks, format, startOfDay } from 'date-fns';
+import { waitForRealtimeReady } from '@/lib/realtimeUtils';
 
 export interface PlaylistItem {
   id: string;
@@ -42,29 +43,42 @@ export function useLogisticsPlaylist() {
     loadPlaylist();
   }, [loadPlaylist]);
 
-  // Realtime subscription
+  // Realtime subscription (delayed)
   useEffect(() => {
-    const channel = supabase
-      .channel('logistics_playlist_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'logistics_rotation_playlist',
-        },
-        () => {
-          loadPlaylist();
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.warn('Realtime subscription error, will retry on reconnect');
-        }
-      });
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let isMounted = true;
+    
+    const setupRealtime = async () => {
+      await waitForRealtimeReady();
+      if (!isMounted) return;
+      
+      channel = supabase
+        .channel('logistics_playlist_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'logistics_rotation_playlist',
+          },
+          () => {
+            loadPlaylist();
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR') {
+            console.warn('Realtime subscription error, will retry on reconnect');
+          }
+        });
+    };
+    
+    setupRealtime();
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [loadPlaylist]);
 

@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Check, X, Clock, FileText, RefreshCw, History, Undo2 } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import { waitForRealtimeReady } from "@/lib/realtimeUtils";
 
 interface AttendanceRequest {
   id: string;
@@ -68,28 +69,41 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
   useEffect(() => {
     fetchRequests();
 
-    // Realtime 구독
-    const channel = supabase
-      .channel("attendance-requests")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "attendance_requests",
-        },
-        () => {
-          fetchRequests();
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.warn('Realtime subscription error, will retry on reconnect');
-        }
-      });
+    // Realtime 구독 (지연된 연결)
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let isMounted = true;
+    
+    const setupRealtime = async () => {
+      await waitForRealtimeReady();
+      if (!isMounted) return;
+      
+      channel = supabase
+        .channel("attendance-requests")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "attendance_requests",
+          },
+          () => {
+            fetchRequests();
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR') {
+            console.warn('Realtime subscription error, will retry on reconnect');
+          }
+        });
+    };
+    
+    setupRealtime();
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 

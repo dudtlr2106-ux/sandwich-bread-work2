@@ -208,6 +208,7 @@
     overflow: visible !important;
     padding: 0 !important;
     margin: 0 !important;
+    min-height: 400px !important;
   }
 
   /* Table takes full width and auto-scales */

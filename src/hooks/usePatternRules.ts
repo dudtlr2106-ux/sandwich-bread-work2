@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ScheduleData } from './useScheduleData';
 import { Json } from '@/integrations/supabase/types';
+import { waitForRealtimeReady } from '@/lib/realtimeUtils';
 
 export interface PatternRule {
   id: string;
@@ -72,25 +73,38 @@ export function usePatternRules() {
     loadPatternRules();
   }, [loadPatternRules]);
 
-  // 실시간 구독
+  // 실시간 구독 (지연된 연결)
   useEffect(() => {
-    const channel = supabase
-      .channel('pattern-rules-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'pattern_rules' },
-        () => {
-          loadPatternRules();
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.warn('Realtime subscription error, will retry on reconnect');
-        }
-      });
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let isMounted = true;
+    
+    const setupRealtime = async () => {
+      await waitForRealtimeReady();
+      if (!isMounted) return;
+      
+      channel = supabase
+        .channel('pattern-rules-realtime')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'pattern_rules' },
+          () => {
+            loadPatternRules();
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR') {
+            console.warn('Realtime subscription error, will retry on reconnect');
+          }
+        });
+    };
+    
+    setupRealtime();
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [loadPatternRules]);
 

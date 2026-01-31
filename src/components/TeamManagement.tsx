@@ -18,8 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Edit2, X, ArrowLeft, Users } from "lucide-react";
+import { Plus, Trash2, Edit2, ArrowLeft, Users } from "lucide-react";
 import { waitForRealtimeReady } from "@/lib/realtimeUtils";
+import UserRoleManagement from "@/components/UserRoleManagement";
 
 type TeamMember = {
   id: string;
@@ -281,7 +282,7 @@ const TeamManagement = ({ onClose }: TeamManagementProps) => {
       </div>
 
       {/* 팀 목록 */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">
             로딩 중...
@@ -292,6 +293,9 @@ const TeamManagement = ({ onClose }: TeamManagementProps) => {
             <TeamCard team="B조" data={groupedMembers.B조} />
           </div>
         )}
+        
+        {/* 사용자 권한 관리 */}
+        <UserRoleManagement />
       </div>
 
       {/* 팀원 추가 다이얼로그 */}

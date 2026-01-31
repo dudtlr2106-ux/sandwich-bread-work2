@@ -48,10 +48,8 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
   const { toast } = useToast();
   const [requests, setRequests] = useState<AttendanceRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<AttendanceRequest | null>(null);
-  const [rejectionReason, setRejectionReason] = useState("");
 
   const fetchRequests = async () => {
     setIsLoading(true);
@@ -190,24 +188,16 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
     }
   };
 
-  const openRejectDialog = (request: AttendanceRequest) => {
-    setSelectedRequest(request);
-    setRejectionReason("");
-    setRejectDialogOpen(true);
-  };
-
-  const handleReject = async () => {
-    if (!selectedRequest) return;
-
+  const handleReject = async (request: AttendanceRequest) => {
     const { error } = await supabase
       .from("attendance_requests")
       .update({
         status: "rejected",
         reviewed_by: user?.id,
         reviewed_at: new Date().toISOString(),
-        rejection_reason: rejectionReason.trim() || null,
+        rejection_reason: null,
       })
-      .eq("id", selectedRequest.id);
+      .eq("id", request.id);
 
     if (error) {
       toast({
@@ -219,9 +209,6 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
         title: "반려 완료",
       });
     }
-
-    setRejectDialogOpen(false);
-    setSelectedRequest(null);
   };
 
   const openCancelDialog = (request: AttendanceRequest) => {
@@ -445,7 +432,7 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => openRejectDialog(request)}
+                          onClick={() => handleReject(request)}
                         >
                           <X className="h-4 w-4 mr-1" />
                           반려
@@ -603,33 +590,6 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
         )}
       </CardContent>
 
-      {/* 반려 사유 입력 다이얼로그 */}
-      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>요청 반려</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="text-sm text-muted-foreground">
-              {selectedRequest?.worker_name}님의 근태 변경 요청을 반려합니다
-            </div>
-            <Textarea
-              placeholder="반려 사유를 입력하세요 (선택)"
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              rows={3}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
-              취소
-            </Button>
-            <Button variant="destructive" onClick={handleReject}>
-              반려
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* 취소 확인 다이얼로그 */}
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>

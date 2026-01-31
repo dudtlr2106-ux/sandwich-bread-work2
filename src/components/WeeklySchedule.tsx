@@ -746,8 +746,8 @@ const WeeklySchedule = () => {
                   </Button>
                 </div>
               ) : (
-                <Link to="/auth">
-                  <Button variant="outline" size="sm">
+              <Link to="/auth" aria-label="로그인">
+                  <Button variant="outline" size="sm" aria-label="로그인">
                     <LogIn className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">로그인</span>
                   </Button>
@@ -851,6 +851,7 @@ const WeeklySchedule = () => {
                 size="icon"
                 onClick={goToPreviousWeek}
                 className="h-9 w-9"
+                aria-label="이전 주"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -859,6 +860,7 @@ const WeeklySchedule = () => {
                 size="sm"
                 onClick={goToCurrentWeek}
                 className="px-3"
+                aria-label="현재 주로 이동"
               >
                 {format(currentWeekStart, "M/d")}
               </Button>
@@ -867,6 +869,7 @@ const WeeklySchedule = () => {
                 size="icon"
                 onClick={goToNextWeek}
                 className="h-9 w-9"
+                aria-label="다음 주"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -918,6 +921,7 @@ const WeeklySchedule = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setSelectedDayIndex((prev) => (prev > 0 ? prev - 1 : 6))}
+                aria-label="이전 요일"
               >
                 <ChevronLeft className="h-5 w-5" />
               </Button>
@@ -929,6 +933,7 @@ const WeeklySchedule = () => {
                     size="sm"
                     className="w-8 h-8 p-0"
                     onClick={() => setSelectedDayIndex(index)}
+                    aria-label={`${day}요일 선택`}
                   >
                     {day}
                   </Button>
@@ -938,6 +943,7 @@ const WeeklySchedule = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setSelectedDayIndex((prev) => (prev < 6 ? prev + 1 : 0))}
+                aria-label="다음 요일"
               >
                 <ChevronRight className="h-5 w-5" />
               </Button>

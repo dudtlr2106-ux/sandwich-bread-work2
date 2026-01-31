@@ -116,6 +116,10 @@
 }
 
 @layer components {
+  .schedule-table-container {
+    min-height: 500px;
+  }
+
   .schedule-cell {
     @apply min-h-[200px] p-3 border-r border-b border-border transition-all duration-200;
   }

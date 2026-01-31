@@ -80,7 +80,11 @@ const TeamManagement = ({ onClose }: TeamManagementProps) => {
           loadMembers();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.warn('Realtime subscription error, will retry on reconnect');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);

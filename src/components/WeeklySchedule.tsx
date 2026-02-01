@@ -63,22 +63,8 @@ import AttendanceRequestForm from "@/components/AttendanceRequestForm";
 import TeamManagement from "@/components/TeamManagement";
 
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
-// 주차 전환 시점: 일요일 13시 이후면 다음 주로 간주
-const getEffectiveWeekStart = () => {
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0 = 일요일
-  const hour = now.getHours();
-  
-  // 일요일 13시 이후면 다음 주로 처리
-  if (dayOfWeek === 0 && hour >= 13) {
-    return startOfWeek(addDays(now, 1), { weekStartsOn: 1 });
-  }
-  
-  return startOfWeek(now, { weekStartsOn: 1 });
-};
-
 // 기준 주차 (이번 주가 짝수 주차인지 홀수 주차인지 판단용)
-const BASE_WEEK_START = getEffectiveWeekStart();
+const BASE_WEEK_START = startOfWeek(new Date(), { weekStartsOn: 1 });
 
 const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
 
@@ -138,9 +124,9 @@ const WeeklySchedule = () => {
   const isMobile = useIsMobile();
   const { user, isAdmin, signOut, isLoading } = useAuth();
   
-  // 주차 상태를 먼저 정의 (일요일 13시 이후면 다음 주로)
+  // 주차 상태를 먼저 정의
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
-    getEffectiveWeekStart()
+    startOfWeek(new Date(), { weekStartsOn: 1 })
   );
   
   // 데이터베이스 연동 훅 사용 - 현재 주차를 전달
@@ -265,7 +251,7 @@ const WeeklySchedule = () => {
   };
 
   const goToCurrentWeek = () => {
-    setCurrentWeekStart(getEffectiveWeekStart());
+    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
     clearSaturdayWorkers();
   };
 

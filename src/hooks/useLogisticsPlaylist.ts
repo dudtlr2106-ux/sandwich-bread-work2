@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { startOfWeek, addWeeks, format, startOfDay, getDay, getHours } from 'date-fns';
+import { startOfWeek, addWeeks, format, startOfDay, getDay, getHours, getISOWeek } from 'date-fns';
 import { waitForRealtimeReady } from '@/lib/realtimeUtils';
 
 // 일요일 13시 이후면 다음 주를 "이번 주"로 간주
@@ -166,21 +166,22 @@ export function useLogisticsPlaylist() {
   }, [playlist, updateOrder]);
 
   // Generate week previews based on current playlist order
-  // Uses the same offset calculation as useScheduleData
+  // Uses ISO week number as offset for rotation
   const getWeekPreviews = useCallback((numWeeks: number = 4): WeekPreview[] => {
     if (playlist.length < 2) return [];
 
     const previews: WeekPreview[] = [];
     // 일요일 13시 기준 주차 전환 적용
     const currentWeekStart = getEffectiveWeekStart();
+    const currentWeekNumber = getISOWeek(currentWeekStart);
 
     for (let weekOffset = 1; weekOffset <= numWeeks; weekOffset++) {
       const targetWeekStart = addWeeks(currentWeekStart, weekOffset);
+      const targetWeekNumber = currentWeekNumber + weekOffset;
       
-      // Calculate which workers are assigned this week (loop through playlist)
-      // This matches the logic in useScheduleData.applyLogisticsPlaylist
-      const earlyIndex = (weekOffset * 2) % playlist.length;
-      const midIndex = (weekOffset * 2 + 1) % playlist.length;
+      // 주차 번호를 오프셋으로 사용하여 인원 배열 회전
+      const earlyIndex = (targetWeekNumber * 2) % playlist.length;
+      const midIndex = (targetWeekNumber * 2 + 1) % playlist.length;
 
       const weekLabel = `${targetWeekStart.getMonth() + 1}/${targetWeekStart.getDate()}주`;
       const dateRange = format(targetWeekStart, 'M/d') + '~';
@@ -197,13 +198,21 @@ export function useLogisticsPlaylist() {
     return previews;
   }, [playlist]);
 
-  // Get current week's assignments (offset 0)
+  // Get current week's assignments using ISO week number as offset
   const getCurrentAssignments = useCallback(() => {
     if (playlist.length < 2) return { earlyShift: '-', midShift: '-' };
-    // Current week uses offset 0, so indices are 0 and 1
+    
+    // 현재 주차 번호를 기반으로 오프셋 계산
+    const currentWeekStart = getEffectiveWeekStart();
+    const weekNumber = getISOWeek(currentWeekStart);
+    
+    // 주차 번호를 오프셋으로 사용하여 인원 배열 회전
+    const earlyIndex = (weekNumber * 2) % playlist.length;
+    const midIndex = (weekNumber * 2 + 1) % playlist.length;
+    
     return {
-      earlyShift: playlist[0]?.worker_name || '-',
-      midShift: playlist[1]?.worker_name || '-',
+      earlyShift: playlist[earlyIndex]?.worker_name || '-',
+      midShift: playlist[midIndex]?.worker_name || '-',
     };
   }, [playlist]);
 

@@ -1,10 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { startOfWeek, addWeeks, format, startOfDay } from 'date-fns';
+import { startOfWeek, addWeeks, format, startOfDay, getDay, getHours } from 'date-fns';
 import { waitForRealtimeReady } from '@/lib/realtimeUtils';
 
 export type DepartmentType = 'logistics' | 'equipment' | 'inspection' | 'foreman' | 'package';
+
+// 일요일 13시 이후면 다음 주를 "이번 주"로 간주
+const getEffectiveWeekStart = (): Date => {
+  const now = new Date();
+  const today = startOfDay(now);
+  const standardWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+  
+  // 일요일(0)이고 13시 이상이면 다음 주로 간주
+  if (getDay(now) === 0 && getHours(now) >= 13) {
+    return addWeeks(standardWeekStart, 1);
+  }
+  
+  return standardWeekStart;
+};
 
 export interface PlaylistItem {
   id: string;
@@ -304,8 +318,8 @@ export function useRotationPlaylist(department: DepartmentType) {
     if (playlist.length < totalPerWeek) return [];
 
     const previews: WeekPreview[] = [];
-    const today = startOfDay(new Date());
-    const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+    // 일요일 13시 기준 주차 전환 적용
+    const currentWeekStart = getEffectiveWeekStart();
 
     for (let weekOffset = 1; weekOffset <= numWeeks; weekOffset++) {
       const targetWeekStart = addWeeks(currentWeekStart, weekOffset);

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { startOfWeek, addWeeks, format, startOfDay, getDay, getHours } from 'date-fns';
+import { startOfWeek, addWeeks, format, startOfDay, getDay, getHours, getISOWeek } from 'date-fns';
 import { waitForRealtimeReady } from '@/lib/realtimeUtils';
 
 export type DepartmentType = 'logistics' | 'equipment' | 'inspection' | 'foreman' | 'package';
@@ -320,11 +320,14 @@ export function useRotationPlaylist(department: DepartmentType) {
     const previews: WeekPreview[] = [];
     // 일요일 13시 기준 주차 전환 적용
     const currentWeekStart = getEffectiveWeekStart();
+    const currentWeekNumber = getISOWeek(currentWeekStart);
 
     for (let weekOffset = 1; weekOffset <= numWeeks; weekOffset++) {
       const targetWeekStart = addWeeks(currentWeekStart, weekOffset);
+      const targetWeekNumber = currentWeekNumber + weekOffset;
       
-      const startIndex = (weekOffset * totalPerWeek) % playlist.length;
+      // 주차 번호를 오프셋으로 사용하여 인원 배열 회전
+      const startIndex = (targetWeekNumber * totalPerWeek) % playlist.length;
       
       // 초반조 인원
       const earlyWorkers: string[] = [];
@@ -361,10 +364,26 @@ export function useRotationPlaylist(department: DepartmentType) {
     
     if (playlist.length < totalPerWeek) return { earlyShift: '-', midShift: '-' };
     
-    // 초반조 인원 (playlist 앞에서부터)
-    const earlyWorkers = playlist.slice(0, rotationSize.early).map(p => p.worker_name);
-    // 중반조 인원 (초반조 다음부터)
-    const midWorkers = playlist.slice(rotationSize.early, totalPerWeek).map(p => p.worker_name);
+    // 현재 주차 번호를 기반으로 오프셋 계산
+    const currentWeekStart = getEffectiveWeekStart();
+    const weekNumber = getISOWeek(currentWeekStart);
+    
+    // 주차 번호를 오프셋으로 사용하여 인원 배열 회전
+    const startIndex = (weekNumber * totalPerWeek) % playlist.length;
+    
+    // 초반조 인원
+    const earlyWorkers: string[] = [];
+    for (let i = 0; i < rotationSize.early; i++) {
+      const idx = (startIndex + i) % playlist.length;
+      earlyWorkers.push(playlist[idx]?.worker_name);
+    }
+    
+    // 중반조 인원
+    const midWorkers: string[] = [];
+    for (let i = 0; i < rotationSize.mid; i++) {
+      const idx = (startIndex + rotationSize.early + i) % playlist.length;
+      midWorkers.push(playlist[idx]?.worker_name);
+    }
     
     return {
       earlyShift: earlyWorkers.join(', ') || '-',

@@ -219,7 +219,7 @@ export function useScheduleData(currentWeekStart?: Date) {
   // 부서별 로테이션 플레이리스트 적용 함수
   const applyDepartmentPlaylist = useCallback((
     baseData: ScheduleData, 
-    playlist: { worker_name: string; position: number }[],
+    playlist: { worker_name: string; position: number; is_dummy?: boolean }[],
     weekOffset: number,
     department: 'logistics' | 'equipment' | 'inspection' | 'foreman' | 'package'
   ): ScheduleData => {
@@ -233,18 +233,26 @@ export function useScheduleData(currentWeekStart?: Date) {
     // 주차 오프셋에 따라 플레이리스트에서 배정할 인원 계산 (Loop 순환)
     const startIndex = (weekOffset * totalPerWeek) % playlist.length;
     
-    // 초반조 인원 선택
+    // 초반조 인원 선택 (더미 인원 제외)
     const earlyWorkers: string[] = [];
     for (let i = 0; i < rotationSize.early; i++) {
       const idx = (startIndex + i) % playlist.length;
-      earlyWorkers.push(playlist[idx]?.worker_name);
+      const item = playlist[idx];
+      // 더미 인원은 배열에서 제외
+      if (item && !item.is_dummy) {
+        earlyWorkers.push(item.worker_name);
+      }
     }
     
-    // 중반조 인원 선택
+    // 중반조 인원 선택 (더미 인원 제외)
     const midWorkers: string[] = [];
     for (let i = 0; i < rotationSize.mid; i++) {
       const idx = (startIndex + rotationSize.early + i) % playlist.length;
-      midWorkers.push(playlist[idx]?.worker_name);
+      const item = playlist[idx];
+      // 더미 인원은 배열에서 제외
+      if (item && !item.is_dummy) {
+        midWorkers.push(item.worker_name);
+      }
     }
     
     // 해당 부서에 배정 (월~금)

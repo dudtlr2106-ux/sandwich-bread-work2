@@ -90,6 +90,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_dummy: boolean
           position: number
           updated_at: string
           worker_name: string
@@ -97,6 +98,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_dummy?: boolean
           position?: number
           updated_at?: string
           worker_name: string
@@ -104,6 +106,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_dummy?: boolean
           position?: number
           updated_at?: string
           worker_name?: string
@@ -114,6 +117,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_dummy: boolean
           position: number
           updated_at: string
           worker_name: string
@@ -121,6 +125,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_dummy?: boolean
           position?: number
           updated_at?: string
           worker_name: string
@@ -128,6 +133,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_dummy?: boolean
           position?: number
           updated_at?: string
           worker_name?: string
@@ -138,6 +144,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_dummy: boolean
           position: number
           updated_at: string
           worker_name: string
@@ -145,6 +152,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_dummy?: boolean
           position?: number
           updated_at?: string
           worker_name: string
@@ -152,6 +160,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_dummy?: boolean
           position?: number
           updated_at?: string
           worker_name?: string
@@ -162,6 +171,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_dummy: boolean
           position: number
           updated_at: string
           worker_name: string
@@ -169,6 +179,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_dummy?: boolean
           position?: number
           updated_at?: string
           worker_name: string
@@ -176,6 +187,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_dummy?: boolean
           position?: number
           updated_at?: string
           worker_name?: string
@@ -186,6 +198,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_dummy: boolean
           position: number
           updated_at: string
           worker_name: string
@@ -193,6 +206,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_dummy?: boolean
           position?: number
           updated_at?: string
           worker_name: string
@@ -200,6 +214,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_dummy?: boolean
           position?: number
           updated_at?: string
           worker_name?: string
@@ -231,6 +246,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_dummy: boolean
           position: number
           updated_at: string
           worker_name: string
@@ -238,6 +254,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_dummy?: boolean
           position?: number
           updated_at?: string
           worker_name: string
@@ -245,6 +262,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_dummy?: boolean
           position?: number
           updated_at?: string
           worker_name?: string

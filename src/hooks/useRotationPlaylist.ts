@@ -24,6 +24,7 @@ export interface PlaylistItem {
   id: string;
   worker_name: string;
   position: number;
+  is_dummy: boolean;
 }
 
 export interface WeekPreview {
@@ -74,35 +75,35 @@ export function useRotationPlaylist(department: DepartmentType) {
       if (department === 'logistics') {
         const result = await supabase
           .from('logistics_rotation_playlist')
-          .select('id, worker_name, position')
+          .select('id, worker_name, position, is_dummy')
           .order('position', { ascending: true });
         data = result.data;
         error = result.error;
       } else if (department === 'equipment') {
         const result = await supabase
           .from('equipment_rotation_playlist')
-          .select('id, worker_name, position')
+          .select('id, worker_name, position, is_dummy')
           .order('position', { ascending: true });
         data = result.data;
         error = result.error;
       } else if (department === 'inspection') {
         const result = await supabase
           .from('inspection_rotation_playlist')
-          .select('id, worker_name, position')
+          .select('id, worker_name, position, is_dummy')
           .order('position', { ascending: true });
         data = result.data;
         error = result.error;
       } else if (department === 'foreman') {
         const result = await supabase
           .from('foreman_rotation_playlist')
-          .select('id, worker_name, position')
+          .select('id, worker_name, position, is_dummy')
           .order('position', { ascending: true });
         data = result.data;
         error = result.error;
       } else if (department === 'package') {
         const result = await supabase
           .from('package_rotation_playlist')
-          .select('id, worker_name, position')
+          .select('id, worker_name, position, is_dummy')
           .order('position', { ascending: true });
         data = result.data;
         error = result.error;
@@ -329,18 +330,24 @@ export function useRotationPlaylist(department: DepartmentType) {
       // 주차 번호를 오프셋으로 사용하여 인원 배열 회전
       const startIndex = (targetWeekNumber * totalPerWeek) % playlist.length;
       
-      // 초반조 인원
+      // 초반조 인원 (더미 제외)
       const earlyWorkers: string[] = [];
       for (let i = 0; i < rotationSize.early; i++) {
         const idx = (startIndex + i) % playlist.length;
-        earlyWorkers.push(playlist[idx]?.worker_name);
+        const item = playlist[idx];
+        if (item && !item.is_dummy) {
+          earlyWorkers.push(item.worker_name);
+        }
       }
       
-      // 중반조 인원
+      // 중반조 인원 (더미 제외)
       const midWorkers: string[] = [];
       for (let i = 0; i < rotationSize.mid; i++) {
         const idx = (startIndex + rotationSize.early + i) % playlist.length;
-        midWorkers.push(playlist[idx]?.worker_name);
+        const item = playlist[idx];
+        if (item && !item.is_dummy) {
+          midWorkers.push(item.worker_name);
+        }
       }
 
       const weekLabel = `${targetWeekStart.getMonth() + 1}/${targetWeekStart.getDate()}주`;
@@ -350,8 +357,8 @@ export function useRotationPlaylist(department: DepartmentType) {
         weekOffset,
         weekLabel,
         dateRange,
-        earlyShift: earlyWorkers.filter(Boolean).join(', ') || '-',
-        midShift: midWorkers.filter(Boolean).join(', ') || '-',
+        earlyShift: earlyWorkers.length > 0 ? earlyWorkers.join(', ') : '-',
+        midShift: midWorkers.length > 0 ? midWorkers.join(', ') : '-',
       });
     }
 
@@ -371,25 +378,95 @@ export function useRotationPlaylist(department: DepartmentType) {
     // 주차 번호를 오프셋으로 사용하여 인원 배열 회전
     const startIndex = (weekNumber * totalPerWeek) % playlist.length;
     
-    // 초반조 인원
+    // 초반조 인원 (더미 제외)
     const earlyWorkers: string[] = [];
     for (let i = 0; i < rotationSize.early; i++) {
       const idx = (startIndex + i) % playlist.length;
-      earlyWorkers.push(playlist[idx]?.worker_name);
+      const item = playlist[idx];
+      if (item && !item.is_dummy) {
+        earlyWorkers.push(item.worker_name);
+      }
     }
     
-    // 중반조 인원
+    // 중반조 인원 (더미 제외)
     const midWorkers: string[] = [];
     for (let i = 0; i < rotationSize.mid; i++) {
       const idx = (startIndex + rotationSize.early + i) % playlist.length;
-      midWorkers.push(playlist[idx]?.worker_name);
+      const item = playlist[idx];
+      if (item && !item.is_dummy) {
+        midWorkers.push(item.worker_name);
+      }
     }
     
     return {
-      earlyShift: earlyWorkers.join(', ') || '-',
-      midShift: midWorkers.join(', ') || '-',
+      earlyShift: earlyWorkers.length > 0 ? earlyWorkers.join(', ') : '-',
+      midShift: midWorkers.length > 0 ? midWorkers.join(', ') : '-',
     };
   }, [playlist, department]);
+
+  // 더미(공석) 토글 함수
+  const toggleDummy = useCallback(async (item: PlaylistItem) => {
+    try {
+      const newIsDummy = !item.is_dummy;
+      let error: any = null;
+
+      if (department === 'logistics') {
+        const result = await supabase.from('logistics_rotation_playlist').update({ is_dummy: newIsDummy }).eq('id', item.id);
+        error = result.error;
+      } else if (department === 'equipment') {
+        const result = await supabase.from('equipment_rotation_playlist').update({ is_dummy: newIsDummy }).eq('id', item.id);
+        error = result.error;
+      } else if (department === 'inspection') {
+        const result = await supabase.from('inspection_rotation_playlist').update({ is_dummy: newIsDummy }).eq('id', item.id);
+        error = result.error;
+      } else if (department === 'foreman') {
+        const result = await supabase.from('foreman_rotation_playlist').update({ is_dummy: newIsDummy }).eq('id', item.id);
+        error = result.error;
+      } else {
+        const result = await supabase.from('package_rotation_playlist').update({ is_dummy: newIsDummy }).eq('id', item.id);
+        error = result.error;
+      }
+
+      if (error) throw error;
+      toast.success(newIsDummy ? '공석으로 설정되었습니다' : '공석이 해제되었습니다');
+      loadPlaylist();
+    } catch (error) {
+      console.error('Error toggling dummy:', error);
+      toast.error('상태 변경에 실패했습니다');
+    }
+  }, [department, loadPlaylist]);
+
+  // 더미(공석) 추가 함수
+  const addDummy = useCallback(async () => {
+    try {
+      const newPosition = playlist.length;
+      const dummyName = `공석${newPosition + 1}`;
+      let error: any = null;
+
+      if (department === 'logistics') {
+        const result = await supabase.from('logistics_rotation_playlist').insert({ worker_name: dummyName, position: newPosition, is_dummy: true });
+        error = result.error;
+      } else if (department === 'equipment') {
+        const result = await supabase.from('equipment_rotation_playlist').insert({ worker_name: dummyName, position: newPosition, is_dummy: true });
+        error = result.error;
+      } else if (department === 'inspection') {
+        const result = await supabase.from('inspection_rotation_playlist').insert({ worker_name: dummyName, position: newPosition, is_dummy: true });
+        error = result.error;
+      } else if (department === 'foreman') {
+        const result = await supabase.from('foreman_rotation_playlist').insert({ worker_name: dummyName, position: newPosition, is_dummy: true });
+        error = result.error;
+      } else {
+        const result = await supabase.from('package_rotation_playlist').insert({ worker_name: dummyName, position: newPosition, is_dummy: true });
+        error = result.error;
+      }
+
+      if (error) throw error;
+      toast.success('공석이 추가되었습니다');
+    } catch (error) {
+      console.error('Error adding dummy:', error);
+      toast.error('공석 추가에 실패했습니다');
+    }
+  }, [playlist.length, department]);
 
   return {
     playlist,
@@ -403,5 +480,7 @@ export function useRotationPlaylist(department: DepartmentType) {
     getCurrentAssignments,
     refreshPlaylist: loadPlaylist,
     departmentLabel,
+    toggleDummy,
+    addDummy,
   };
 }

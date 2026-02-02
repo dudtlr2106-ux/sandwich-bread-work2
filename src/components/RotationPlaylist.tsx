@@ -29,7 +29,8 @@ import {
   Wrench,
   ClipboardCheck,
   Copy,
-  Package
+  Package,
+  UserX,
 } from 'lucide-react';
 import { useRotationPlaylist, DepartmentType, PlaylistItem, DEPARTMENT_ROTATION_SIZE } from '@/hooks/useRotationPlaylist';
 import { SORTED_ALL_WORKERS } from '@/hooks/useScheduleData';
@@ -91,6 +92,8 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     removeWorker,
     getWeekPreviews,
     getCurrentAssignments,
+    toggleDummy,
+    addDummy,
   } = useRotationPlaylist(department);
 
   const config = DEPARTMENT_CONFIG[department];
@@ -242,17 +245,29 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                   <User className="h-4 w-4" />
                   순환 명단 ({playlist.length}명)
                 </p>
-                {!isAdding && (
+                <div className="flex gap-1">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setIsAdding(true)}
-                    className="h-7 px-2 text-xs gap-1"
+                    onClick={() => addDummy()}
+                    className="h-7 px-2 text-xs gap-1 text-muted-foreground"
+                    title="공석 추가"
                   >
-                    <Plus className="h-3 w-3" />
-                    추가
+                    <UserX className="h-3 w-3" />
+                    공석
                   </Button>
-                )}
+                  {!isAdding && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsAdding(true)}
+                      className="h-7 px-2 text-xs gap-1"
+                    >
+                      <Plus className="h-3 w-3" />
+                      추가
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Add Worker Input */}
@@ -335,35 +350,62 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       "flex items-center gap-2 p-2 rounded-md border bg-background cursor-grab active:cursor-grabbing transition-all group",
                       draggedItem?.id === item.id && "opacity-50",
                       dragOverIndex === index && draggedItem?.id !== item.id && "border-primary border-2",
-                      getShiftType(index, department) === 'early' && "border-green-500/50 bg-green-500/5",
-                      getShiftType(index, department) === 'mid' && "border-blue-500/50 bg-blue-500/5"
+                      item.is_dummy && "bg-muted/50 border-dashed opacity-70",
+                      !item.is_dummy && getShiftType(index, department) === 'early' && "border-green-500/50 bg-green-500/5",
+                      !item.is_dummy && getShiftType(index, department) === 'mid' && "border-blue-500/50 bg-blue-500/5"
                     )}
                   >
                     <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <span className="text-xs font-mono text-muted-foreground w-5">
                       {index + 1}
                     </span>
-                    <span className="font-medium flex-1">{item.worker_name}</span>
-                    {getShiftType(index, department) === 'early' && (
-                      <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-700">
-                        초반
+                    <span className={cn("font-medium flex-1", item.is_dummy && "text-muted-foreground italic")}>
+                      {item.is_dummy ? `(공석)` : item.worker_name}
+                    </span>
+                    {item.is_dummy ? (
+                      <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
+                        공석
                       </Badge>
+                    ) : (
+                      <>
+                        {getShiftType(index, department) === 'early' && (
+                          <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-700">
+                            초반
+                          </Badge>
+                        )}
+                        {getShiftType(index, department) === 'mid' && (
+                          <Badge variant="secondary" className="text-[10px] bg-blue-500/10 text-blue-700">
+                            중반
+                          </Badge>
+                        )}
+                      </>
                     )}
-                    {getShiftType(index, department) === 'mid' && (
-                      <Badge variant="secondary" className="text-[10px] bg-blue-500/10 text-blue-700">
-                        중반
-                      </Badge>
-                    )}
+                    {/* 공석 토글 버튼 */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        duplicateWorker(item);
+                        toggleDummy(item);
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-primary/10 transition-all"
-                      title="복제"
+                      className={cn(
+                        "opacity-0 group-hover:opacity-100 p-1 rounded transition-all",
+                        item.is_dummy ? "hover:bg-primary/10" : "hover:bg-muted"
+                      )}
+                      title={item.is_dummy ? "공석 해제" : "공석으로 설정"}
                     >
-                      <Copy className="h-3 w-3 text-primary" />
+                      <UserX className={cn("h-3 w-3", item.is_dummy ? "text-primary" : "text-muted-foreground")} />
                     </button>
+                    {!item.is_dummy && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          duplicateWorker(item);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-primary/10 transition-all"
+                        title="복제"
+                      >
+                        <Copy className="h-3 w-3 text-primary" />
+                      </button>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

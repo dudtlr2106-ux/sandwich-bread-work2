@@ -21,6 +21,7 @@ export interface PlaylistItem {
   id: string;
   worker_name: string;
   position: number;
+  is_dummy: boolean;
 }
 
 export interface WeekPreview {
@@ -39,7 +40,7 @@ export function useLogisticsPlaylist() {
     try {
       const { data, error } = await supabase
         .from('logistics_rotation_playlist')
-        .select('*')
+        .select('id, worker_name, position, is_dummy')
         .order('position', { ascending: true });
 
       if (error) throw error;

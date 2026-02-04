@@ -770,26 +770,26 @@ const WeeklySchedule = () => {
 
               <div className="h-6 w-px bg-border hidden sm:block" />
 
-              <Sheet open={memoSheetOpen} onOpenChange={setMemoSheetOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={openMemoSheet}>
-                    <StickyNote className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">공지 메모</span>
-                    {noticeMemo && (noticeMemoIsPublic || isAdmin) && <Badge variant="secondary" className="ml-2">1</Badge>}
-                  </Button>
-                </SheetTrigger>
-                <SheetContent>
-                  <SheetHeader>
-                    <SheetTitle>공지 메모</SheetTitle>
-                  </SheetHeader>
-                  <div className="mt-4 space-y-4">
-                    <Textarea
-                      placeholder="공지사항이나 메모를 입력하세요..."
-                      value={tempMemo}
-                      onChange={(e) => setTempMemo(e.target.value)}
-                      className="min-h-[300px]"
-                    />
-                    {isAdmin && (
+              {isAdmin && (
+                <Sheet open={memoSheetOpen} onOpenChange={setMemoSheetOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={openMemoSheet}>
+                      <StickyNote className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">공지 메모</span>
+                      {noticeMemo && (noticeMemoIsPublic || isAdmin) && <Badge variant="secondary" className="ml-2">1</Badge>}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent>
+                    <SheetHeader>
+                      <SheetTitle>공지 메모</SheetTitle>
+                    </SheetHeader>
+                    <div className="mt-4 space-y-4">
+                      <Textarea
+                        placeholder="공지사항이나 메모를 입력하세요..."
+                        value={tempMemo}
+                        onChange={(e) => setTempMemo(e.target.value)}
+                        className="min-h-[300px]"
+                      />
                       <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
                         <Label htmlFor="notice-visibility" className="text-sm font-medium flex items-center gap-2">
                           {tempMemoIsPublic ? (
@@ -810,18 +810,18 @@ const WeeklySchedule = () => {
                           onCheckedChange={setTempMemoIsPublic}
                         />
                       </div>
-                    )}
-                    <div className="flex gap-2">
-                      <Button onClick={saveMemo} className="flex-1">
-                        저장
-                      </Button>
-                      <Button variant="outline" onClick={() => setMemoSheetOpen(false)}>
-                        취소
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button onClick={saveMemo} className="flex-1">
+                          저장
+                        </Button>
+                        <Button variant="outline" onClick={() => setMemoSheetOpen(false)}>
+                          취소
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
+                  </SheetContent>
+                </Sheet>
+              )}
 
               {/* 팀 관리 버튼 - 관리자만 표시 */}
               {isAdmin && (
@@ -849,16 +849,18 @@ const WeeklySchedule = () => {
                 </Link>
               )}
 
-              {/* 근무표 인쇄 버튼 */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.print()}
-                className="print-hide"
-              >
-                <Printer className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">근무표 인쇄</span>
-              </Button>
+              {/* 근무표 인쇄 버튼 - 관리자만 표시 */}
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.print()}
+                  className="print-hide"
+                >
+                  <Printer className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">근무표 인쇄</span>
+                </Button>
+              )}
               
               <Button
                 variant="outline"

@@ -1070,9 +1070,7 @@ const WeeklySchedule = () => {
                   <tr key={dept.id} className="hover:bg-muted/30 transition-colors">
                     <td className={`px-2 py-1 border-b border-r border-border text-center ${dept.colorClass}`}>
                       <span className="font-medium text-xs text-foreground">
-                        {dept.name.split('').map((char, i) => (
-                          <React.Fragment key={i}>{char}{i < dept.name.length - 1 && <br />}</React.Fragment>
-                        ))}
+                        {dept.name}
                       </span>
                     </td>
                     {(isMobile ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {

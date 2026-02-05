@@ -691,12 +691,9 @@ const WeeklySchedule = () => {
 
   // 상태별 아이콘 및 스타일 (시간휴가/시간잔업 포함 여부도 체크)
   const getStatusStyle = (status: WorkerStatus, hasPartialVacation?: boolean, hasPartialOvertime?: boolean) => {
-    // 시간휴가 또는 시간잔업이 있는 경우 파란색 스타일
-    const hasPartialTime = hasPartialVacation || hasPartialOvertime;
-    
     // 잔업 + 시간휴가 동시인 경우
     if (status === "overtime" && hasPartialVacation) {
-      return { icon: <Clock className="h-3 w-3 text-blue-500" />, className: "text-foreground", timeClassName: "text-blue-500 font-medium" };
+      return { icon: <Clock className="h-3 w-3 text-green-500" />, className: "text-green-600", timeClassName: "text-green-600 font-medium" };
     }
     
     switch (status) {
@@ -705,12 +702,15 @@ const WeeklySchedule = () => {
       case "vacation":
         return { icon: <Palmtree className="h-3 w-3 text-green-500" />, className: "text-green-600 line-through", timeClassName: "" };
       case "partial_vacation":
-        return { icon: <Clock className="h-3 w-3 text-blue-500" />, className: "text-foreground", timeClassName: "text-blue-500 font-medium" };
+        return { icon: <Clock className="h-3 w-3 text-green-500" />, className: "text-green-600", timeClassName: "text-green-600 font-medium" };
       case "partial_overtime":
         return { icon: <Clock className="h-3 w-3 text-blue-500" />, className: "text-foreground", timeClassName: "text-blue-500 font-medium" };
       default:
         // 정상 상태이지만 시간휴가 또는 시간잔업이 있는 경우
-        if (hasPartialTime) {
+        if (hasPartialVacation) {
+          return { icon: <Clock className="h-3 w-3 text-green-500" />, className: "text-green-600", timeClassName: "text-green-600 font-medium" };
+        }
+        if (hasPartialOvertime) {
           return { icon: <Clock className="h-3 w-3 text-blue-500" />, className: "text-foreground", timeClassName: "text-blue-500 font-medium" };
         }
         return { icon: null, className: "", timeClassName: "" };

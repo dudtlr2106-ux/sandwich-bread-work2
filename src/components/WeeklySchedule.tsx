@@ -1471,6 +1471,10 @@ const WeeklySchedule = () => {
             <div className="flex flex-wrap items-center gap-4 text-sm">
               <span className="text-muted-foreground font-medium">범례:</span>
               <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-foreground" />
+                <span className="text-foreground">정상</span>
+              </div>
+              <div className="flex items-center gap-1">
                 <div className="w-3 h-3 rounded-full bg-green-500" />
                 <span className="text-foreground">휴가</span>
               </div>

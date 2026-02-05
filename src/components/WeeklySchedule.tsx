@@ -1176,7 +1176,7 @@ const WeeklySchedule = () => {
                                               <DropdownMenuSeparator />
                                               <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
                                                 <Users className="h-4 w-4 mr-2" />
-                                                정상 근무
+                                                 정상
                                               </DropdownMenuItem>
                                               <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "overtime")} className="text-orange-600">
                                                 <Clock className="h-4 w-4 mr-2" />
@@ -1263,7 +1263,7 @@ const WeeklySchedule = () => {
                                               <DropdownMenuSeparator />
                                               <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "normal")}>
                                                 <Users className="h-4 w-4 mr-2" />
-                                                정상 근무
+                                                 정상
                                               </DropdownMenuItem>
                                               <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "overtime")} className="text-orange-600">
                                                 <Clock className="h-4 w-4 mr-2" />

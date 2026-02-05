@@ -1470,21 +1470,13 @@ const WeeklySchedule = () => {
           <div className="p-4 border-t border-border bg-muted/30 print-hide">
             <div className="flex flex-wrap items-center gap-4 text-sm">
               <span className="text-muted-foreground font-medium">범례:</span>
-              {departments.map((dept) => (
-                <div key={dept.id} className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded ${dept.badgeClass}`} />
-                  <span className="text-foreground">{dept.name}</span>
-                </div>
-              ))}
-              <div className="border-l border-border pl-4 ml-2 flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3 text-orange-500" />
-                  <span className="text-foreground">잔업</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Palmtree className="h-3 w-3 text-green-500" />
-                  <span className="text-foreground">휴가</span>
-                </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-green-500" />
+                <span className="text-foreground">휴가</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-orange-500" />
+                <span className="text-foreground">잔업</span>
               </div>
             </div>
           </div>

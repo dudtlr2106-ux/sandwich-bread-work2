@@ -336,8 +336,7 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
           )}
         </CardTitle>
         <Button variant="outline" size="sm" onClick={fetchRequests}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          새로고침
+          <RefreshCw className="h-4 w-4" />
         </Button>
       </CardHeader>
       <CardContent>

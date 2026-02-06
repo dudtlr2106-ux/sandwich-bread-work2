@@ -323,8 +323,8 @@ const WeeklySchedule = () => {
   };
 
   const openEditDialog = (deptId: string, day: string, shift: "A" | "B") => {
-    // 관리자만 편집 다이얼로그 열기 가능
-    if (!isAdmin) return;
+    // 로그인한 관리자만 편집 다이얼로그 열기 가능
+    if (!user || !isAdmin) return;
     
     // 데이터베이스에서 직접 인원 가져오기
     const displayedWorkers = getWorkers(deptId, day, shift);

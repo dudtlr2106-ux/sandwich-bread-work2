@@ -1071,7 +1071,7 @@ const WeeklySchedule = () => {
               <tbody>
                 {departments.map((dept, deptIndex) => (
                   <tr key={dept.id} className="hover:bg-muted/30 transition-colors">
-                    <td className={`px-2 py-1 border-b border-r border-border text-center ${dept.colorClass}`}>
+                    <td className={`px-1 py-1 border-b border-r border-border text-center whitespace-nowrap ${dept.colorClass}`}>
                       <span className="font-medium text-xs text-foreground">
                         {dept.name}
                       </span>

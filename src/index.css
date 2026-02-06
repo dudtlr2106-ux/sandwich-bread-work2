@@ -143,12 +143,6 @@
   .department-package {
     @apply bg-[hsl(var(--package-bg))] border-l-4 border-l-[hsl(var(--package))];
   }
-
-  .writing-mode-vertical {
-    writing-mode: vertical-rl;
-    text-orientation: upright;
-    letter-spacing: -0.1em;
-  }
 }
 
 /* Print styles */

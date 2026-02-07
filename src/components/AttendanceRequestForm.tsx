@@ -275,6 +275,7 @@ const AttendanceRequestForm = ({
             <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border">
               <Input
                 type="text"
+                inputMode="numeric"
                 placeholder="14:00"
                 value={startTime}
                 onChange={(e) => handleTimeChange(e.target.value, setStartTime)}
@@ -284,6 +285,7 @@ const AttendanceRequestForm = ({
               <span className="text-muted-foreground">~</span>
               <Input
                 type="text"
+                inputMode="numeric"
                 placeholder="18:00"
                 value={endTime}
                 onChange={(e) => handleTimeChange(e.target.value, setEndTime)}

@@ -76,9 +76,30 @@ const AttendanceRequestForm = ({
     }
   }, [workerName, userDisplayName]);
 
+  // 공휴일 목록
+  const holidays = [
+    "2024-12-25", "2025-01-01", "2025-01-28", "2025-01-29", "2025-01-30",
+    "2025-03-01", "2025-05-05", "2025-06-06", "2025-08-15",
+    "2025-10-03", "2025-10-09", "2025-12-25",
+    "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18",
+    "2026-03-01", "2026-05-05", "2026-06-06", "2026-08-15",
+    "2026-10-03", "2026-10-09", "2026-12-25",
+  ];
+
+  const isHolidayOrWeekend = day === "토" || day === "일" || holidays.includes(dateKey);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Block submission on holidays/weekends
+    if (isHolidayOrWeekend) {
+      toast({
+        title: "휴일엔 카톡 부탁 드립니다",
+        description: "주말 및 공휴일에는 근태 수정 요청이 불가합니다",
+      });
+      return;
+    }
+
     // Block submission if not logged in
     if (!user) {
       toast({
@@ -238,6 +259,16 @@ const AttendanceRequestForm = ({
             </Alert>
           )}
 
+          {/* 휴일 경고 */}
+          {isHolidayOrWeekend && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                휴일엔 카톡 부탁 드립니다 📱
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* 대상 정보 요약 - 한눈에 보기 */}
           <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border text-sm">
             <div className="flex items-center gap-3">
@@ -315,7 +346,7 @@ const AttendanceRequestForm = ({
             <Button 
               type="submit" 
               size="sm" 
-              disabled={isSubmitting || !user || (userDisplayName !== null && isNameMismatch)}
+              disabled={isSubmitting || !user || (userDisplayName !== null && isNameMismatch) || isHolidayOrWeekend}
             >
               {isSubmitting ? "요청 중..." : "요청"}
             </Button>

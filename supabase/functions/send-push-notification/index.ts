@@ -340,9 +340,13 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { requesterName, workerName, dateKey, requestedStatus } = await req.json();
+    const body = await req.json();
+    const { type, requesterName, workerName, dateKey, requestedStatus, content } = body;
 
-    console.log(`Sending push notification for attendance request from ${requesterName}`);
+    // Determine notification type
+    const isNoticeUpdate = type === 'notice_update';
+
+    console.log(`Sending push notification - type: ${isNoticeUpdate ? 'notice_update' : 'attendance_request'}`);
 
     // Get all admin users
     const { data: adminRoles, error: rolesError } = await supabase
@@ -385,26 +389,42 @@ serve(async (req) => {
 
     console.log(`Found ${subscriptions.length} push subscriptions`);
 
-    // Prepare notification payload
-    const statusLabels: Record<string, string> = {
-      normal: "정상",
-      overtime: "잔업",
-      partial_overtime: "시간잔업",
-      vacation: "휴가",
-      partial_vacation: "시간휴가",
-      dayoff: "휴무",
-    };
+    // Prepare notification payload based on type
+    let payload: PushPayload;
 
-    const payload: PushPayload = {
-      title: "근태 수정 요청",
-      body: `${requesterName}님이 ${dateKey} ${workerName}의 근태를 ${statusLabels[requestedStatus] || requestedStatus}(으)로 변경 요청했습니다.`,
-      icon: "/favicon.ico",
-      badge: "/favicon.ico",
-      data: {
-        url: "/",
-        type: "attendance_request",
-      },
-    };
+    if (isNoticeUpdate) {
+      payload = {
+        title: "📢 공지사항 수정",
+        body: content ? `공지사항이 수정되었습니다: ${content}` : "공지사항이 수정되었습니다.",
+        icon: "/favicon.ico",
+        badge: "/favicon.ico",
+        data: {
+          url: "/",
+          type: "notice_update",
+        },
+      };
+    } else {
+      // Attendance request notification
+      const statusLabels: Record<string, string> = {
+        normal: "정상",
+        overtime: "잔업",
+        partial_overtime: "시간잔업",
+        vacation: "휴가",
+        partial_vacation: "시간휴가",
+        dayoff: "휴무",
+      };
+
+      payload = {
+        title: "근태 수정 요청",
+        body: `${requesterName}님이 ${dateKey} ${workerName}의 근태를 ${statusLabels[requestedStatus] || requestedStatus}(으)로 변경 요청했습니다.`,
+        icon: "/favicon.ico",
+        badge: "/favicon.ico",
+        data: {
+          url: "/",
+          type: "attendance_request",
+        },
+      };
+    }
 
     // Send to all subscriptions
     let sentCount = 0;

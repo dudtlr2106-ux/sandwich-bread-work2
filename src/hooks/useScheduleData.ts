@@ -728,6 +728,18 @@ export function useScheduleData(currentWeekStart?: Date) {
       if (error) {
         console.error('Failed to save notice memo:', error);
         toast.error('메모 저장에 실패했습니다');
+      } else {
+        // 공지사항 수정 시 푸시 알림 발송
+        try {
+          await supabase.functions.invoke('send-push-notification', {
+            body: {
+              type: 'notice_update',
+              content: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+            },
+          });
+        } catch (pushError) {
+          console.error('Failed to send push notification:', pushError);
+        }
       }
     }
   }, []);

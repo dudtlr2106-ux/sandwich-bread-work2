@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { format, addDays, startOfWeek, isBefore, startOfDay } from 'date-fns';
+import { format, addDays, startOfWeek, isBefore, startOfDay, getISOWeek, getDay, getHours } from 'date-fns';
 import { PatternRule } from '@/hooks/usePatternRules';
 import { waitForRealtimeReady } from '@/lib/realtimeUtils';
 
@@ -275,9 +275,18 @@ export function useScheduleData(currentWeekStart?: Date) {
       const today = startOfDay(new Date());
       const isCurrentOrFutureWeek = !isBefore(weekStart, startOfWeek(today, { weekStartsOn: 1 }));
       
-      // 주차 오프셋 계산 (현재 주 기준)
-      const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-      const weekOffset = Math.floor((weekStart.getTime() - currentWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
+      // ISO 주차 번호를 오프셋으로 사용 (패턴 관리 페이지와 동일한 로직)
+      // 일요일 13시 이후면 다음 주를 기준으로 계산
+      const now = new Date();
+      let effectiveWeekStart = weekStart;
+      if (getDay(now) === 0 && getHours(now) >= 13) {
+        // 현재가 일요일 13시 이후이고, 보고 있는 주가 현재 주라면 다음 주로 간주
+        const currentStandardWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+        if (weekStart.getTime() === currentStandardWeekStart.getTime()) {
+          // 이 경우는 이미 다음 주 월요일로 넘어가있을 것
+        }
+      }
+      const weekOffset = getISOWeek(weekStart);
       
       // 병렬로 모든 데이터 로드
       const [scheduleRes, statusRes, dayOffRes, memoRes, weekendRes, patternRes, partialVacationRes, partialOvertimeRes, logisticsPlaylistRes, equipmentPlaylistRes, inspectionPlaylistRes, foremanPlaylistRes, packagePlaylistRes] = await Promise.all([

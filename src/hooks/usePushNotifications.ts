@@ -23,7 +23,7 @@ export function usePushNotifications() {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [registration, setRegistration] = useState<any>(null);
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission | null>(null);
   const lastPermissionCheck = useRef<number>(0);
 

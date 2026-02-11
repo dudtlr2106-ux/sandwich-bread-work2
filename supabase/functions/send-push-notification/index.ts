@@ -236,15 +236,19 @@ async function sendWebPush(
       ["deriveBits"]
     );
 
-    // Derive content encryption key and nonce
+    // Generate salt for content encryption header
+    const salt = new Uint8Array(16);
+    crypto.getRandomValues(salt);
+
+    // Derive content encryption key and nonce using the header salt
     const cekBits = await crypto.subtle.deriveBits(
-      { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: keyInfo },
+      { name: "HKDF", hash: "SHA-256", salt: salt, info: keyInfo },
       prkKey,
       128
     );
 
     const nonceBits = await crypto.subtle.deriveBits(
-      { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: nonceInfo },
+      { name: "HKDF", hash: "SHA-256", salt: salt, info: nonceInfo },
       prkKey,
       96
     );
@@ -270,10 +274,8 @@ async function sendWebPush(
       paddedPayload
     );
 
-    // Build body with header
+    // Build body with header (reuse the same salt used for HKDF above)
     const recordSize = 4096;
-    const salt = new Uint8Array(16);
-    crypto.getRandomValues(salt);
 
     const header = new Uint8Array(86);
     const headerView = new DataView(header.buffer);

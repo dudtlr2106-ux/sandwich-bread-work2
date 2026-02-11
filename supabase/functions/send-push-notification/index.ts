@@ -213,17 +213,18 @@ async function sendWebPush(
     authInfoArray.set(subscriberPublicKeyBytes, "WebPush: info\0".length);
     authInfoArray.set(localPublicKey, "WebPush: info\0".length + subscriberPublicKeyBytes.length);
 
-    // Derive IKM using auth secret
+    // Derive IKM: RFC 8291 says HKDF-Extract(salt=auth_secret, IKM=ecdh_secret)
+    // In Web Crypto HKDF: imported key = IKM, salt param = salt
     const ikmKey = await crypto.subtle.importKey(
       "raw",
-      authSecret.buffer as ArrayBuffer,
+      sharedSecret,
       { name: "HKDF" },
       false,
       ["deriveBits"]
     );
 
     const prk = await crypto.subtle.deriveBits(
-      { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(sharedSecret), info: authInfoArray },
+      { name: "HKDF", hash: "SHA-256", salt: authSecret, info: authInfoArray },
       ikmKey,
       256
     );

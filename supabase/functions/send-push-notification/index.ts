@@ -306,13 +306,14 @@ async function sendWebPush(
       body
     });
 
-    console.log(`Push notification response: ${response.status} ${response.statusText}`);
+    const responseBody = await response.text();
+    console.log(`Push notification response: ${response.status} ${response.statusText} | endpoint: ${subscription.endpoint.substring(0, 80)}... | body: ${responseBody}`);
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Push notification failed: ${errorText}`);
+      console.error(`Push notification failed (${response.status}): ${responseBody}`);
       return false;
     }
+    
     
     return true;
   } catch (error) {

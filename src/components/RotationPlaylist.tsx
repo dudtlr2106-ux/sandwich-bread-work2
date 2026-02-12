@@ -32,16 +32,15 @@ import {
   Package,
   UserX,
 } from 'lucide-react';
-import { useRotationPlaylist, DepartmentType, PlaylistItem, DEPARTMENT_ROTATION_SIZE } from '@/hooks/useRotationPlaylist';
+import { useRotationPlaylist, DepartmentType, PlaylistItem } from '@/hooks/useRotationPlaylist';
 import { SORTED_ALL_WORKERS } from '@/hooks/useScheduleData';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
-// 인덱스에 따른 시프트 타입 반환
-const getShiftType = (index: number, department: DepartmentType): 'early' | 'mid' | null => {
-  const size = DEPARTMENT_ROTATION_SIZE[department];
-  if (index < size.early) return 'early';
-  if (index < size.early + size.mid) return 'mid';
+// 현재 배정 이름 기반 시프트 타입 반환
+const getShiftTypeByName = (workerName: string, earlyNames: string[], midNames: string[]): 'early' | 'mid' | null => {
+  if (earlyNames.includes(workerName)) return 'early';
+  if (midNames.includes(workerName)) return 'mid';
   return null;
 };
 
@@ -191,6 +190,8 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
 
   const weekPreviews = getWeekPreviews(4);
   const currentAssignments = getCurrentAssignments();
+  const earlyNames = currentAssignments.earlyShift !== '-' ? currentAssignments.earlyShift.split(', ') : [];
+  const midNames = currentAssignments.midShift !== '-' ? currentAssignments.midShift.split(', ') : [];
 
   if (isLoading) {
     return (
@@ -336,8 +337,8 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       draggedItem?.id === item.id && "opacity-50",
                       dragOverIndex === index && draggedItem?.id !== item.id && "border-primary border-2",
                       item.is_dummy && "bg-muted/50 border-dashed opacity-70",
-                      !item.is_dummy && getShiftType(index, department) === 'early' && "border-green-500/50 bg-green-500/5",
-                      !item.is_dummy && getShiftType(index, department) === 'mid' && "border-blue-500/50 bg-blue-500/5"
+                      !item.is_dummy && getShiftTypeByName(item.worker_name, earlyNames, midNames) === 'early' && "border-green-500/50 bg-green-500/5",
+                      !item.is_dummy && getShiftTypeByName(item.worker_name, earlyNames, midNames) === 'mid' && "border-blue-500/50 bg-blue-500/5"
                     )}
                   >
                     <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -353,12 +354,12 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       </Badge>
                     ) : (
                       <>
-                        {getShiftType(index, department) === 'early' && (
+                        {getShiftTypeByName(item.worker_name, earlyNames, midNames) === 'early' && (
                           <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-700">
                             초반
                           </Badge>
                         )}
-                        {getShiftType(index, department) === 'mid' && (
+                        {getShiftTypeByName(item.worker_name, earlyNames, midNames) === 'mid' && (
                           <Badge variant="secondary" className="text-[10px] bg-blue-500/10 text-blue-700">
                             중반
                           </Badge>

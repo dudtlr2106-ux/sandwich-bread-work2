@@ -345,39 +345,73 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    const { type, requesterName, workerName, dateKey, requestedStatus, content } = body;
+    const { type, requesterName, workerName, dateKey, requestedStatus, content, resultStatus } = body;
 
-    // Determine notification type
     const isNoticeUpdate = type === 'notice_update';
+    const isRequestResult = type === 'request_result';
 
-    console.log(`Sending push notification - type: ${isNoticeUpdate ? 'notice_update' : 'attendance_request'}`);
+    console.log(`Sending push notification - type: ${type || 'attendance_request'}`);
 
-    // Get all admin users
-    const { data: adminRoles, error: rolesError } = await supabase
-      .from("user_roles")
-      .select("user_id")
-      .eq("role", "admin");
+    const statusLabels: Record<string, string> = {
+      normal: "정상",
+      overtime: "잔업",
+      partial_overtime: "시간잔업",
+      vacation: "휴가",
+      partial_vacation: "시간휴가",
+      dayoff: "휴무",
+    };
 
-    if (rolesError) {
-      console.error("Error fetching admin roles:", rolesError);
-      throw rolesError;
+    let targetUserIds: string[] = [];
+
+    if (isRequestResult) {
+      // Send to the requester: find user by display_name
+      const { data: profiles, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("display_name", requesterName);
+
+      if (profileError) {
+        console.error("Error fetching requester profile:", profileError);
+        throw profileError;
+      }
+
+      if (!profiles || profiles.length === 0) {
+        console.log(`No profile found for requester: ${requesterName}`);
+        return new Response(JSON.stringify({ success: true, sent: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      targetUserIds = profiles.map((p) => p.user_id);
+      console.log(`Found ${targetUserIds.length} profile(s) for requester: ${requesterName}`);
+    } else {
+      // Send to all admins
+      const { data: adminRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+
+      if (rolesError) {
+        console.error("Error fetching admin roles:", rolesError);
+        throw rolesError;
+      }
+
+      if (!adminRoles || adminRoles.length === 0) {
+        console.log("No admin users found");
+        return new Response(JSON.stringify({ success: true, sent: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      targetUserIds = adminRoles.map((r) => r.user_id);
+      console.log(`Found ${targetUserIds.length} admin users`);
     }
 
-    if (!adminRoles || adminRoles.length === 0) {
-      console.log("No admin users found");
-      return new Response(JSON.stringify({ success: true, sent: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const adminUserIds = adminRoles.map((r) => r.user_id);
-    console.log(`Found ${adminUserIds.length} admin users`);
-
-    // Get push subscriptions for admin users
+    // Get push subscriptions for target users
     const { data: subscriptions, error: subsError } = await supabase
       .from("push_subscriptions")
       .select("*")
-      .in("user_id", adminUserIds);
+      .in("user_id", targetUserIds);
 
     if (subsError) {
       console.error("Error fetching subscriptions:", subsError);
@@ -385,7 +419,7 @@ serve(async (req) => {
     }
 
     if (!subscriptions || subscriptions.length === 0) {
-      console.log("No push subscriptions found for admin users");
+      console.log("No push subscriptions found for target users");
       return new Response(JSON.stringify({ success: true, sent: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -396,7 +430,20 @@ serve(async (req) => {
     // Prepare notification payload based on type
     let payload: PushPayload;
 
-    if (isNoticeUpdate) {
+    if (isRequestResult) {
+      const resultLabel = resultStatus === 'approved' ? '승인' : '반려';
+      const emoji = resultStatus === 'approved' ? '✅' : '❌';
+      payload = {
+        title: `${emoji} 근태 수정 ${resultLabel}`,
+        body: `${dateKey} ${workerName}의 ${statusLabels[requestedStatus] || requestedStatus} 변경 요청이 ${resultLabel}되었습니다.`,
+        icon: "/favicon.ico",
+        badge: "/favicon.ico",
+        data: {
+          url: "/",
+          type: "request_result",
+        },
+      };
+    } else if (isNoticeUpdate) {
       payload = {
         title: "📢 공지사항 수정",
         body: content ? `공지사항이 수정되었습니다: ${content}` : "공지사항이 수정되었습니다.",
@@ -408,16 +455,6 @@ serve(async (req) => {
         },
       };
     } else {
-      // Attendance request notification
-      const statusLabels: Record<string, string> = {
-        normal: "정상",
-        overtime: "잔업",
-        partial_overtime: "시간잔업",
-        vacation: "휴가",
-        partial_vacation: "시간휴가",
-        dayoff: "휴무",
-      };
-
       payload = {
         title: "근태 수정 요청",
         body: `${requesterName}님이 ${dateKey} ${workerName}의 근태를 ${statusLabels[requestedStatus] || requestedStatus}(으)로 변경 요청했습니다.`,

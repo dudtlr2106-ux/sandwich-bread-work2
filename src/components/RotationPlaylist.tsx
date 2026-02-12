@@ -222,21 +222,6 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Current Week Display */}
-          <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-            <p className="text-xs font-medium text-muted-foreground mb-2">이번 주 배정</p>
-            <div className="flex gap-4">
-              <div className="flex-1 text-center p-2 rounded-md bg-background">
-                <p className="text-[10px] text-muted-foreground">초반조</p>
-                <p className="font-bold text-primary">{currentAssignments.earlyShift}</p>
-              </div>
-              <div className="flex-1 text-center p-2 rounded-md bg-background">
-                <p className="text-[10px] text-muted-foreground">중반조</p>
-                <p className="font-bold text-primary">{currentAssignments.midShift}</p>
-              </div>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Playlist */}
             <div>

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,15 +33,24 @@ import {
   UserX,
 } from 'lucide-react';
 import { useRotationPlaylist, DepartmentType, PlaylistItem, DEPARTMENT_ROTATION_SIZE } from '@/hooks/useRotationPlaylist';
+import { startOfWeek, startOfDay, getDay, getHours, addWeeks, getISOWeek } from 'date-fns';
 import { SORTED_ALL_WORKERS } from '@/hooks/useScheduleData';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
-// 인덱스에 따른 시프트 타입 반환
-const getShiftType = (index: number, department: DepartmentType): 'early' | 'mid' | null => {
+// 현재 주차 기준으로 해당 인덱스의 시프트 타입 반환
+const getShiftTypeForWeek = (index: number, department: DepartmentType, playlistLength: number, weekNumber: number): 'early' | 'mid' | null => {
   const size = DEPARTMENT_ROTATION_SIZE[department];
-  if (index < size.early) return 'early';
-  if (index < size.early + size.mid) return 'mid';
+  const totalPerWeek = size.early + size.mid;
+  if (playlistLength < totalPerWeek) return null;
+  const startIndex = (weekNumber * totalPerWeek) % playlistLength;
+  
+  for (let i = 0; i < size.early; i++) {
+    if ((startIndex + i) % playlistLength === index) return 'early';
+  }
+  for (let i = 0; i < size.mid; i++) {
+    if ((startIndex + size.early + i) % playlistLength === index) return 'mid';
+  }
   return null;
 };
 
@@ -97,6 +106,17 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
   } = useRotationPlaylist(department);
 
   const config = DEPARTMENT_CONFIG[department];
+
+  // 현재 주차 번호 계산
+  const currentWeekNumber = useMemo(() => {
+    const now = new Date();
+    const today = startOfDay(now);
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+    const effective = (getDay(now) === 0 && getHours(now) >= 13) ? addWeeks(weekStart, 1) : weekStart;
+    return getISOWeek(effective);
+  }, []);
+
+  const shiftType = (index: number) => getShiftTypeForWeek(index, department, playlist.length, currentWeekNumber);
 
   const [draggedItem, setDraggedItem] = useState<PlaylistItem | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -336,8 +356,8 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       draggedItem?.id === item.id && "opacity-50",
                       dragOverIndex === index && draggedItem?.id !== item.id && "border-primary border-2",
                       item.is_dummy && "bg-muted/50 border-dashed opacity-70",
-                      !item.is_dummy && getShiftType(index, department) === 'early' && "border-green-500/50 bg-green-500/5",
-                      !item.is_dummy && getShiftType(index, department) === 'mid' && "border-blue-500/50 bg-blue-500/5"
+                      !item.is_dummy && shiftType(index) === 'early' && "border-green-500/50 bg-green-500/5",
+                      !item.is_dummy && shiftType(index) === 'mid' && "border-blue-500/50 bg-blue-500/5"
                     )}
                   >
                     <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -353,12 +373,12 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       </Badge>
                     ) : (
                       <>
-                        {getShiftType(index, department) === 'early' && (
+                        {shiftType(index) === 'early' && (
                           <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-700">
                             초반
                           </Badge>
                         )}
-                        {getShiftType(index, department) === 'mid' && (
+                        {shiftType(index) === 'mid' && (
                           <Badge variant="secondary" className="text-[10px] bg-blue-500/10 text-blue-700">
                             중반
                           </Badge>

@@ -417,7 +417,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
             <div>
               <p className="text-sm font-medium mb-2 flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                예정 주차 미리보기
+                미리보기
               </p>
               <div className="space-y-2">
                 {weekPreviews.length > 0 ? (

@@ -323,7 +323,7 @@ export function useRotationPlaylist(department: DepartmentType) {
     const currentWeekStart = getEffectiveWeekStart();
     const currentWeekNumber = getISOWeek(currentWeekStart);
 
-    for (let weekOffset = 1; weekOffset <= numWeeks; weekOffset++) {
+    for (let weekOffset = 0; weekOffset < numWeeks; weekOffset++) {
       const targetWeekStart = addWeeks(currentWeekStart, weekOffset);
       const targetWeekNumber = currentWeekNumber + weekOffset;
       

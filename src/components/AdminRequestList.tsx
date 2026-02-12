@@ -124,6 +124,18 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
       return;
     }
 
+    // 요청자에게 승인 알림 발송
+    supabase.functions.invoke('send-push-notification', {
+      body: {
+        type: 'request_result',
+        requesterName: request.requester_name,
+        workerName: request.worker_name,
+        dateKey: request.date_key,
+        requestedStatus: request.requested_status,
+        resultStatus: 'approved',
+      },
+    }).catch(err => console.error('승인 알림 발송 실패:', err));
+
     // 2. 시간휴가(partial_vacation)는 기존 상태를 유지하고, 
     //    attendance_requests 테이블만 참조하여 표시하므로 worker_statuses를 변경하지 않음
     if (request.requested_status === "partial_vacation") {
@@ -205,6 +217,18 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
         title: "반려 실패",
       });
     } else {
+      // 요청자에게 반려 알림 발송
+      supabase.functions.invoke('send-push-notification', {
+        body: {
+          type: 'request_result',
+          requesterName: request.requester_name,
+          workerName: request.worker_name,
+          dateKey: request.date_key,
+          requestedStatus: request.requested_status,
+          resultStatus: 'rejected',
+        },
+      }).catch(err => console.error('반려 알림 발송 실패:', err));
+
       toast({
         title: "반려 완료",
       });

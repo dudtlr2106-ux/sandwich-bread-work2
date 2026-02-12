@@ -327,8 +327,8 @@ export function useRotationPlaylist(department: DepartmentType) {
       const targetWeekStart = addWeeks(currentWeekStart, weekOffset);
       const targetWeekNumber = currentWeekNumber + weekOffset;
       
-      // 주차 번호를 오프셋으로 사용하여 인원 배열 회전 (1씩 이동)
-      const startIndex = (targetWeekNumber * rotationSize.early) % playlist.length;
+      // 주차 번호를 오프셋으로 사용하여 인원 배열 회전
+      const startIndex = (targetWeekNumber * totalPerWeek) % playlist.length;
       
       // 초반조 인원 (더미 제외)
       const earlyWorkers: string[] = [];
@@ -375,8 +375,8 @@ export function useRotationPlaylist(department: DepartmentType) {
     const currentWeekStart = getEffectiveWeekStart();
     const weekNumber = getISOWeek(currentWeekStart);
     
-    // 주차 번호를 오프셋으로 사용하여 인원 배열 회전 (1씩 이동)
-    const startIndex = (weekNumber * rotationSize.early) % playlist.length;
+    // 주차 번호를 오프셋으로 사용하여 인원 배열 회전
+    const startIndex = (weekNumber * totalPerWeek) % playlist.length;
     
     // 초반조 인원 (더미 제외)
     const earlyWorkers: string[] = [];

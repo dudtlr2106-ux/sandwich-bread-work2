@@ -38,19 +38,13 @@ import { SORTED_ALL_WORKERS } from '@/hooks/useScheduleData';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
-// 현재 주차 기준으로 해당 인덱스의 시프트 타입 반환
-const getShiftTypeForWeek = (index: number, department: DepartmentType, playlistLength: number, weekNumber: number): 'early' | 'mid' | null => {
+// 회전된 리스트에서의 시프트 타입 (상단부터 early, mid 순)
+const getShiftTypeByDisplayIndex = (displayIndex: number, department: DepartmentType, playlistLength: number): 'early' | 'mid' | null => {
   const size = DEPARTMENT_ROTATION_SIZE[department];
   const totalPerWeek = size.early + size.mid;
   if (playlistLength < totalPerWeek) return null;
-  const startIndex = (weekNumber * totalPerWeek) % playlistLength;
-  
-  for (let i = 0; i < size.early; i++) {
-    if ((startIndex + i) % playlistLength === index) return 'early';
-  }
-  for (let i = 0; i < size.mid; i++) {
-    if ((startIndex + size.early + i) % playlistLength === index) return 'mid';
-  }
+  if (displayIndex < size.early) return 'early';
+  if (displayIndex < totalPerWeek) return 'mid';
   return null;
 };
 
@@ -116,7 +110,22 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     return getISOWeek(effective);
   }, []);
 
-  const shiftType = (index: number) => getShiftTypeForWeek(index, department, playlist.length, currentWeekNumber);
+  // 플레이리스트를 현재 주차 기준으로 회전하여 표시 (음악 플레이리스트처럼)
+  const { rotatedPlaylist, startIndex: rotationStartIndex } = useMemo(() => {
+    const size = DEPARTMENT_ROTATION_SIZE[department];
+    const totalPerWeek = size.early + size.mid;
+    if (playlist.length < totalPerWeek) return { rotatedPlaylist: playlist.map((item, i) => ({ item, originalIndex: i })), startIndex: 0 };
+    
+    const startIdx = (currentWeekNumber * totalPerWeek) % playlist.length;
+    const rotated = [];
+    for (let i = 0; i < playlist.length; i++) {
+      const originalIdx = (startIdx + i) % playlist.length;
+      rotated.push({ item: playlist[originalIdx], originalIndex: originalIdx });
+    }
+    return { rotatedPlaylist: rotated, startIndex: startIdx };
+  }, [playlist, currentWeekNumber, department]);
+
+  const shiftType = (displayIndex: number) => getShiftTypeByDisplayIndex(displayIndex, department, playlist.length);
 
   const [draggedItem, setDraggedItem] = useState<PlaylistItem | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -343,26 +352,26 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
               )}
 
               <div className="space-y-1 max-h-[300px] overflow-y-auto pr-1">
-                {playlist.map((item, index) => (
+                {rotatedPlaylist.map(({ item, originalIndex }, displayIndex) => (
                   <div
                     key={item.id}
                     draggable
-                    onDragStart={(e) => handleDragStart(e, item, index)}
+                    onDragStart={(e) => handleDragStart(e, item, originalIndex)}
                     onDragEnd={handleDragEnd}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDrop={(e) => handleDrop(e, index)}
+                    onDragOver={(e) => handleDragOver(e, originalIndex)}
+                    onDrop={(e) => handleDrop(e, originalIndex)}
                     className={cn(
                       "flex items-center gap-2 p-2 rounded-md border bg-background cursor-grab active:cursor-grabbing transition-all group",
                       draggedItem?.id === item.id && "opacity-50",
-                      dragOverIndex === index && draggedItem?.id !== item.id && "border-primary border-2",
+                      dragOverIndex === originalIndex && draggedItem?.id !== item.id && "border-primary border-2",
                       item.is_dummy && "bg-muted/50 border-dashed opacity-70",
-                      !item.is_dummy && shiftType(index) === 'early' && "border-green-500/50 bg-green-500/5",
-                      !item.is_dummy && shiftType(index) === 'mid' && "border-blue-500/50 bg-blue-500/5"
+                      !item.is_dummy && shiftType(displayIndex) === 'early' && "border-green-500/50 bg-green-500/5",
+                      !item.is_dummy && shiftType(displayIndex) === 'mid' && "border-blue-500/50 bg-blue-500/5"
                     )}
                   >
                     <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <span className="text-xs font-mono text-muted-foreground w-5">
-                      {index + 1}
+                      {displayIndex + 1}
                     </span>
                     <span className={cn("font-medium flex-1", item.is_dummy && "text-muted-foreground italic")}>
                       {item.is_dummy ? `(공석)` : item.worker_name}
@@ -373,12 +382,12 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       </Badge>
                     ) : (
                       <>
-                        {shiftType(index) === 'early' && (
+                        {shiftType(displayIndex) === 'early' && (
                           <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-700">
                             초반
                           </Badge>
                         )}
-                        {shiftType(index) === 'mid' && (
+                        {shiftType(displayIndex) === 'mid' && (
                           <Badge variant="secondary" className="text-[10px] bg-blue-500/10 text-blue-700">
                             중반
                           </Badge>

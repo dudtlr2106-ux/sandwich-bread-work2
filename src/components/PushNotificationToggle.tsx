@@ -2,6 +2,7 @@ import React from 'react';
 import { Bell, BellOff, Loader2, RefreshCw, Trash2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Tooltip,
   TooltipContent,
@@ -17,21 +18,21 @@ import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 import { Separator } from '@/components/ui/separator';
 
 export function PushNotificationToggle() {
+  const { user } = useAuth();
   const { 
     isSupported, 
     isSubscribed, 
     isLoading, 
     subscribe, 
     unsubscribe, 
-    isAdmin,
     permissionStatus,
     forceUpdateServiceWorker,
     resetAllData,
     forceRequestPermission,
   } = usePushNotifications();
 
-  // Only show for admins
-  if (!isAdmin) {
+  // Only show for logged-in users
+  if (!user) {
     return null;
   }
 

@@ -266,7 +266,7 @@ const PatternManagement = () => {
             <div>
               <h1 className="text-2xl font-bold">패턴 관리</h1>
               <p className="text-sm text-muted-foreground">
-                미래 근무표 자동 생성을 위한 마스터 룰
+                근무표 자동 생성을 위한 리스트
               </p>
             </div>
           </div>

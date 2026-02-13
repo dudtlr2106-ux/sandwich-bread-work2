@@ -41,6 +41,7 @@ import {
   Wrench,
   ClipboardCheck,
   Users,
+  Package,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -291,7 +292,7 @@ const PatternManagement = () => {
               <span className="hidden sm:inline">물류</span>
             </TabsTrigger>
             <TabsTrigger value="package" className="gap-1 text-xs px-2">
-              <Truck className="h-4 w-4" />
+              <Package className="h-4 w-4" />
               <span className="hidden sm:inline">패키지</span>
             </TabsTrigger>
             <TabsTrigger value="rules" className="gap-1 text-xs px-2">

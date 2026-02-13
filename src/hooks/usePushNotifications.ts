@@ -162,7 +162,7 @@ export function usePushNotifications() {
       const newReg = await forceUpdateServiceWorker();
 
       // 10. If permission is granted, try to subscribe immediately
-      if (newPermission === 'granted' && newReg && user && isAdmin) {
+      if (newPermission === 'granted' && newReg && user) {
         toast({
           title: '초기화 완료',
           description: '권한이 허용되었습니다. 알림을 구독합니다...',
@@ -192,11 +192,11 @@ export function usePushNotifications() {
     } finally {
       setIsLoading(false);
     }
-  }, [registration, user, isAdmin, forceUpdateServiceWorker, forceRequestPermission, toast]);
+  }, [registration, user, forceUpdateServiceWorker, forceRequestPermission, toast]);
 
   // Auto-sync subscription status when permission becomes granted
   const syncSubscriptionStatus = useCallback(async () => {
-    if (!user || !isAdmin || !registration) return;
+    if (!user || !registration) return;
 
     const currentPermission = checkPermissionStatus();
     
@@ -221,7 +221,7 @@ export function usePushNotifications() {
         console.error('Error syncing subscription:', error);
       }
     }
-  }, [user, isAdmin, registration, checkPermissionStatus]);
+  }, [user, registration, checkPermissionStatus]);
 
   // Check if push notifications are supported and register service worker
   useEffect(() => {
@@ -293,7 +293,7 @@ export function usePushNotifications() {
   // Check subscription status when user logs in or registration changes
   useEffect(() => {
     const checkSubscription = async () => {
-      if (!user || !isAdmin || !registration) {
+      if (!user || !registration) {
         setIsSubscribed(false);
         return;
       }
@@ -328,14 +328,14 @@ export function usePushNotifications() {
     };
 
     checkSubscription();
-  }, [user, isAdmin, registration, checkPermissionStatus]);
+  }, [user, registration, checkPermissionStatus]);
 
   const subscribe = useCallback(async () => {
-    if (!user || !isAdmin) {
+    if (!user) {
       toast({
         variant: 'destructive',
         title: '알림 구독 불가',
-        description: '관리자로 로그인해야 알림을 받을 수 있습니다.',
+        description: '로그인해야 알림을 받을 수 있습니다.',
       });
       return false;
     }

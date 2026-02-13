@@ -15,8 +15,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { 
   GripVertical, 
-  Shuffle, 
-  Play, 
   RotateCcw, 
   Calendar,
   User,

@@ -138,6 +138,32 @@ Deno.serve(async (req) => {
       })
     }
 
+    if (action === 'delete_user') {
+      if (!targetUserId) {
+        return new Response(JSON.stringify({ error: 'userId required' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      if (targetUserId === requesterId) {
+        return new Response(JSON.stringify({ error: 'Cannot delete your own account' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(targetUserId)
+
+      if (deleteUserError) {
+        throw deleteUserError
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
     return new Response(JSON.stringify({ error: 'Invalid action' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

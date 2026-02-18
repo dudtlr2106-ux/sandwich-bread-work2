@@ -20,9 +20,20 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Users, Shield, ShieldOff, Loader2 } from "lucide-react";
+import { Users, Shield, ShieldOff, Loader2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface UserWithRole {
   id: string;
@@ -36,7 +47,7 @@ const UserRoleManagement = () => {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
-
+  const [deleting, setDeleting] = useState<string | null>(null);
   const fetchUsers = async () => {
     if (!session?.access_token) return;
 
@@ -84,6 +95,24 @@ const UserRoleManagement = () => {
       toast.error("권한 변경에 실패했습니다");
     } finally {
       setUpdating(null);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!session?.access_token) return;
+    setDeleting(userId);
+    try {
+      const { error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "delete_user", userId },
+      });
+      if (error) throw error;
+      toast.success("계정이 삭제되었습니다");
+      fetchUsers();
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast.error("계정 삭제에 실패했습니다");
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -140,12 +169,13 @@ const UserRoleManagement = () => {
                 <TableHead>가입일</TableHead>
                 <TableHead>현재 권한</TableHead>
                 <TableHead className="text-right">권한 변경</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     등록된 사용자가 없습니다
                   </TableCell>
                 </TableRow>
@@ -176,6 +206,41 @@ const UserRoleManagement = () => {
                           <SelectItem value="none">권한 없음</SelectItem>
                         </SelectContent>
                       </Select>
+                    </TableCell>
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            disabled={deleting === user.id}
+                          >
+                            {deleting === user.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>계정 삭제</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {user.email} 계정을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>취소</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteUser(user.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              삭제
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))

@@ -216,7 +216,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     }
   };
 
-  const weekPreviews = getWeekPreviews(4);
+  const weekPreviews = getWeekPreviews(8);
   const currentAssignments = getCurrentAssignments();
 
   if (isLoading) {

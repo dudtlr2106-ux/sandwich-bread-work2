@@ -698,6 +698,10 @@ const WeeklySchedule = () => {
     if (status === "overtime" && hasPartialVacation) {
       return { icon: <Clock className="h-3 w-3 text-green-500" />, className: "text-green-600", timeClassName: "text-green-600 font-medium" };
     }
+    // 잔업 + 시간잔업 동시인 경우
+    if (status === "overtime" && hasPartialOvertime) {
+      return { icon: <Clock className="h-3 w-3 text-blue-500" />, className: "text-foreground", timeClassName: "text-blue-500 font-medium" };
+    }
     
     switch (status) {
       case "overtime":

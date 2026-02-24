@@ -349,7 +349,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                 </div>
               )}
 
-              <div className="space-y-1 max-h-[300px] overflow-y-auto pr-1">
+              <div className="space-y-1 max-h-[520px] overflow-y-auto pr-1">
                 {rotatedPlaylist.map(({ item, originalIndex }, displayIndex) => (
                   <div
                     key={item.id}

@@ -37,9 +37,9 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     })
     
-    const { data: claimsData, error: authError } = await supabaseClient.auth.getClaims(token)
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
     
-    if (authError || !claimsData?.claims) {
+    if (authError || !user) {
       console.error('Auth error:', authError)
       return new Response(JSON.stringify({ error: 'Invalid token' }), {
         status: 401,
@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
       })
     }
     
-    const requesterId = claimsData.claims.sub as string
+    const requesterId = user.id
 
     // Check if requester is admin
     const { data: isAdmin } = await supabaseAdmin.rpc('has_role', {
@@ -171,8 +171,7 @@ Deno.serve(async (req) => {
 
   } catch (error: unknown) {
     console.error('Error:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })

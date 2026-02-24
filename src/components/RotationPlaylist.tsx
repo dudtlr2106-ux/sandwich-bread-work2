@@ -179,29 +179,14 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     }
   };
 
-  const handleDrop = async (e: React.DragEvent, dropOriginalIndex: number) => {
+  const handleDrop = async (e: React.DragEvent, dropIndex: number) => {
     e.preventDefault();
-    if (dragNodeRef.current === null || dragNodeRef.current === dropOriginalIndex) return;
+    if (dragNodeRef.current === null || dragNodeRef.current === dropIndex) return;
 
-    const dragOriginalIndex = dragNodeRef.current;
-    
-    // rotatedPlaylist의 display 순서를 기준으로 새 순서를 계산
-    // 현재 화면에서 보이는 순서대로 originalIndex 목록을 만듦
-    const displayOrder = rotatedPlaylist.map(r => r.originalIndex);
-    
-    // display 순서에서 drag/drop 위치를 찾음
-    const dragDisplayIdx = displayOrder.indexOf(dragOriginalIndex);
-    const dropDisplayIdx = displayOrder.indexOf(dropOriginalIndex);
-    
-    if (dragDisplayIdx === -1 || dropDisplayIdx === -1) return;
-    
-    // display 순서 기준으로 이동
-    const newDisplayOrder = [...displayOrder];
-    const [removed] = newDisplayOrder.splice(dragDisplayIdx, 1);
-    newDisplayOrder.splice(dropDisplayIdx, 0, removed);
-    
-    // 새 display 순서에 따라 playlist를 재배열
-    const newPlaylist = newDisplayOrder.map(origIdx => playlist[origIdx]);
+    const newPlaylist = [...playlist];
+    const draggedIdx = dragNodeRef.current;
+    const [removed] = newPlaylist.splice(draggedIdx, 1);
+    newPlaylist.splice(dropIndex, 0, removed);
 
     await updateOrder(newPlaylist);
     setDragOverIndex(null);

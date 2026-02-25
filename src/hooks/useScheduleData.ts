@@ -400,6 +400,32 @@ export function useScheduleData(currentWeekStart?: Date) {
         }
       }
       
+      // 플레이리스트에서 자동 생성된 데이터가 DB에 없으면 자동 저장
+      if (!hasExistingData && isCurrentOrFutureWeek) {
+        try {
+          const weekDateKeys2 = getWeekDateKeys(weekStart);
+          const autoSaveData: { date_key: string; department: string; shift: string; workers: string[] }[] = [];
+          Object.entries(newScheduleData).forEach(([deptId, days]) => {
+            Object.entries(days).forEach(([day, shifts]) => {
+              const dayIndex = DAYS.indexOf(day);
+              if (dayIndex !== -1) {
+                const dateKey = weekDateKeys2[dayIndex];
+                autoSaveData.push({ date_key: dateKey, department: deptId, shift: 'A', workers: (shifts as ShiftData).A });
+                autoSaveData.push({ date_key: dateKey, department: deptId, shift: 'B', workers: (shifts as ShiftData).B });
+              }
+            });
+          });
+          if (autoSaveData.length > 0) {
+            await supabase
+              .from('schedule_data')
+              .upsert(autoSaveData, { onConflict: 'date_key,department,shift' });
+            console.log('Auto-saved generated schedule data for week:', weekStartKey);
+          }
+        } catch (e) {
+          console.error('Failed to auto-save schedule data:', e);
+        }
+      }
+
       setScheduleDataLocal(newScheduleData);
       setSavedScheduleData(newScheduleData);
       setHasUnsavedChanges(false);

@@ -29,6 +29,8 @@ import {
   Copy,
   Package,
   UserX,
+  ListOrdered,
+  Check,
 } from 'lucide-react';
 import { useRotationPlaylist, DepartmentType, PlaylistItem, DEPARTMENT_ROTATION_SIZE } from '@/hooks/useRotationPlaylist';
 import { startOfWeek, startOfDay, getDay, getHours, addWeeks, getISOWeek } from 'date-fns';
@@ -134,6 +136,8 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<PlaylistItem | null>(null);
   const [team3Workers, setTeam3Workers] = useState<string[]>([]);
+  const [isEditingOrder, setIsEditingOrder] = useState(false);
+  const [editOrderValues, setEditOrderValues] = useState<Record<string, string>>({});
 
   // 패키지 부서의 경우 3조 인원만 로드
   useEffect(() => {
@@ -209,6 +213,34 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     setIsAdding(false);
   };
 
+  const handleStartEditOrder = () => {
+    const values: Record<string, string> = {};
+    playlist.forEach((item, idx) => {
+      values[item.id] = String(idx + 1);
+    });
+    setEditOrderValues(values);
+    setIsEditingOrder(true);
+  };
+
+  const handleApplyEditOrder = async () => {
+    // Build array of { item, newPosition }
+    const entries = playlist.map((item) => ({
+      item,
+      newPos: parseInt(editOrderValues[item.id] || '0', 10),
+    }));
+    
+    // Validate all values are valid numbers in range
+    const len = playlist.length;
+    const allValid = entries.every(e => !isNaN(e.newPos) && e.newPos >= 1 && e.newPos <= len);
+    if (!allValid) return;
+
+    // Sort by new position to create new order
+    entries.sort((a, b) => a.newPos - b.newPos);
+    const newPlaylist = entries.map(e => e.item);
+    await updateOrder(newPlaylist);
+    setIsEditingOrder(false);
+    setEditOrderValues({});
+  };
   const handleRemoveWorker = async () => {
     if (deleteTarget) {
       await removeWorker(deleteTarget.id);
@@ -258,6 +290,38 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                   순환 명단 ({playlist.length}명)
                 </p>
                 <div className="flex gap-1">
+                  {!isEditingOrder ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleStartEditOrder}
+                      className="h-7 px-2 text-xs gap-1 text-muted-foreground"
+                      title="순서 편집"
+                    >
+                      <ListOrdered className="h-3 w-3" />
+                      순서편집
+                    </Button>
+                  ) : (
+                    <div className="flex gap-1">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleApplyEditOrder}
+                        className="h-7 px-2 text-xs gap-1"
+                      >
+                        <Check className="h-3 w-3" />
+                        적용
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setIsEditingOrder(false); setEditOrderValues({}); }}
+                        className="h-7 px-2 text-xs gap-1"
+                      >
+                        취소
+                      </Button>
+                    </div>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -353,13 +417,14 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                 {rotatedPlaylist.map(({ item, originalIndex }, displayIndex) => (
                   <div
                     key={item.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, item, originalIndex)}
+                    draggable={!isEditingOrder}
+                    onDragStart={(e) => !isEditingOrder && handleDragStart(e, item, originalIndex)}
                     onDragEnd={handleDragEnd}
                     onDragOver={(e) => handleDragOver(e, originalIndex)}
                     onDrop={(e) => handleDrop(e, originalIndex)}
                     className={cn(
-                      "flex items-center gap-2 p-2 rounded-md border bg-background cursor-grab active:cursor-grabbing transition-all group",
+                      "flex items-center gap-2 p-2 rounded-md border bg-background transition-all group",
+                      !isEditingOrder && "cursor-grab active:cursor-grabbing",
                       draggedItem?.id === item.id && "opacity-50",
                       dragOverIndex === originalIndex && draggedItem?.id !== item.id && "border-primary border-2",
                       item.is_dummy && "bg-muted/50 border-dashed opacity-70",
@@ -367,10 +432,21 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       !item.is_dummy && shiftType(displayIndex) === 'mid' && "border-blue-500/50 bg-blue-500/5"
                     )}
                   >
-                    <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-xs font-mono text-muted-foreground w-5">
-                      {displayIndex + 1}
-                    </span>
+                    {!isEditingOrder && <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+                    {isEditingOrder ? (
+                      <input
+                        type="number"
+                        min={1}
+                        max={playlist.length}
+                        value={editOrderValues[item.id] || ''}
+                        onChange={(e) => setEditOrderValues(prev => ({ ...prev, [item.id]: e.target.value }))}
+                        className="w-8 h-6 text-xs font-mono text-center border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    ) : (
+                      <span className="text-xs font-mono text-muted-foreground w-5">
+                        {displayIndex + 1}
+                      </span>
+                    )}
                     <span className={cn("font-medium flex-1", item.is_dummy && "text-muted-foreground italic")}>
                       {item.is_dummy ? `(공석)` : item.worker_name}
                     </span>

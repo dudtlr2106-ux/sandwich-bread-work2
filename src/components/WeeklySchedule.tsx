@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import TapOnlyDropdown from "@/components/TapOnlyDropdown";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -1140,8 +1141,9 @@ const WeeklySchedule = () => {
                                     const statusStyle = getStatusStyle(status, hasPartialVacation, hasPartialOvertime);
                                     const times = getShiftTimes(firstShiftKey, day, status, worker, dateKey);
                                     return (
-                                      <DropdownMenu key={idx}>
-                                        <DropdownMenuTrigger asChild>
+                                      <TapOnlyDropdown
+                                        key={idx}
+                                        trigger={
                                           <div
                                             className="flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 rounded px-0.5"
                                             onClick={(e) => e.stopPropagation()}
@@ -1153,8 +1155,9 @@ const WeeklySchedule = () => {
                                             </span>
                                             <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.end}</span>
                                           </div>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>
+                                        }
+                                        onContentClick={(e) => e.stopPropagation()}
+                                      >
                                           {isAdmin && (
                                             <>
                                               <DropdownMenuItem onClick={() => quickMoveWorker(worker, dept.id, day, firstShiftKey, secondShiftKey)} className="text-blue-600">
@@ -1204,8 +1207,7 @@ const WeeklySchedule = () => {
                                             <Send className="h-4 w-4 mr-2" />
                                             근태 수정 요청
                                           </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
+                                      </TapOnlyDropdown>
                                     );
                                   })
                                 ) : (
@@ -1227,8 +1229,9 @@ const WeeklySchedule = () => {
                                     const statusStyle = getStatusStyle(status, hasPartialVacation, hasPartialOvertime);
                                     const times = getShiftTimes(secondShiftKey, day, status, worker, dateKey);
                                     return (
-                                      <DropdownMenu key={idx}>
-                                        <DropdownMenuTrigger asChild>
+                                      <TapOnlyDropdown
+                                        key={idx}
+                                        trigger={
                                           <div
                                             className="flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 rounded px-0.5"
                                             onClick={(e) => e.stopPropagation()}
@@ -1240,8 +1243,9 @@ const WeeklySchedule = () => {
                                             </span>
                                             <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.end}</span>
                                           </div>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="start" className="bg-popover" onClick={(e) => e.stopPropagation()}>
+                                        }
+                                        onContentClick={(e) => e.stopPropagation()}
+                                      >
                                           {isAdmin && (
                                             <>
                                               <DropdownMenuItem onClick={() => quickMoveWorker(worker, dept.id, day, secondShiftKey, firstShiftKey)} className="text-blue-600">
@@ -1291,8 +1295,7 @@ const WeeklySchedule = () => {
                                             <Send className="h-4 w-4 mr-2" />
                                             근태 수정 요청
                                           </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
+                                      </TapOnlyDropdown>
                                     );
                                   })
                                 ) : (

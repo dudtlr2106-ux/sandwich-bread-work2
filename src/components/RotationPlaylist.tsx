@@ -23,6 +23,7 @@ import {
   Plus,
   X,
   Trash2,
+  CheckSquare,
   Truck,
   Wrench,
   ClipboardCheck,
@@ -93,6 +94,8 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     addWorker,
     duplicateWorker,
     removeWorker,
+    removeAll,
+    removeSelected,
     getWeekPreviews,
     getCurrentAssignments,
     toggleDummy,
@@ -138,6 +141,9 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
   const [team3Workers, setTeam3Workers] = useState<string[]>([]);
   const [isEditingOrder, setIsEditingOrder] = useState(false);
   const [editOrderValues, setEditOrderValues] = useState<Record<string, string>>({});
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
 
   // 패키지 부서의 경우 3조 인원만 로드
   useEffect(() => {
@@ -248,6 +254,29 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     }
   };
 
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    await removeSelected(Array.from(selectedIds));
+    setSelectedIds(new Set());
+    setIsSelecting(false);
+  };
+
+  const handleDeleteAll = async () => {
+    await removeAll();
+    setDeleteAllConfirm(false);
+    setIsSelecting(false);
+    setSelectedIds(new Set());
+  };
+
   const weekPreviews = getWeekPreviews(12);
   const currentAssignments = getCurrentAssignments();
 
@@ -322,6 +351,51 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       </Button>
                     </div>
                   )}
+                  {!isSelecting ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsSelecting(true)}
+                      className="h-7 px-2 text-xs gap-1 text-muted-foreground"
+                      title="선택 삭제"
+                      disabled={playlist.length === 0}
+                    >
+                      <CheckSquare className="h-3 w-3" />
+                      선택
+                    </Button>
+                  ) : (
+                    <div className="flex gap-1">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleDeleteSelected}
+                        className="h-7 px-2 text-xs gap-1"
+                        disabled={selectedIds.size === 0}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        삭제({selectedIds.size})
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setIsSelecting(false); setSelectedIds(new Set()); }}
+                        className="h-7 px-2 text-xs gap-1"
+                      >
+                        취소
+                      </Button>
+                    </div>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDeleteAllConfirm(true)}
+                    className="h-7 px-2 text-xs gap-1 text-destructive hover:text-destructive"
+                    title="전체 삭제"
+                    disabled={playlist.length === 0}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    전체삭제
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -417,14 +491,17 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                 {rotatedPlaylist.map(({ item, originalIndex }, displayIndex) => (
                   <div
                     key={item.id}
-                    draggable={!isEditingOrder}
-                    onDragStart={(e) => !isEditingOrder && handleDragStart(e, item, originalIndex)}
+                    draggable={!isEditingOrder && !isSelecting}
+                    onDragStart={(e) => !isEditingOrder && !isSelecting && handleDragStart(e, item, originalIndex)}
                     onDragEnd={handleDragEnd}
                     onDragOver={(e) => handleDragOver(e, originalIndex)}
                     onDrop={(e) => handleDrop(e, originalIndex)}
+                    onClick={isSelecting ? () => handleToggleSelect(item.id) : undefined}
                     className={cn(
                       "flex items-center gap-2 p-2 rounded-md border bg-background transition-all group",
-                      !isEditingOrder && "cursor-grab active:cursor-grabbing",
+                      !isEditingOrder && !isSelecting && "cursor-grab active:cursor-grabbing",
+                      isSelecting && "cursor-pointer",
+                      isSelecting && selectedIds.has(item.id) && "border-primary bg-primary/5",
                       draggedItem?.id === item.id && "opacity-50",
                       dragOverIndex === originalIndex && draggedItem?.id !== item.id && "border-primary border-2",
                       item.is_dummy && "bg-muted/50 border-dashed opacity-70",
@@ -432,7 +509,15 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       !item.is_dummy && shiftType(displayIndex) === 'mid' && "border-blue-500/50 bg-blue-500/5"
                     )}
                   >
-                    {!isEditingOrder && <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+                    {isSelecting && (
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(item.id)}
+                        onChange={() => handleToggleSelect(item.id)}
+                        className="h-4 w-4 flex-shrink-0 accent-primary"
+                      />
+                    )}
+                    {!isEditingOrder && !isSelecting && <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
                     {isEditingOrder ? (
                       <input
                         type="number"
@@ -578,6 +663,30 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
             >
               <Trash2 className="h-4 w-4 mr-2" />
               삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete All Confirmation Dialog */}
+      <AlertDialog open={deleteAllConfirm} onOpenChange={setDeleteAllConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>전체 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              {config.title} 순환 명단의 <span className="font-semibold text-foreground">{playlist.length}명</span> 전체를 삭제하시겠습니까?
+              <br />
+              이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAll}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              전체 삭제
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

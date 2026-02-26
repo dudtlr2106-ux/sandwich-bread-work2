@@ -468,6 +468,73 @@ export function useRotationPlaylist(department: DepartmentType) {
     }
   }, [playlist.length, department]);
 
+  // 전체 삭제
+  const removeAll = useCallback(async () => {
+    try {
+      let error: any = null;
+      if (department === 'logistics') {
+        const result = await supabase.from('logistics_rotation_playlist').delete().gte('position', 0);
+        error = result.error;
+      } else if (department === 'equipment') {
+        const result = await supabase.from('equipment_rotation_playlist').delete().gte('position', 0);
+        error = result.error;
+      } else if (department === 'inspection') {
+        const result = await supabase.from('inspection_rotation_playlist').delete().gte('position', 0);
+        error = result.error;
+      } else if (department === 'foreman') {
+        const result = await supabase.from('foreman_rotation_playlist').delete().gte('position', 0);
+        error = result.error;
+      } else {
+        const result = await supabase.from('package_rotation_playlist').delete().gte('position', 0);
+        error = result.error;
+      }
+      if (error) throw error;
+      setPlaylist([]);
+      toast.success('전체 명단이 삭제되었습니다');
+    } catch (error) {
+      console.error('Error removing all:', error);
+      toast.error('전체 삭제에 실패했습니다');
+    }
+  }, [department]);
+
+  // 선택 삭제
+  const removeSelected = useCallback(async (ids: string[]) => {
+    try {
+      for (const id of ids) {
+        let error: any = null;
+        if (department === 'logistics') {
+          const result = await supabase.from('logistics_rotation_playlist').delete().eq('id', id);
+          error = result.error;
+        } else if (department === 'equipment') {
+          const result = await supabase.from('equipment_rotation_playlist').delete().eq('id', id);
+          error = result.error;
+        } else if (department === 'inspection') {
+          const result = await supabase.from('inspection_rotation_playlist').delete().eq('id', id);
+          error = result.error;
+        } else if (department === 'foreman') {
+          const result = await supabase.from('foreman_rotation_playlist').delete().eq('id', id);
+          error = result.error;
+        } else {
+          const result = await supabase.from('package_rotation_playlist').delete().eq('id', id);
+          error = result.error;
+        }
+        if (error) throw error;
+      }
+      // Reorder remaining
+      const remaining = playlist.filter(p => !ids.includes(p.id));
+      if (remaining.length > 0) {
+        await updateOrder(remaining);
+      } else {
+        setPlaylist([]);
+      }
+      toast.success(`${ids.length}명이 삭제되었습니다`);
+    } catch (error) {
+      console.error('Error removing selected:', error);
+      toast.error('선택 삭제에 실패했습니다');
+      loadPlaylist();
+    }
+  }, [department, playlist, updateOrder, loadPlaylist]);
+
   return {
     playlist,
     isLoading,
@@ -476,6 +543,8 @@ export function useRotationPlaylist(department: DepartmentType) {
     addWorker,
     duplicateWorker,
     removeWorker,
+    removeAll,
+    removeSelected,
     getWeekPreviews,
     getCurrentAssignments,
     refreshPlaylist: loadPlaylist,

@@ -217,6 +217,12 @@ const WeeklySchedule = () => {
   // 팀 관리 화면 상태
   const [showTeamManagement, setShowTeamManagement] = useState(false);
   
+  // 모바일에서 주간 전체 보기 토글
+  const [showFullWeek, setShowFullWeek] = useState(false);
+  
+  // 하루만 표시할지 여부 (모바일이면서 주간 전체 보기가 아닌 경우)
+  const showSingleDay = isMobile && !showFullWeek;
+  
 
   // 근태 수정 요청 다이얼로그 열기
   const openRequestDialog = (workerName: string, dateKey: string, day: string, currentStatus: string) => {
@@ -941,36 +947,62 @@ const WeeklySchedule = () => {
           {/* 모바일 요일 네비게이션 */}
           {isMobile && (
             <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSelectedDayIndex((prev) => (prev > 0 ? prev - 1 : 6))}
-                aria-label="이전 요일"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              <div className="flex items-center gap-2">
-                {DAYS.map((day, index) => (
+              {showFullWeek ? (
+                <div className="flex items-center justify-center w-full">
                   <Button
-                    key={day}
-                    variant={selectedDayIndex === index ? "default" : "ghost"}
+                    variant="outline"
                     size="sm"
-                    className="w-8 h-8 p-0"
-                    onClick={() => setSelectedDayIndex(index)}
-                    aria-label={`${day}요일 선택`}
+                    onClick={() => setShowFullWeek(false)}
+                    className="text-xs"
                   >
-                    {day}
+                    <Calendar className="h-4 w-4 mr-1" />
+                    하루 보기
                   </Button>
-                ))}
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSelectedDayIndex((prev) => (prev < 6 ? prev + 1 : 0))}
-                aria-label="다음 요일"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
+                </div>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSelectedDayIndex((prev) => (prev > 0 ? prev - 1 : 6))}
+                    aria-label="이전 요일"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {DAYS.map((day, index) => (
+                      <Button
+                        key={day}
+                        variant={selectedDayIndex === index ? "default" : "ghost"}
+                        size="sm"
+                        className="w-8 h-8 p-0"
+                        onClick={() => setSelectedDayIndex(index)}
+                        aria-label={`${day}요일 선택`}
+                      >
+                        {day}
+                      </Button>
+                    ))}
+                    <div className="w-px h-6 bg-border mx-1" />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowFullWeek(true)}
+                      className="text-[10px] px-2 h-8"
+                      aria-label="주간 전체 보기"
+                    >
+                      주간
+                    </Button>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSelectedDayIndex((prev) => (prev < 6 ? prev + 1 : 0))}
+                    aria-label="다음 요일"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                </>
+              )}
             </div>
           )}
           <div className="overflow-x-auto">
@@ -980,8 +1012,8 @@ const WeeklySchedule = () => {
                   <th rowSpan={2} className="px-2 py-1 text-center font-semibold text-foreground border-b border-r border-border w-[50px] text-xs">
                     구분
                   </th>
-                  {(isMobile ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
-                    const actualIndex = isMobile ? selectedDayIndex : index;
+                  {(showSingleDay ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
+                    const actualIndex = showSingleDay ? selectedDayIndex : index;
                     const date = getDateForDay(actualIndex);
                     const dateKey = getDateKey(actualIndex);
                     const holiday = getHoliday(date);
@@ -1022,8 +1054,8 @@ const WeeklySchedule = () => {
                   })}
                 </tr>
                 <tr className="bg-muted/30">
-                  {(isMobile ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
-                    const actualIndex = isMobile ? selectedDayIndex : index;
+                  {(showSingleDay ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
+                    const actualIndex = showSingleDay ? selectedDayIndex : index;
                     const dateKey = getDateKey(actualIndex);
                     const isDayOffDate = isDayOff(dateKey);
                     
@@ -1081,7 +1113,7 @@ const WeeklySchedule = () => {
                         {dept.name}
                       </span>
                     </td>
-                    {(isMobile ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
+                    {(showSingleDay ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
                       const isWeekend = day === "토" || day === "일";
                       const isSaturday = day === "토";
                       const isSundayCell = day === "일";
@@ -1313,7 +1345,7 @@ const WeeklySchedule = () => {
                   <td className="px-2 py-2 border-b border-r border-border text-center">
                     <span className="text-xs font-bold text-foreground">출근</span>
                   </td>
-                  {(isMobile ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
+                  {(showSingleDay ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
                     const dateKey = getDateKey(dayIndex);
                     const isOff = isDayOff(dateKey);
                     const isSundayCell = day === "일";
@@ -1382,7 +1414,7 @@ const WeeklySchedule = () => {
                   <td className="px-2 py-2 border-b border-r border-border text-center">
                     <span className="text-xs font-bold text-orange-600">잔업</span>
                   </td>
-                  {(isMobile ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
+                  {(showSingleDay ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
                     const dateKey = getDateKey(dayIndex);
                     const isOff = isDayOff(dateKey);
                     const isSundayCell = day === "일";

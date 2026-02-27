@@ -875,6 +875,20 @@ const WeeklySchedule = () => {
                   <span className="hidden sm:inline">근무표 인쇄</span>
                 </Button>
               )}
+
+              {/* 모바일 주간 보기 버튼 */}
+              {isMobile && (
+                <Button
+                  variant={showFullWeek ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowFullWeek(!showFullWeek)}
+                  className="print-hide text-xs"
+                  aria-label="주간 전체 보기"
+                >
+                  <Calendar className="h-4 w-4 mr-1" />
+                  {showFullWeek ? "하루" : "주간"}
+                </Button>
+              )}
               
               <Button
                 variant="outline"
@@ -948,16 +962,8 @@ const WeeklySchedule = () => {
           {isMobile && (
             <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border">
               {showFullWeek ? (
-                <div className="flex items-center justify-center w-full">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowFullWeek(false)}
-                    className="text-xs"
-                  >
-                    <Calendar className="h-4 w-4 mr-1" />
-                    하루 보기
-                  </Button>
+                <div className="flex items-center justify-center w-full py-1">
+                  <span className="text-xs text-muted-foreground">주간 전체 보기</span>
                 </div>
               ) : (
                 <>
@@ -982,16 +988,6 @@ const WeeklySchedule = () => {
                         {day}
                       </Button>
                     ))}
-                    <div className="w-px h-6 bg-border mx-1" />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowFullWeek(true)}
-                      className="text-[10px] px-2 h-8"
-                      aria-label="주간 전체 보기"
-                    >
-                      주간
-                    </Button>
                   </div>
                   <Button
                     variant="ghost"

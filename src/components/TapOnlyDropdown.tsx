@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from "react";
+import React, { useRef, useCallback, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -22,6 +22,7 @@ const TapOnlyDropdown: React.FC<TapOnlyDropdownProps> = ({
   contentClassName = "bg-popover",
   onContentClick,
 }) => {
+  const [open, setOpen] = useState(false);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
   const didScroll = useRef(false);
 
@@ -41,29 +42,35 @@ const TapOnlyDropdown: React.FC<TapOnlyDropdownProps> = ({
     }
   }, []);
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (didScroll.current) {
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!didScroll.current && touchStartPos.current) {
       e.preventDefault();
-      e.stopPropagation();
+      setOpen(true);
+    }
+    touchStartPos.current = null;
+  }, []);
+
+  // Block all pointer/click events from Radix trigger on touch devices
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === "touch") {
+      e.preventDefault();
     }
   }, []);
 
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    if (didScroll.current) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    // Allow mouse clicks (desktop) to work normally via Radix
+    // Touch clicks are handled by touchEnd above
   }, []);
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <div
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
-          onClick={handleClick}
+          onTouchEnd={handleTouchEnd}
           onPointerDown={handlePointerDown}
+          onClick={handleClick}
         >
           {trigger}
         </div>

@@ -143,6 +143,32 @@
   .department-package {
     @apply bg-[hsl(var(--package-bg))] border-l-4 border-l-[hsl(var(--package))];
   }
+
+  /* Mobile landscape compact table */
+  .landscape-compact th,
+  .landscape-compact td {
+    @apply px-0.5 py-0.5;
+  }
+
+  .landscape-compact .schedule-cell {
+    @apply min-h-[30px] p-0.5;
+  }
+
+  .landscape-compact .text-sm {
+    font-size: 9px;
+  }
+
+  .landscape-compact .text-lg {
+    font-size: 12px;
+  }
+
+  .landscape-compact .text-xs {
+    font-size: 8px;
+  }
+
+  .landscape-compact .text-\[10px\] {
+    font-size: 7px;
+  }
 }
 
 /* Print styles */

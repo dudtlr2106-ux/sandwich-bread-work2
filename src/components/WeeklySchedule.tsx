@@ -137,6 +137,26 @@ const departments: Department[] = [
 
 const WeeklySchedule = () => {
   const isMobile = useIsMobile();
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  useEffect(() => {
+    const checkOrientation = () => {
+      setIsLandscape(window.innerWidth > window.innerHeight);
+    };
+    checkOrientation();
+    window.addEventListener("resize", checkOrientation);
+    window.addEventListener("orientationchange", () => {
+      // orientationchange fires before resize, so delay check
+      setTimeout(checkOrientation, 100);
+    });
+    return () => {
+      window.removeEventListener("resize", checkOrientation);
+      window.removeEventListener("orientationchange", checkOrientation);
+    };
+  }, []);
+
+  // 모바일 가로모드에서는 전체 주간 보기
+  const showSingleDay = isMobile && !isLandscape;
   const { user, isAdmin, signOut, isLoading } = useAuth();
   
   // 주차 상태를 먼저 정의 (일요일 13시 이후면 다음 주로)
@@ -939,7 +959,7 @@ const WeeklySchedule = () => {
           </h1>
           
           {/* 모바일 요일 네비게이션 */}
-          {isMobile && (
+          {showSingleDay && (
             <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border">
               <Button
                 variant="ghost"
@@ -973,15 +993,15 @@ const WeeklySchedule = () => {
               </Button>
             </div>
           )}
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse table-fixed">
+          <div className={`overflow-x-auto ${isMobile && isLandscape ? "text-[9px]" : ""}`}>
+            <table className={`w-full border-collapse table-fixed ${isMobile && isLandscape ? "landscape-compact" : ""}`}>
               <thead>
                 <tr className="bg-muted/50">
                   <th rowSpan={2} className="px-2 py-1 text-center font-semibold text-foreground border-b border-r border-border w-[50px] text-xs">
                     구분
                   </th>
-                  {(isMobile ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
-                    const actualIndex = isMobile ? selectedDayIndex : index;
+                  {(showSingleDay ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
+                    const actualIndex = showSingleDay ? selectedDayIndex : index;
                     const date = getDateForDay(actualIndex);
                     const dateKey = getDateKey(actualIndex);
                     const holiday = getHoliday(date);
@@ -1022,8 +1042,8 @@ const WeeklySchedule = () => {
                   })}
                 </tr>
                 <tr className="bg-muted/30">
-                  {(isMobile ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
-                    const actualIndex = isMobile ? selectedDayIndex : index;
+                  {(showSingleDay ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
+                    const actualIndex = showSingleDay ? selectedDayIndex : index;
                     const dateKey = getDateKey(actualIndex);
                     const isDayOffDate = isDayOff(dateKey);
                     
@@ -1081,7 +1101,7 @@ const WeeklySchedule = () => {
                         {dept.name}
                       </span>
                     </td>
-                    {(isMobile ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
+                    {(showSingleDay ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
                       const isWeekend = day === "토" || day === "일";
                       const isSaturday = day === "토";
                       const isSundayCell = day === "일";
@@ -1313,7 +1333,7 @@ const WeeklySchedule = () => {
                   <td className="px-2 py-2 border-b border-r border-border text-center">
                     <span className="text-xs font-bold text-foreground">출근</span>
                   </td>
-                  {(isMobile ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
+                  {(showSingleDay ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
                     const dateKey = getDateKey(dayIndex);
                     const isOff = isDayOff(dateKey);
                     const isSundayCell = day === "일";
@@ -1382,7 +1402,7 @@ const WeeklySchedule = () => {
                   <td className="px-2 py-2 border-b border-r border-border text-center">
                     <span className="text-xs font-bold text-orange-600">잔업</span>
                   </td>
-                  {(isMobile ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
+                  {(showSingleDay ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
                     const dateKey = getDateKey(dayIndex);
                     const isOff = isDayOff(dateKey);
                     const isSundayCell = day === "일";

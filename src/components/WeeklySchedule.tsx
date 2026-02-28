@@ -223,6 +223,9 @@ const WeeklySchedule = () => {
   // 하루만 표시할지 여부 (모바일이면서 주간 전체 보기가 아닌 경우)
   const showSingleDay = isMobile && !showFullWeek;
   
+  // 모바일 주간 보기: 가로 회전 + 일요일 숨김
+  const mobileFullWeek = isMobile && showFullWeek;
+  
 
   // 근태 수정 요청 다이얼로그 열기
   const openRequestDialog = (workerName: string, dateKey: string, day: string, currentStatus: string) => {
@@ -237,6 +240,11 @@ const WeeklySchedule = () => {
     return today === 0 ? 6 : today - 1;
   };
   const [selectedDayIndex, setSelectedDayIndex] = useState(getTodayDayIndex);
+
+  // 표시할 요일 목록
+  const displayDays = showSingleDay 
+    ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }]
+    : (mobileFullWeek ? DAYS.filter(d => d !== "일") : DAYS).map((day) => ({ day, dayIndex: DAYS.indexOf(day) }));
 
 
   const openMemoSheet = () => {
@@ -959,14 +967,8 @@ const WeeklySchedule = () => {
           </h1>
           
           {/* 모바일 요일 네비게이션 */}
-          {isMobile && (
+          {isMobile && !showFullWeek && (
             <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border">
-              {showFullWeek ? (
-                <div className="flex items-center justify-center w-full py-1">
-                  <span className="text-xs text-muted-foreground">주간 전체 보기</span>
-                </div>
-              ) : (
-                <>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -997,21 +999,19 @@ const WeeklySchedule = () => {
                   >
                     <ChevronRight className="h-5 w-5" />
                   </Button>
-                </>
-              )}
             </div>
           )}
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse table-fixed">
+          <div className={mobileFullWeek ? "mobile-landscape-wrapper" : ""}>
+          <div className={`overflow-x-auto ${mobileFullWeek ? "mobile-landscape-table" : ""}`}>
+            <table className={`w-full border-collapse table-fixed ${mobileFullWeek ? "text-[9px]" : ""}`}>
               <thead>
                 <tr className="bg-muted/50">
                   <th rowSpan={2} className="px-2 py-1 text-center font-semibold text-foreground border-b border-r border-border w-[50px] text-xs">
                     구분
                   </th>
-                  {(showSingleDay ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
-                    const actualIndex = showSingleDay ? selectedDayIndex : index;
-                    const date = getDateForDay(actualIndex);
-                    const dateKey = getDateKey(actualIndex);
+                  {displayDays.map(({ day, dayIndex }) => {
+                    const date = getDateForDay(dayIndex);
+                    const dateKey = getDateKey(dayIndex);
                     const holiday = getHoliday(date);
                     const isSpecialWork = isSpecialWorkDay(date, day);
                     const isOff = isDayOff(dateKey);
@@ -1050,9 +1050,8 @@ const WeeklySchedule = () => {
                   })}
                 </tr>
                 <tr className="bg-muted/30">
-                  {(showSingleDay ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
-                    const actualIndex = showSingleDay ? selectedDayIndex : index;
-                    const dateKey = getDateKey(actualIndex);
+                  {displayDays.map(({ day, dayIndex }) => {
+                    const dateKey = getDateKey(dayIndex);
                     const isDayOffDate = isDayOff(dateKey);
                     
                     // 모든 부서에서 휴가자 체크 (잔업 가능 표시용)
@@ -1109,7 +1108,7 @@ const WeeklySchedule = () => {
                         {dept.name}
                       </span>
                     </td>
-                    {(showSingleDay ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
+                    {displayDays.map(({ day, dayIndex }) => {
                       const isWeekend = day === "토" || day === "일";
                       const isSaturday = day === "토";
                       const isSundayCell = day === "일";
@@ -1341,7 +1340,7 @@ const WeeklySchedule = () => {
                   <td className="px-2 py-2 border-b border-r border-border text-center">
                     <span className="text-xs font-bold text-foreground">출근</span>
                   </td>
-                  {(showSingleDay ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
+                  {displayDays.map(({ day, dayIndex }) => {
                     const dateKey = getDateKey(dayIndex);
                     const isOff = isDayOff(dateKey);
                     const isSundayCell = day === "일";
@@ -1410,7 +1409,7 @@ const WeeklySchedule = () => {
                   <td className="px-2 py-2 border-b border-r border-border text-center">
                     <span className="text-xs font-bold text-orange-600">잔업</span>
                   </td>
-                  {(showSingleDay ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
+                  {displayDays.map(({ day, dayIndex }) => {
                     const dateKey = getDateKey(dayIndex);
                     const isOff = isDayOff(dateKey);
                     const isSundayCell = day === "일";
@@ -1466,6 +1465,7 @@ const WeeklySchedule = () => {
                 </tr>
               </tbody>
             </table>
+          </div>
           </div>
 
           {/* 주말 출근 가능 여부 체크란 - 토요일이 휴무가 아닌 경우에만 표시 */}

@@ -17,6 +17,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -208,6 +218,7 @@ const WeeklySchedule = () => {
   const [tempMemo, setTempMemo] = useState("");
   const [tempMemoIsPublic, setTempMemoIsPublic] = useState(true);
   const [memoSheetOpen, setMemoSheetOpen] = useState(false);
+  const [memoConfirmOpen, setMemoConfirmOpen] = useState(false);
   const [noticeCollapsed, setNoticeCollapsed] = useState(() => {
     const saved = localStorage.getItem('noticeCollapsed');
     return saved === 'true';
@@ -259,8 +270,13 @@ const WeeklySchedule = () => {
     setMemoSheetOpen(true);
   };
 
-  const saveMemo = () => {
+  const handleSaveMemoClick = () => {
+    setMemoConfirmOpen(true);
+  };
+
+  const confirmSaveMemo = () => {
     setNoticeMemo(tempMemo, tempMemoIsPublic);
+    setMemoConfirmOpen(false);
     setMemoSheetOpen(false);
   };
 
@@ -839,13 +855,33 @@ const WeeklySchedule = () => {
                         />
                       </div>
                       <div className="flex gap-2">
-                        <Button onClick={saveMemo} className="flex-1">
+                        <Button onClick={handleSaveMemoClick} className="flex-1">
                           저장
                         </Button>
                         <Button variant="outline" onClick={() => setMemoSheetOpen(false)}>
                           취소
                         </Button>
                       </div>
+
+                      <AlertDialog open={memoConfirmOpen} onOpenChange={setMemoConfirmOpen}>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>공지사항 수정</AlertDialogTitle>
+                            <AlertDialogDescription asChild>
+                              <div className="space-y-2">
+                                <p>아래 내용으로 수정 하시겠습니까?</p>
+                                <div className="mt-2 p-3 bg-muted rounded-md max-h-[200px] overflow-y-auto">
+                                  <p className="text-sm text-foreground whitespace-pre-wrap break-words">{tempMemo || "(내용 없음)"}</p>
+                                </div>
+                              </div>
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>취소</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmSaveMemo}>수정</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </SheetContent>
                 </Sheet>

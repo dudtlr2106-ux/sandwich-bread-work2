@@ -318,53 +318,52 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                   <User className="h-4 w-4" />
                   순환 명단 ({playlist.length}명)
                 </p>
-                <div className="flex gap-1 flex-wrap ml-auto">
+                <div className="flex gap-0.5 flex-wrap ml-auto">
                   {!isEditingOrder ? (
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
                       onClick={handleStartEditOrder}
-                      className="h-7 px-2 text-xs gap-1 text-muted-foreground"
+                      className="h-7 w-7 text-muted-foreground"
                       title="순서 편집"
                     >
-                      <ListOrdered className="h-3 w-3" />
-                      순서편집
+                      <ListOrdered className="h-3.5 w-3.5" />
                     </Button>
                   ) : (
-                    <div className="flex gap-1">
+                    <div className="flex gap-0.5">
                       <Button
                         variant="default"
-                        size="sm"
+                        size="icon"
                         onClick={handleApplyEditOrder}
-                        className="h-7 px-2 text-xs gap-1"
+                        className="h-7 w-7"
+                        title="적용"
                       >
-                        <Check className="h-3 w-3" />
-                        적용
+                        <Check className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={() => { setIsEditingOrder(false); setEditOrderValues({}); }}
-                        className="h-7 px-2 text-xs gap-1"
+                        className="h-7 w-7"
+                        title="취소"
                       >
-                        취소
+                        <X className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   )}
                   {!isSelecting ? (
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
                       onClick={() => setIsSelecting(true)}
-                      className="h-7 px-2 text-xs gap-1 text-muted-foreground"
+                      className="h-7 w-7 text-muted-foreground"
                       title="선택 삭제"
                       disabled={playlist.length === 0}
                     >
-                      <CheckSquare className="h-3 w-3" />
-                      선택
+                      <CheckSquare className="h-3.5 w-3.5" />
                     </Button>
                   ) : (
-                    <div className="flex gap-1">
+                    <div className="flex gap-0.5 items-center">
                       <Button
                         variant="destructive"
                         size="sm"
@@ -373,48 +372,47 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                         disabled={selectedIds.size === 0}
                       >
                         <Trash2 className="h-3 w-3" />
-                        삭제({selectedIds.size})
+                        {selectedIds.size}
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         onClick={() => { setIsSelecting(false); setSelectedIds(new Set()); }}
-                        className="h-7 px-2 text-xs gap-1"
+                        className="h-7 w-7"
+                        title="취소"
                       >
-                        취소
+                        <X className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   )}
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     onClick={() => setDeleteAllConfirm(true)}
-                    className="h-7 px-2 text-xs gap-1 text-destructive hover:text-destructive"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
                     title="전체 삭제"
                     disabled={playlist.length === 0}
                   >
-                    <Trash2 className="h-3 w-3" />
-                    전체삭제
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     onClick={() => addDummy()}
-                    className="h-7 px-2 text-xs gap-1 text-muted-foreground"
+                    className="h-7 w-7 text-muted-foreground"
                     title="공석 추가"
                   >
-                    <UserX className="h-3 w-3" />
-                    공석
+                    <UserX className="h-3.5 w-3.5" />
                   </Button>
                   {!isAdding && (
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
                       onClick={() => setIsAdding(true)}
-                      className="h-7 px-2 text-xs gap-1"
+                      className="h-7 w-7"
+                      title="추가"
                     >
-                      <Plus className="h-3 w-3" />
-                      추가
+                      <Plus className="h-3.5 w-3.5" />
                     </Button>
                   )}
                 </div>

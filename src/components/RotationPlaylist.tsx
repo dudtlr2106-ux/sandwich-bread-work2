@@ -316,7 +316,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
               <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
                 <p className="text-sm font-medium flex items-center gap-1 shrink-0 mr-2">
                   <User className="h-4 w-4" />
-                  순환 명단 ({playlist.length}명)
+                  명단 ({playlist.length})
                 </p>
                 <div className="flex gap-0.5 flex-wrap ml-auto">
                   {!isEditingOrder ? (

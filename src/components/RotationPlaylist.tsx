@@ -313,12 +313,12 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Playlist */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium flex items-center gap-1">
+              <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
+                <p className="text-sm font-medium flex items-center gap-1 shrink-0 mr-2">
                   <User className="h-4 w-4" />
                   순환 명단 ({playlist.length}명)
                 </p>
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-wrap ml-auto">
                   {!isEditingOrder ? (
                     <Button
                       variant="ghost"

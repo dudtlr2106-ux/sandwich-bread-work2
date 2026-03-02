@@ -803,7 +803,7 @@ const WeeklySchedule = () => {
               )}
               <div>
                 <CardTitle className={`font-bold text-foreground ${isLandscapeMode ? 'text-sm' : 'text-2xl'}`}>
-                  {isLandscapeMode ? '근무표' : '주간 근무표'}
+                  주간근무표
                 </CardTitle>
                 {!isLandscapeMode && (
                   <p className="text-sm text-muted-foreground mt-1">

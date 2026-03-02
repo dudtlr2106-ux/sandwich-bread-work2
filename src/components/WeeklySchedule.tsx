@@ -167,6 +167,7 @@ const WeeklySchedule = () => {
 
   // 모바일 가로모드에서는 전체 주간 보기
   const showSingleDay = isMobile && !isLandscape;
+  const isLandscapeMode = isMobile && isLandscape;
   const { user, isAdmin, signOut, isLoading } = useAuth();
   
   // 주차 상태를 먼저 정의 (일요일 13시 이후면 다음 주로)
@@ -357,6 +358,29 @@ const WeeklySchedule = () => {
   // 휴무일 체크
   const isDayOff = (dateKey: string) => {
     return dayOffDates.has(dateKey);
+  };
+
+  // 가로모드에서 일요일과 휴무일 숨김
+  const getVisibleDaysList = (): string[] => {
+    if (showSingleDay) return [DAYS[selectedDayIndex]];
+    if (!isLandscapeMode) return DAYS;
+    return DAYS.filter((day, idx) => {
+      if (day === "일") return false;
+      const dateKey = getDateKey(idx);
+      if (isDayOff(dateKey)) return false;
+      return true;
+    });
+  };
+
+  const getVisibleDaysWithIndex = (): { day: string; dayIndex: number }[] => {
+    if (showSingleDay) return [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }];
+    if (!isLandscapeMode) return DAYS.map((day, idx) => ({ day, dayIndex: idx }));
+    return DAYS.map((day, idx) => ({ day, dayIndex: idx })).filter(({ day, dayIndex }) => {
+      if (day === "일") return false;
+      const dateKey = getDateKey(dayIndex);
+      if (isDayOff(dateKey)) return false;
+      return true;
+    });
   };
 
   const openEditDialog = (deptId: string, day: string, shift: "A" | "B") => {
@@ -1036,8 +1060,8 @@ const WeeklySchedule = () => {
                   <th rowSpan={2} className="px-2 py-1 text-center font-semibold text-foreground border-b border-r border-border w-[50px] text-xs">
                     구분
                   </th>
-                  {(showSingleDay ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
-                    const actualIndex = showSingleDay ? selectedDayIndex : index;
+                  {getVisibleDaysList().map((day) => {
+                    const actualIndex = DAYS.indexOf(day);
                     const date = getDateForDay(actualIndex);
                     const dateKey = getDateKey(actualIndex);
                     const holiday = getHoliday(date);
@@ -1078,8 +1102,8 @@ const WeeklySchedule = () => {
                   })}
                 </tr>
                 <tr className="bg-muted/30">
-                  {(showSingleDay ? [DAYS[selectedDayIndex]] : DAYS).map((day, index) => {
-                    const actualIndex = showSingleDay ? selectedDayIndex : index;
+                  {getVisibleDaysList().map((day) => {
+                    const actualIndex = DAYS.indexOf(day);
                     const dateKey = getDateKey(actualIndex);
                     const isDayOffDate = isDayOff(dateKey);
                     
@@ -1137,7 +1161,7 @@ const WeeklySchedule = () => {
                         {dept.name}
                       </span>
                     </td>
-                    {(showSingleDay ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
+                    {getVisibleDaysWithIndex().map(({ day, dayIndex }) => {
                       const isWeekend = day === "토" || day === "일";
                       const isSaturday = day === "토";
                       const isSundayCell = day === "일";
@@ -1369,7 +1393,7 @@ const WeeklySchedule = () => {
                   <td className="px-2 py-2 border-b border-r border-border text-center">
                     <span className="text-xs font-bold text-foreground">출근</span>
                   </td>
-                  {(showSingleDay ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
+                  {getVisibleDaysWithIndex().map(({ day, dayIndex }) => {
                     const dateKey = getDateKey(dayIndex);
                     const isOff = isDayOff(dateKey);
                     const isSundayCell = day === "일";
@@ -1438,7 +1462,7 @@ const WeeklySchedule = () => {
                   <td className="px-2 py-2 border-b border-r border-border text-center">
                     <span className="text-xs font-bold text-orange-600">잔업</span>
                   </td>
-                  {(showSingleDay ? [{ day: DAYS[selectedDayIndex], dayIndex: selectedDayIndex }] : DAYS.map((day, idx) => ({ day, dayIndex: idx }))).map(({ day, dayIndex }) => {
+                  {getVisibleDaysWithIndex().map(({ day, dayIndex }) => {
                     const dateKey = getDateKey(dayIndex);
                     const isOff = isDayOff(dateKey);
                     const isSundayCell = day === "일";

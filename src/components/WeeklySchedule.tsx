@@ -793,58 +793,58 @@ const WeeklySchedule = () => {
   return (
     <>
       <Card className="w-full mx-auto shadow-lg border-0 bg-card animate-fade-in print-card">
-        <CardHeader className="pb-4 border-b border-border card-header-print-hide">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Calendar className="h-6 w-6 text-primary" />
-              </div>
+        <CardHeader className={`${isLandscapeMode ? 'py-1 px-2' : 'pb-4'} border-b border-border card-header-print-hide`}>
+          <div className={`flex items-center justify-between ${isLandscapeMode ? 'gap-1' : 'flex-col sm:flex-row items-start sm:items-center gap-4'}`}>
+            <div className={`flex items-center ${isLandscapeMode ? 'gap-1' : 'gap-3'}`}>
+              {!isLandscapeMode && (
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Calendar className="h-6 w-6 text-primary" />
+                </div>
+              )}
               <div>
-                <CardTitle className="text-2xl font-bold text-foreground">
-                  주간 근무표
+                <CardTitle className={`font-bold text-foreground ${isLandscapeMode ? 'text-sm' : 'text-2xl'}`}>
+                  {isLandscapeMode ? '근무표' : '주간 근무표'}
                 </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {formatWeekRange()}
-                </p>
+                {!isLandscapeMode && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {formatWeekRange()}
+                  </p>
+                )}
               </div>
             </div>
             
             {/* Week Navigation & Auth */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className={`flex items-center ${isLandscapeMode ? 'gap-0.5' : 'gap-2'} flex-wrap`}>
               {/* Auth Section */}
               {isLoading ? (
                 <div className="h-9 w-20 bg-muted animate-pulse rounded" />
               ) : user ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <PushNotificationToggle />
                 {isAdmin && (
                     <span className="flex items-center text-primary">
                       <Shield className="h-4 w-4" />
                     </span>
                   )}
-                  <Button variant="outline" size="sm" onClick={signOut}>
-                    <LogOut className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">로그아웃</span>
+                  <Button variant="outline" size="icon" onClick={signOut} className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'} title="로그아웃">
+                    <LogOut className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
                   </Button>
                 </div>
               ) : (
               <Link to="/auth" aria-label="로그인">
-                  <Button variant="outline" size="sm" aria-label="로그인">
-                    <LogIn className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">로그인</span>
+                  <Button variant="outline" size="icon" className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'} aria-label="로그인" title="로그인">
+                    <LogIn className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
                   </Button>
                 </Link>
               )}
 
-              <div className="h-6 w-px bg-border hidden sm:block" />
+              {!isLandscapeMode && <div className="h-6 w-px bg-border hidden sm:block" />}
 
               {isAdmin && (
                 <Sheet open={memoSheetOpen} onOpenChange={setMemoSheetOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={openMemoSheet}>
-                      <StickyNote className="h-4 w-4 sm:mr-2" />
-                      <span className="hidden sm:inline">공지 메모</span>
-                      {noticeMemo && (noticeMemoIsPublic || isAdmin) && <Badge variant="secondary" className="ml-2">1</Badge>}
+                    <Button variant="outline" size="icon" onClick={openMemoSheet} className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'} title="공지 메모">
+                      <StickyNote className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
                     </Button>
                   </SheetTrigger>
                   <SheetContent>
@@ -915,11 +915,12 @@ const WeeklySchedule = () => {
               {isAdmin && (
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
                   onClick={() => setShowTeamManagement(true)}
+                  className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'}
+                  title="팀 관리"
                 >
-                  <Settings className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">팀 관리</span>
+                  <Settings className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
                 </Button>
               )}
 
@@ -929,10 +930,11 @@ const WeeklySchedule = () => {
                 <Link to="/pattern-management">
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
+                    className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'}
+                    title="패턴 관리"
                   >
-                    <Sparkles className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">패턴 관리</span>
+                    <Sparkles className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
                   </Button>
                 </Link>
               )}
@@ -941,12 +943,12 @@ const WeeklySchedule = () => {
               {isAdmin && (
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
                   onClick={() => window.print()}
-                  className="print-hide"
+                  className={`print-hide ${isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'}`}
+                  title="근무표 인쇄"
                 >
-                  <Printer className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">근무표 인쇄</span>
+                  <Printer className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
                 </Button>
               )}
               
@@ -954,16 +956,16 @@ const WeeklySchedule = () => {
                 variant="outline"
                 size="icon"
                 onClick={goToPreviousWeek}
-                className="h-9 w-9"
+                className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'}
                 aria-label="이전 주"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={goToCurrentWeek}
-                className="px-3"
+                className={isLandscapeMode ? 'px-1.5 h-7 text-xs' : 'px-3'}
                 aria-label={`${format(currentWeekStart, "M/d")} - 현재 주로 이동`}
               >
                 {format(currentWeekStart, "M/d")}
@@ -972,10 +974,10 @@ const WeeklySchedule = () => {
                 variant="outline"
                 size="icon"
                 onClick={goToNextWeek}
-                className="h-9 w-9"
+                className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'}
                 aria-label="다음 주"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
               </Button>
 
             </div>

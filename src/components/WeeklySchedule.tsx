@@ -1056,7 +1056,7 @@ const WeeklySchedule = () => {
             </div>
           )}
           <div className={`overflow-x-auto ${isMobile && isLandscape ? "text-[9px]" : ""}`}>
-            <table className={`border-collapse ${isMobile && isLandscape ? "landscape-compact min-w-[700px]" : "w-full table-fixed"}`}>
+            <table className={`border-collapse ${isMobile && isLandscape ? "landscape-compact w-full table-fixed" : "w-full table-fixed"}`}>
               <thead>
                 <tr className="bg-muted/50">
                   <th rowSpan={2} className={`text-center font-semibold text-foreground border-b border-r border-border text-xs ${isLandscapeMode ? 'px-0.5 py-0.5 w-[30px]' : 'px-2 py-1 w-[50px]'}`}>

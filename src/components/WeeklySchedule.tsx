@@ -1059,7 +1059,7 @@ const WeeklySchedule = () => {
             <table className={`border-collapse ${isMobile && isLandscape ? "landscape-compact min-w-[700px]" : "w-full table-fixed"}`}>
               <thead>
                 <tr className="bg-muted/50">
-                  <th rowSpan={2} className="px-2 py-1 text-center font-semibold text-foreground border-b border-r border-border w-[50px] text-xs">
+                  <th rowSpan={2} className={`text-center font-semibold text-foreground border-b border-r border-border text-xs ${isLandscapeMode ? 'px-0.5 py-0.5 w-[30px]' : 'px-2 py-1 w-[50px]'}`}>
                     구분
                   </th>
                   {getVisibleDaysList().map((day) => {
@@ -1158,8 +1158,8 @@ const WeeklySchedule = () => {
               <tbody>
                 {departments.map((dept, deptIndex) => (
                   <tr key={dept.id} className="hover:bg-muted/30 transition-colors">
-                    <td className={`px-1 py-1 border-b border-r border-border text-center whitespace-nowrap ${dept.colorClass}`}>
-                      <span className="font-medium text-xs text-foreground">
+                    <td className={`border-b border-r border-border text-center whitespace-nowrap ${dept.colorClass} ${isLandscapeMode ? 'px-0.5 py-0' : 'px-1 py-1'}`}>
+                      <span className={`font-medium text-foreground ${isLandscapeMode ? 'text-[8px]' : 'text-xs'}`}>
                         {dept.name}
                       </span>
                     </td>
@@ -1392,8 +1392,8 @@ const WeeklySchedule = () => {
                 ))}
                 {/* 인원수 요약 행 - 출근 인원 */}
                 <tr className="bg-muted/70 font-semibold">
-                  <td className="px-2 py-2 border-b border-r border-border text-center">
-                    <span className="text-xs font-bold text-foreground">출근</span>
+                  <td className={`border-b border-r border-border text-center ${isLandscapeMode ? 'px-0.5 py-0.5' : 'px-2 py-2'}`}>
+                    <span className={`font-bold text-foreground ${isLandscapeMode ? 'text-[8px]' : 'text-xs'}`}>출근</span>
                   </td>
                   {getVisibleDaysWithIndex().map(({ day, dayIndex }) => {
                     const dateKey = getDateKey(dayIndex);
@@ -1461,8 +1461,8 @@ const WeeklySchedule = () => {
                 </tr>
                 {/* 잔업 인원 행 */}
                 <tr className="bg-orange-50/50 dark:bg-orange-950/20 font-semibold">
-                  <td className="px-2 py-2 border-b border-r border-border text-center">
-                    <span className="text-xs font-bold text-orange-600">잔업</span>
+                  <td className={`border-b border-r border-border text-center ${isLandscapeMode ? 'px-0.5 py-0.5' : 'px-2 py-2'}`}>
+                    <span className={`font-bold text-orange-600 ${isLandscapeMode ? 'text-[8px]' : 'text-xs'}`}>잔업</span>
                   </td>
                   {getVisibleDaysWithIndex().map(({ day, dayIndex }) => {
                     const dateKey = getDateKey(dayIndex);

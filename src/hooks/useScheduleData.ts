@@ -780,7 +780,7 @@ export function useScheduleData(currentWeekStart?: Date) {
   }, []);
 
   // 주말 출근 가능 여부 토글
-  const toggleWeekendAvailability = useCallback(async (workerName: string) => {
+  const toggleWeekendAvailability = useCallback(async (workerName: string, isAdmin?: boolean) => {
     const currentAvailability = weekendAvailability[workerName] || false;
     const newAvailability = !currentAvailability;
     
@@ -799,6 +799,19 @@ export function useScheduleData(currentWeekStart?: Date) {
     if (error) {
       console.error('Failed to save weekend availability:', error);
       toast.error('주말 출근 가능 여부 저장에 실패했습니다');
+    } else if (!isAdmin) {
+      // 관리자가 아닌 경우에만 관리자에게 알림 발송
+      try {
+        await supabase.functions.invoke('send-push-notification', {
+          body: {
+            type: 'weekend_availability',
+            workerName,
+            newAvailability,
+          },
+        });
+      } catch (pushError) {
+        console.error('Failed to send push notification:', pushError);
+      }
     }
   }, [weekendAvailability]);
 

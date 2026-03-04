@@ -663,7 +663,7 @@ const WeeklySchedule = () => {
 
   // 주말 출근 가능 여부 토글 - 훅 사용
   const toggleWeekendAvailabilityLocal = (worker: string) => {
-    toggleWeekendAvailabilityDb(worker);
+    toggleWeekendAvailabilityDb(worker, isAdmin);
   };
 
   // 주말 출근 가능 여부 확인 - 훅에서 가져온 weekendAvailability 사용

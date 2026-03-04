@@ -345,10 +345,11 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    const { type, requesterName, workerName, dateKey, requestedStatus, content, resultStatus } = body;
+    const { type, requesterName, workerName, dateKey, requestedStatus, content, resultStatus, newAvailability } = body;
 
     const isNoticeUpdate = type === 'notice_update';
     const isRequestResult = type === 'request_result';
+    const isWeekendAvailability = type === 'weekend_availability';
 
     console.log(`Sending push notification - type: ${type || 'attendance_request'}`);
 
@@ -452,6 +453,18 @@ serve(async (req) => {
         data: {
           url: "/",
           type: "notice_update",
+        },
+      };
+    } else if (isWeekendAvailability) {
+      const statusText = newAvailability ? '가능 ✅' : '불가 ❌';
+      payload = {
+        title: "주말출근 가능 여부 변경",
+        body: `${workerName}님이 주말출근 가능 여부를 ${statusText}(으)로 변경했습니다.`,
+        icon: "/favicon.ico",
+        badge: "/favicon.ico",
+        data: {
+          url: "/",
+          type: "weekend_availability",
         },
       };
     } else {

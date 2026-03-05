@@ -164,9 +164,9 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     }
   }, [department]);
 
-  const handleDragStart = (e: React.DragEvent, item: PlaylistItem, index: number) => {
+  const handleDragStart = (e: React.DragEvent, item: PlaylistItem, displayIndex: number) => {
     setDraggedItem(item);
-    dragNodeRef.current = index;
+    dragNodeRef.current = displayIndex;
     e.dataTransfer.effectAllowed = 'move';
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = '0.5';
@@ -189,26 +189,32 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     dragNodeRef.current = null;
   };
 
-  const handleDragOver = (e: React.DragEvent, index: number) => {
+  const handleDragOver = (e: React.DragEvent, displayIndex: number) => {
     e.preventDefault();
     if (dragNodeRef.current === null) return;
-    if (dragNodeRef.current !== index) {
-      setDragOverIndex(index);
-      setDragDirection(index > dragNodeRef.current ? 'down' : 'up');
+    if (dragNodeRef.current !== displayIndex) {
+      setDragOverIndex(displayIndex);
+      setDragDirection(displayIndex > dragNodeRef.current ? 'down' : 'up');
     }
   };
 
-  const handleDrop = async (e: React.DragEvent, dropIndex: number) => {
+  const handleDrop = async (e: React.DragEvent, dropDisplayIndex: number) => {
     e.preventDefault();
-    if (dragNodeRef.current === null || dragNodeRef.current === dropIndex) return;
+    if (dragNodeRef.current === null || dragNodeRef.current === dropDisplayIndex) return;
+
+    // rotatedPlaylist의 displayIndex 기반으로 originalIndex를 찾아서 playlist 재정렬
+    const dragOriginalIdx = rotatedPlaylist[dragNodeRef.current].originalIndex;
+    const dropOriginalIdx = rotatedPlaylist[dropDisplayIndex].originalIndex;
 
     const newPlaylist = [...playlist];
-    const draggedIdx = dragNodeRef.current;
-    const [removed] = newPlaylist.splice(draggedIdx, 1);
-    newPlaylist.splice(dropIndex, 0, removed);
+    const [removed] = newPlaylist.splice(dragOriginalIdx, 1);
+    const adjustedDropIdx = dragOriginalIdx < dropOriginalIdx ? dropOriginalIdx - 1 : dropOriginalIdx;
+    newPlaylist.splice(adjustedDropIdx < 0 ? 0 : adjustedDropIdx, 0, removed);
 
+    // 드롭 위치가 원래 위치보다 뒤면, splice 후 인덱스 보정
     await updateOrder(newPlaylist);
     setDragOverIndex(null);
+    setDragDirection(null);
   };
 
   // 패키지 부서는 3조 인원만, 나머지 부서는 전체 인원
@@ -499,19 +505,19 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                   <div
                     key={item.id}
                     draggable={!isEditingOrder && !isSelecting}
-                    onDragStart={(e) => !isEditingOrder && !isSelecting && handleDragStart(e, item, originalIndex)}
+                    onDragStart={(e) => !isEditingOrder && !isSelecting && handleDragStart(e, item, displayIndex)}
                     onDragEnd={handleDragEnd}
-                    onDragOver={(e) => handleDragOver(e, originalIndex)}
-                    onDrop={(e) => handleDrop(e, originalIndex)}
+                    onDragOver={(e) => handleDragOver(e, displayIndex)}
+                    onDrop={(e) => handleDrop(e, displayIndex)}
                     onClick={isSelecting ? () => handleToggleSelect(item.id) : undefined}
                     style={{
                       transition: 'transform 0.2s ease, border-color 0.2s ease',
                       transform: draggedItem && dragOverIndex !== null && dragNodeRef.current !== null && draggedItem.id !== item.id
                         ? (dragNodeRef.current < dragOverIndex
-                          // 아래로 드래그: 드래그 소스와 드롭 타겟 사이의 아이템들이 위로 이동
-                          ? (originalIndex > dragNodeRef.current && originalIndex <= dragOverIndex ? 'translateY(-40px)' : 'none')
-                          // 위로 드래그: 드래그 소스와 드롭 타겟 사이의 아이템들이 아래로 이동
-                          : (originalIndex < dragNodeRef.current && originalIndex >= dragOverIndex ? 'translateY(40px)' : 'none')
+                          // 아래로 드래그: 소스~타겟 사이 + 타겟 이후 모든 아이템이 위로 이동
+                          ? (displayIndex > dragNodeRef.current && displayIndex <= dragOverIndex ? 'translateY(-40px)' : 'none')
+                          // 위로 드래그: 소스~타겟 사이 + 타겟 이전 모든 아이템이 아래로 이동
+                          : (displayIndex < dragNodeRef.current && displayIndex >= dragOverIndex ? 'translateY(40px)' : 'none')
                         )
                         : 'none',
                     }}

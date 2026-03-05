@@ -170,12 +170,18 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     e.dataTransfer.effectAllowed = 'move';
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = '0.5';
+      e.currentTarget.style.boxShadow = '0 8px 25px -5px rgba(0,0,0,0.3), 0 4px 10px -5px rgba(0,0,0,0.2)';
+      e.currentTarget.style.transform = 'scale(1.02)';
+      e.currentTarget.style.zIndex = '50';
     }
   };
 
   const handleDragEnd = (e: React.DragEvent) => {
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = '1';
+      e.currentTarget.style.boxShadow = '';
+      e.currentTarget.style.transform = '';
+      e.currentTarget.style.zIndex = '';
     }
     setDraggedItem(null);
     setDragOverIndex(null);

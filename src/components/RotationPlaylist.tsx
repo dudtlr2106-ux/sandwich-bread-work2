@@ -132,6 +132,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
 
   const [draggedItem, setDraggedItem] = useState<PlaylistItem | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [dragDirection, setDragDirection] = useState<'down' | 'up' | null>(null);
   const dragNodeRef = useRef<number | null>(null);
   
   const [isAdding, setIsAdding] = useState(false);
@@ -178,6 +179,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     }
     setDraggedItem(null);
     setDragOverIndex(null);
+    setDragDirection(null);
     dragNodeRef.current = null;
   };
 
@@ -186,6 +188,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     if (dragNodeRef.current === null) return;
     if (dragNodeRef.current !== index) {
       setDragOverIndex(index);
+      setDragDirection(index > dragNodeRef.current ? 'down' : 'up');
     }
   };
 
@@ -495,12 +498,23 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                     onDragOver={(e) => handleDragOver(e, originalIndex)}
                     onDrop={(e) => handleDrop(e, originalIndex)}
                     onClick={isSelecting ? () => handleToggleSelect(item.id) : undefined}
+                    style={{
+                      transition: 'transform 0.2s ease, border-color 0.2s ease',
+                      transform: draggedItem && dragOverIndex !== null && dragNodeRef.current !== null && draggedItem.id !== item.id
+                        ? (dragNodeRef.current < dragOverIndex
+                          // 아래로 드래그: 드래그 소스와 드롭 타겟 사이의 아이템들이 위로 이동
+                          ? (originalIndex > dragNodeRef.current && originalIndex <= dragOverIndex ? 'translateY(-40px)' : 'none')
+                          // 위로 드래그: 드래그 소스와 드롭 타겟 사이의 아이템들이 아래로 이동
+                          : (originalIndex < dragNodeRef.current && originalIndex >= dragOverIndex ? 'translateY(40px)' : 'none')
+                        )
+                        : 'none',
+                    }}
                     className={cn(
-                      "flex items-center gap-2 p-2 rounded-md border bg-background transition-all group",
+                      "flex items-center gap-2 p-2 rounded-md border bg-background group",
                       !isEditingOrder && !isSelecting && "cursor-grab active:cursor-grabbing",
                       isSelecting && "cursor-pointer",
                       isSelecting && selectedIds.has(item.id) && "border-primary bg-primary/5",
-                      draggedItem?.id === item.id && "opacity-50",
+                      draggedItem?.id === item.id && "opacity-50 scale-95",
                       dragOverIndex === originalIndex && draggedItem?.id !== item.id && "border-primary border-2",
                       item.is_dummy && "bg-muted/50 border-dashed opacity-70",
                       !item.is_dummy && shiftType(displayIndex) === 'early' && "border-green-500/50 bg-green-500/5",

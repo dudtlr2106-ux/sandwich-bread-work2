@@ -133,6 +133,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
   const [draggedItem, setDraggedItem] = useState<PlaylistItem | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [dragDirection, setDragDirection] = useState<'down' | 'up' | null>(null);
+  const [isDropAnimating, setIsDropAnimating] = useState(false);
   const dragNodeRef = useRef<number | null>(null);
   
   const [isAdding, setIsAdding] = useState(false);
@@ -202,8 +203,20 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     e.preventDefault();
     if (dragNodeRef.current === null || dragNodeRef.current === dropDisplayIndex) return;
 
-    // rotatedPlaylist의 displayIndex 기반으로 originalIndex를 찾아서 playlist 재정렬
-    const dragOriginalIdx = rotatedPlaylist[dragNodeRef.current].originalIndex;
+    // 드롭 시 애니메이션 트리거: transform을 0으로 전환하여 부드럽게 복귀
+    setIsDropAnimating(true);
+    setDragOverIndex(null);
+    setDragDirection(null);
+    setDraggedItem(null);
+
+    // 애니메이션이 완료될 때까지 대기 후 실제 데이터 업데이트
+    const dragDisplayIdx = dragNodeRef.current;
+    dragNodeRef.current = null;
+
+    // 짧은 딜레이로 transform 전환 애니메이션 실행
+    await new Promise(resolve => setTimeout(resolve, 250));
+
+    const dragOriginalIdx = rotatedPlaylist[dragDisplayIdx].originalIndex;
     const dropOriginalIdx = rotatedPlaylist[dropDisplayIndex].originalIndex;
 
     const newPlaylist = [...playlist];
@@ -211,10 +224,8 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     const adjustedDropIdx = dragOriginalIdx < dropOriginalIdx ? dropOriginalIdx - 1 : dropOriginalIdx;
     newPlaylist.splice(adjustedDropIdx < 0 ? 0 : adjustedDropIdx, 0, removed);
 
-    // 드롭 위치가 원래 위치보다 뒤면, splice 후 인덱스 보정
     await updateOrder(newPlaylist);
-    setDragOverIndex(null);
-    setDragDirection(null);
+    setIsDropAnimating(false);
   };
 
   // 패키지 부서는 3조 인원만, 나머지 부서는 전체 인원
@@ -511,15 +522,17 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                     onDrop={(e) => handleDrop(e, displayIndex)}
                     onClick={isSelecting ? () => handleToggleSelect(item.id) : undefined}
                     style={{
-                      transition: 'transform 0.2s ease, border-color 0.2s ease',
-                      transform: draggedItem && dragOverIndex !== null && dragNodeRef.current !== null && draggedItem.id !== item.id
-                        ? (dragNodeRef.current < dragOverIndex
-                          // 아래로 드래그: 소스~타겟 사이 + 타겟 이후 모든 아이템이 위로 이동
-                          ? (displayIndex > dragNodeRef.current && displayIndex <= dragOverIndex ? 'translateY(-40px)' : 'none')
-                          // 위로 드래그: 소스~타겟 사이 + 타겟 이전 모든 아이템이 아래로 이동
-                          : (displayIndex < dragNodeRef.current && displayIndex >= dragOverIndex ? 'translateY(40px)' : 'none')
-                        )
-                        : 'none',
+                      transition: isDropAnimating
+                        ? 'transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1), border-color 0.2s ease'
+                        : 'transform 0.2s ease, border-color 0.2s ease',
+                      transform: 'translateY(0)',
+                      ...(draggedItem && dragOverIndex !== null && dragNodeRef.current !== null && draggedItem.id !== item.id
+                        ? {
+                            transform: dragNodeRef.current < dragOverIndex
+                              ? (displayIndex > dragNodeRef.current && displayIndex <= dragOverIndex ? 'translateY(-40px)' : 'translateY(0)')
+                              : (displayIndex < dragNodeRef.current && displayIndex >= dragOverIndex ? 'translateY(40px)' : 'translateY(0)')
+                          }
+                        : {}),
                     }}
                     className={cn(
                       "flex items-center gap-2 p-2 rounded-md border bg-background group",

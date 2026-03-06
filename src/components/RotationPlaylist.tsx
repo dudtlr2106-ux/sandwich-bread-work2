@@ -637,6 +637,23 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                     </button>
                   </div>
                 ))}
+                {/* 맨 끝 빈 공간 드롭 영역 */}
+                {draggedItem && (
+                  <div
+                    className="h-16 rounded-md border-2 border-dashed border-transparent"
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (dragNodeRef.current !== null && rotatedPlaylist.length > 0) {
+                        handleDrop(e, rotatedPlaylist.length - 1);
+                      }
+                    }}
+                  />
+                )}
                 {playlist.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground text-sm">
                     플레이리스트가 비어있습니다.

@@ -228,6 +228,31 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     setIsDropAnimating(false);
   };
 
+  // 맨 끝으로 드롭하는 전용 핸들러
+  const handleDropToEnd = async (e: React.DragEvent) => {
+    e.preventDefault();
+    if (dragNodeRef.current === null) return;
+
+    setIsDropAnimating(true);
+    setDragOverIndex(null);
+    setDragDirection(null);
+    setDraggedItem(null);
+
+    const dragDisplayIdx = dragNodeRef.current;
+    dragNodeRef.current = null;
+
+    await new Promise(resolve => setTimeout(resolve, 250));
+
+    const dragOriginalIdx = rotatedPlaylist[dragDisplayIdx].originalIndex;
+
+    const newPlaylist = [...playlist];
+    const [removed] = newPlaylist.splice(dragOriginalIdx, 1);
+    newPlaylist.push(removed); // 맨 끝에 추가
+
+    await updateOrder(newPlaylist);
+    setIsDropAnimating(false);
+  };
+
   // 패키지 부서는 3조 인원만, 나머지 부서는 전체 인원
   const baseWorkers = department === 'package' ? team3Workers : SORTED_ALL_WORKERS;
   const availableWorkers = baseWorkers.filter(
@@ -517,7 +542,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                 onDrop={(e) => {
                   e.preventDefault();
                   if (dragNodeRef.current !== null && rotatedPlaylist.length > 0) {
-                    handleDrop(e, rotatedPlaylist.length - 1);
+                    handleDropToEnd(e);
                   }
                 }}
               >
@@ -649,7 +674,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       e.preventDefault();
                       e.stopPropagation();
                       if (dragNodeRef.current !== null && rotatedPlaylist.length > 0) {
-                        handleDrop(e, rotatedPlaylist.length - 1);
+                        handleDropToEnd(e);
                       }
                     }}
                   />

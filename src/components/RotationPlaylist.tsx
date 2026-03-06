@@ -511,7 +511,16 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                 </div>
               )}
 
-              <div className="space-y-1 max-h-[520px] overflow-y-auto pr-1">
+              <div
+                className="space-y-1 max-h-[520px] overflow-y-auto pr-1"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragNodeRef.current !== null && rotatedPlaylist.length > 0) {
+                    handleDrop(e, rotatedPlaylist.length - 1);
+                  }
+                }}
+              >
                 {rotatedPlaylist.map(({ item, originalIndex }, displayIndex) => (
                   <div
                     key={item.id}

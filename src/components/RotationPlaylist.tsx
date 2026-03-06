@@ -133,6 +133,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
   const [draggedItem, setDraggedItem] = useState<PlaylistItem | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [dragDirection, setDragDirection] = useState<'down' | 'up' | null>(null);
+  const [dragDropZone, setDragDropZone] = useState<'top' | 'center' | 'bottom' | null>(null);
   const [isDropAnimating, setIsDropAnimating] = useState(false);
   const dragNodeRef = useRef<number | null>(null);
   
@@ -187,42 +188,74 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     setDraggedItem(null);
     setDragOverIndex(null);
     setDragDirection(null);
+    setDragDropZone(null);
     dragNodeRef.current = null;
   };
 
   const handleDragOver = (e: React.DragEvent, displayIndex: number) => {
     e.preventDefault();
-    if (dragNodeRef.current === null) return;
-    if (dragNodeRef.current !== displayIndex) {
-      setDragOverIndex(displayIndex);
-      setDragDirection(displayIndex > dragNodeRef.current ? 'down' : 'up');
+    if (dragNodeRef.current === null || dragNodeRef.current === displayIndex) {
+      setDragOverIndex(null);
+      setDragDropZone(null);
+      return;
     }
+    
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const height = rect.height;
+    const ratio = y / height;
+    
+    let zone: 'top' | 'center' | 'bottom';
+    if (ratio < 0.25) {
+      zone = 'top';
+    } else if (ratio > 0.75) {
+      zone = 'bottom';
+    } else {
+      zone = 'center';
+    }
+    
+    setDragOverIndex(displayIndex);
+    setDragDirection(displayIndex > dragNodeRef.current ? 'down' : 'up');
+    setDragDropZone(zone);
   };
 
   const handleDrop = async (e: React.DragEvent, dropDisplayIndex: number) => {
     e.preventDefault();
     if (dragNodeRef.current === null || dragNodeRef.current === dropDisplayIndex) return;
 
-    // 드롭 시 애니메이션 트리거: transform을 0으로 전환하여 부드럽게 복귀
+    const zone = dragDropZone || 'center';
+    
     setIsDropAnimating(true);
     setDragOverIndex(null);
     setDragDirection(null);
+    setDragDropZone(null);
     setDraggedItem(null);
 
-    // 애니메이션이 완료될 때까지 대기 후 실제 데이터 업데이트
     const dragDisplayIdx = dragNodeRef.current;
     dragNodeRef.current = null;
 
-    // 짧은 딜레이로 transform 전환 애니메이션 실행
     await new Promise(resolve => setTimeout(resolve, 250));
 
     const dragOriginalIdx = rotatedPlaylist[dragDisplayIdx].originalIndex;
     const dropOriginalIdx = rotatedPlaylist[dropDisplayIndex].originalIndex;
 
     const newPlaylist = [...playlist];
-    const [removed] = newPlaylist.splice(dragOriginalIdx, 1);
-    const adjustedDropIdx = dragOriginalIdx < dropOriginalIdx ? dropOriginalIdx - 1 : dropOriginalIdx;
-    newPlaylist.splice(adjustedDropIdx < 0 ? 0 : adjustedDropIdx, 0, removed);
+
+    if (zone === 'center') {
+      // 위치 교체 (swap)
+      const temp = { ...newPlaylist[dragOriginalIdx] };
+      newPlaylist[dragOriginalIdx] = { ...newPlaylist[dropOriginalIdx], position: newPlaylist[dragOriginalIdx].position };
+      newPlaylist[dropOriginalIdx] = { ...temp, position: newPlaylist[dropOriginalIdx].position };
+    } else {
+      // 삽입 (insert above or below)
+      const [removed] = newPlaylist.splice(dragOriginalIdx, 1);
+      let insertIdx = dragOriginalIdx < dropOriginalIdx ? dropOriginalIdx - 1 : dropOriginalIdx;
+      if (zone === 'bottom') {
+        insertIdx += 1;
+      }
+      insertIdx = Math.max(0, Math.min(insertIdx, newPlaylist.length));
+      newPlaylist.splice(insertIdx, 0, removed);
+    }
 
     await updateOrder(newPlaylist);
     setIsDropAnimating(false);
@@ -236,6 +269,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     setIsDropAnimating(true);
     setDragOverIndex(null);
     setDragDirection(null);
+    setDragDropZone(null);
     setDraggedItem(null);
 
     const dragDisplayIdx = dragNodeRef.current;
@@ -247,7 +281,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
 
     const newPlaylist = [...playlist];
     const [removed] = newPlaylist.splice(dragOriginalIdx, 1);
-    newPlaylist.push(removed); // 맨 끝에 추가
+    newPlaylist.push(removed);
 
     await updateOrder(newPlaylist);
     setIsDropAnimating(false);
@@ -546,9 +580,18 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                   }
                 }}
               >
-                {rotatedPlaylist.map(({ item, originalIndex }, displayIndex) => (
+                {rotatedPlaylist.map(({ item, originalIndex }, displayIndex) => {
+                  const isOverThis = dragOverIndex === displayIndex && draggedItem?.id !== item.id;
+                  return (
                   <div
                     key={item.id}
+                    className="relative"
+                  >
+                    {/* 위쪽 삽입 인디케이터 */}
+                    {isOverThis && dragDropZone === 'top' && (
+                      <div className="absolute top-0 left-0 right-0 h-[3px] bg-primary rounded-full z-10 -translate-y-1/2" />
+                    )}
+                    <div
                     draggable={!isEditingOrder && !isSelecting}
                     onDragStart={(e) => !isEditingOrder && !isSelecting && handleDragStart(e, item, displayIndex)}
                     onDragEnd={handleDragEnd}
@@ -557,16 +600,9 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                     onClick={isSelecting ? () => handleToggleSelect(item.id) : undefined}
                     style={{
                       transition: isDropAnimating
-                        ? 'transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1), border-color 0.2s ease'
-                        : 'transform 0.2s ease, border-color 0.2s ease',
+                        ? 'transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1), border-color 0.2s ease, box-shadow 0.2s ease'
+                        : 'transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
                       transform: 'translateY(0)',
-                      ...(draggedItem && dragOverIndex !== null && dragNodeRef.current !== null && draggedItem.id !== item.id
-                        ? {
-                            transform: dragNodeRef.current < dragOverIndex
-                              ? (displayIndex > dragNodeRef.current && displayIndex <= dragOverIndex ? 'translateY(-40px)' : 'translateY(0)')
-                              : (displayIndex < dragNodeRef.current && displayIndex >= dragOverIndex ? 'translateY(40px)' : 'translateY(0)')
-                          }
-                        : {}),
                     }}
                     className={cn(
                       "flex items-center gap-2 p-2 rounded-md border bg-background group",
@@ -574,7 +610,8 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       isSelecting && "cursor-pointer",
                       isSelecting && selectedIds.has(item.id) && "border-primary bg-primary/5",
                       draggedItem?.id === item.id && "opacity-50 scale-95",
-                      dragOverIndex === originalIndex && draggedItem?.id !== item.id && "border-primary border-2",
+                      isOverThis && dragDropZone === 'center' && "border-primary border-2 bg-primary/10 shadow-md",
+                      isOverThis && (dragDropZone === 'top' || dragDropZone === 'bottom') && "border-muted-foreground/30",
                       item.is_dummy && "bg-muted/50 border-dashed opacity-70",
                       !item.is_dummy && shiftType(displayIndex) === 'early' && "border-green-500/50 bg-green-500/5",
                       !item.is_dummy && shiftType(displayIndex) === 'mid' && "border-blue-500/50 bg-blue-500/5"
@@ -660,8 +697,14 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                     >
                       <X className="h-3 w-3 text-destructive" />
                     </button>
+                    </div>
+                    {/* 아래쪽 삽입 인디케이터 */}
+                    {isOverThis && dragDropZone === 'bottom' && (
+                      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-full z-10 translate-y-1/2" />
+                    )}
                   </div>
-                ))}
+                  );
+                })}
                 {/* 맨 끝 빈 공간 드롭 영역 */}
                 {draggedItem && (
                   <div

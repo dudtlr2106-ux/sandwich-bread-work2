@@ -571,7 +571,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
               )}
 
               <div
-                className="space-y-1 max-h-[520px] overflow-y-auto pr-1"
+                className="max-h-[520px] overflow-y-auto pr-1"
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -619,12 +619,14 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                   return (
                   <div
                     key={item.id}
-                    className="relative"
+                    className="relative py-[2px]"
                     style={{
                       transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.2, 0, 0, 1)',
                       transform: `translateY(${displacement}px)`,
                       zIndex: isDragging ? 50 : displacement !== 0 ? 5 : 1,
                     }}
+                    onDragOver={(e) => handleDragOver(e, displayIndex)}
+                    onDrop={(e) => handleDrop(e, displayIndex)}
                   >
                     {/* 위쪽 삽입 인디케이터 */}
                     {isOverThis && dragDropZone === 'top' && (

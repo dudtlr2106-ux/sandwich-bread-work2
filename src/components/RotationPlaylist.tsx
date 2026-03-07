@@ -573,12 +573,6 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
               <div
                 className="max-h-[520px] overflow-y-auto pr-1"
                 onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (dragNodeRef.current !== null && rotatedPlaylist.length > 0) {
-                    handleDropToEnd(e);
-                  }
-                }}
               >
                 {rotatedPlaylist.map(({ item, originalIndex }, displayIndex) => {
                   const isOverThis = dragOverIndex === displayIndex && draggedItem?.id !== item.id;

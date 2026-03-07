@@ -582,10 +582,49 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
               >
                 {rotatedPlaylist.map(({ item, originalIndex }, displayIndex) => {
                   const isOverThis = dragOverIndex === displayIndex && draggedItem?.id !== item.id;
+                  const isDragging = draggedItem?.id === item.id;
+                  
+                  // Calculate displacement for push-aside animation
+                  let displacement = 0;
+                  if (dragNodeRef.current !== null && dragOverIndex !== null && dragDropZone !== 'center' && !isDragging) {
+                    const dragIdx = dragNodeRef.current;
+                    const hoverIdx = dragOverIndex;
+                    const itemHeight = 40; // approximate item height in px
+                    
+                    if (dragIdx < hoverIdx) {
+                      // Dragging downward
+                      if (dragDropZone === 'top') {
+                        if (displayIndex > dragIdx && displayIndex < hoverIdx) {
+                          displacement = -itemHeight;
+                        }
+                      } else if (dragDropZone === 'bottom') {
+                        if (displayIndex > dragIdx && displayIndex <= hoverIdx) {
+                          displacement = -itemHeight;
+                        }
+                      }
+                    } else if (dragIdx > hoverIdx) {
+                      // Dragging upward
+                      if (dragDropZone === 'top') {
+                        if (displayIndex >= hoverIdx && displayIndex < dragIdx) {
+                          displacement = itemHeight;
+                        }
+                      } else if (dragDropZone === 'bottom') {
+                        if (displayIndex > hoverIdx && displayIndex < dragIdx) {
+                          displacement = itemHeight;
+                        }
+                      }
+                    }
+                  }
+                  
                   return (
                   <div
                     key={item.id}
                     className="relative"
+                    style={{
+                      transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.2, 0, 0, 1)',
+                      transform: `translateY(${displacement}px)`,
+                      zIndex: isDragging ? 50 : displacement !== 0 ? 5 : 1,
+                    }}
                   >
                     {/* 위쪽 삽입 인디케이터 */}
                     {isOverThis && dragDropZone === 'top' && (
@@ -598,18 +637,12 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                     onDragOver={(e) => handleDragOver(e, displayIndex)}
                     onDrop={(e) => handleDrop(e, displayIndex)}
                     onClick={isSelecting ? () => handleToggleSelect(item.id) : undefined}
-                    style={{
-                      transition: isDropAnimating
-                        ? 'transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1), border-color 0.2s ease, box-shadow 0.2s ease'
-                        : 'transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
-                      transform: 'translateY(0)',
-                    }}
                     className={cn(
-                      "flex items-center gap-2 p-2 rounded-md border bg-background group",
+                      "flex items-center gap-2 p-2 rounded-md border bg-background group transition-colors duration-200",
                       !isEditingOrder && !isSelecting && "cursor-grab active:cursor-grabbing",
                       isSelecting && "cursor-pointer",
                       isSelecting && selectedIds.has(item.id) && "border-primary bg-primary/5",
-                      draggedItem?.id === item.id && "opacity-50 scale-95",
+                      isDragging && "opacity-50 scale-95",
                       isOverThis && dragDropZone === 'center' && "border-primary border-2 bg-primary/10 shadow-md",
                       isOverThis && (dragDropZone === 'top' || dragDropZone === 'bottom') && "border-muted-foreground/30",
                       item.is_dummy && "bg-muted/50 border-dashed opacity-70",

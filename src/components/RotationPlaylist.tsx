@@ -571,7 +571,7 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
               )}
 
               <div
-                className="space-y-1 max-h-[520px] overflow-y-auto pr-1"
+                className="max-h-[520px] overflow-y-auto pr-1"
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();

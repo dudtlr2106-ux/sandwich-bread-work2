@@ -625,8 +625,15 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       transform: `translateY(${displacement}px)`,
                       zIndex: isDragging ? 50 : displacement !== 0 ? 5 : 1,
                     }}
-                    onDragOver={(e) => handleDragOver(e, displayIndex)}
-                    onDrop={(e) => handleDrop(e, displayIndex)}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDragOver(e, displayIndex);
+                    }}
+                    onDrop={(e) => {
+                      e.stopPropagation();
+                      handleDrop(e, displayIndex);
+                    }}
                   >
                     {/* 위쪽 삽입 인디케이터 */}
                     {isOverThis && dragDropZone === 'top' && (

@@ -637,8 +637,8 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                     draggable={!isEditingOrder && !isSelecting}
                     onDragStart={(e) => !isEditingOrder && !isSelecting && handleDragStart(e, item, displayIndex)}
                     onDragEnd={handleDragEnd}
-                    onDragOver={(e) => handleDragOver(e, displayIndex)}
-                    onDrop={(e) => handleDrop(e, displayIndex)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => e.preventDefault()}
                     onClick={isSelecting ? () => handleToggleSelect(item.id) : undefined}
                     className={cn(
                       "flex items-center gap-2 p-2 rounded-md border bg-background group transition-colors duration-200",

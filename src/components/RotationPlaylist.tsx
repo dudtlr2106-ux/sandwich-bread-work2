@@ -132,9 +132,6 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
 
   const [draggedItem, setDraggedItem] = useState<PlaylistItem | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [dragDirection, setDragDirection] = useState<'down' | 'up' | null>(null);
-  const [dragDropZone, setDragDropZone] = useState<'top' | 'center' | 'bottom' | null>(null);
-  const [isDropAnimating, setIsDropAnimating] = useState(false);
   const dragNodeRef = useRef<number | null>(null);
   
   const [isAdding, setIsAdding] = useState(false);
@@ -172,23 +169,15 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     e.dataTransfer.effectAllowed = 'move';
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = '0.5';
-      e.currentTarget.style.boxShadow = '0 8px 25px -5px rgba(0,0,0,0.3), 0 4px 10px -5px rgba(0,0,0,0.2)';
-      e.currentTarget.style.transform = 'scale(1.02)';
-      e.currentTarget.style.zIndex = '50';
     }
   };
 
   const handleDragEnd = (e: React.DragEvent) => {
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = '1';
-      e.currentTarget.style.boxShadow = '';
-      e.currentTarget.style.transform = '';
-      e.currentTarget.style.zIndex = '';
     }
     setDraggedItem(null);
     setDragOverIndex(null);
-    setDragDirection(null);
-    setDragDropZone(null);
     dragNodeRef.current = null;
   };
 
@@ -196,93 +185,31 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     e.preventDefault();
     if (dragNodeRef.current === null || dragNodeRef.current === displayIndex) {
       setDragOverIndex(null);
-      setDragDropZone(null);
       return;
     }
-    
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    const height = rect.height;
-    const ratio = y / height;
-    
-    let zone: 'top' | 'center' | 'bottom';
-    if (ratio < 0.5) {
-      zone = 'top';
-    } else {
-      zone = 'bottom';
-    }
-    
     setDragOverIndex(displayIndex);
-    setDragDirection(displayIndex > dragNodeRef.current ? 'down' : 'up');
-    setDragDropZone(zone);
   };
 
   const handleDrop = async (e: React.DragEvent, dropDisplayIndex: number) => {
     e.preventDefault();
     if (dragNodeRef.current === null || dragNodeRef.current === dropDisplayIndex) return;
 
-    const zone = dragDropZone || 'center';
-    
-    setIsDropAnimating(true);
     setDragOverIndex(null);
-    setDragDirection(null);
-    setDragDropZone(null);
     setDraggedItem(null);
 
     const dragDisplayIdx = dragNodeRef.current;
     dragNodeRef.current = null;
-
-    await new Promise(resolve => setTimeout(resolve, 250));
 
     const dragOriginalIdx = rotatedPlaylist[dragDisplayIdx].originalIndex;
     const dropOriginalIdx = rotatedPlaylist[dropDisplayIndex].originalIndex;
 
     const newPlaylist = [...playlist];
-
-    if (zone === 'center') {
-      // 위치 교체 (swap)
-      const temp = { ...newPlaylist[dragOriginalIdx] };
-      newPlaylist[dragOriginalIdx] = { ...newPlaylist[dropOriginalIdx], position: newPlaylist[dragOriginalIdx].position };
-      newPlaylist[dropOriginalIdx] = { ...temp, position: newPlaylist[dropOriginalIdx].position };
-    } else {
-      // 삽입 (insert above or below)
-      const [removed] = newPlaylist.splice(dragOriginalIdx, 1);
-      let insertIdx = dragOriginalIdx < dropOriginalIdx ? dropOriginalIdx - 1 : dropOriginalIdx;
-      if (zone === 'bottom') {
-        insertIdx += 1;
-      }
-      insertIdx = Math.max(0, Math.min(insertIdx, newPlaylist.length));
-      newPlaylist.splice(insertIdx, 0, removed);
-    }
+    // 위치 교체 (swap)
+    const temp = { ...newPlaylist[dragOriginalIdx] };
+    newPlaylist[dragOriginalIdx] = { ...newPlaylist[dropOriginalIdx], position: newPlaylist[dragOriginalIdx].position };
+    newPlaylist[dropOriginalIdx] = { ...temp, position: newPlaylist[dropOriginalIdx].position };
 
     await updateOrder(newPlaylist);
-    setIsDropAnimating(false);
-  };
-
-  // 맨 끝으로 드롭하는 전용 핸들러
-  const handleDropToEnd = async (e: React.DragEvent) => {
-    e.preventDefault();
-    if (dragNodeRef.current === null) return;
-
-    setIsDropAnimating(true);
-    setDragOverIndex(null);
-    setDragDirection(null);
-    setDragDropZone(null);
-    setDraggedItem(null);
-
-    const dragDisplayIdx = dragNodeRef.current;
-    dragNodeRef.current = null;
-
-    await new Promise(resolve => setTimeout(resolve, 250));
-
-    const dragOriginalIdx = rotatedPlaylist[dragDisplayIdx].originalIndex;
-
-    const newPlaylist = [...playlist];
-    const [removed] = newPlaylist.splice(dragOriginalIdx, 1);
-    newPlaylist.push(removed);
-
-    await updateOrder(newPlaylist);
-    setIsDropAnimating(false);
   };
 
   // 패키지 부서는 3조 인원만, 나머지 부서는 전체 인원

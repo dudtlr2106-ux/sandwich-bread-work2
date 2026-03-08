@@ -206,12 +206,10 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
     const ratio = y / height;
     
     let zone: 'top' | 'center' | 'bottom';
-    if (ratio < 0.25) {
+    if (ratio < 0.5) {
       zone = 'top';
-    } else if (ratio > 0.75) {
-      zone = 'bottom';
     } else {
-      zone = 'center';
+      zone = 'bottom';
     }
     
     setDragOverIndex(displayIndex);

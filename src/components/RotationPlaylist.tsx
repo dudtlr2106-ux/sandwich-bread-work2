@@ -503,47 +503,10 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                   const isOverThis = dragOverIndex === displayIndex && draggedItem?.id !== item.id;
                   const isDragging = draggedItem?.id === item.id;
                   
-                  // Calculate displacement for push-aside animation
-                  let displacement = 0;
-                  if (dragNodeRef.current !== null && dragOverIndex !== null && dragDropZone !== 'center' && !isDragging) {
-                    const dragIdx = dragNodeRef.current;
-                    const hoverIdx = dragOverIndex;
-                    const itemHeight = 40; // approximate item height in px
-                    
-                    if (dragIdx < hoverIdx) {
-                      // Dragging downward
-                      if (dragDropZone === 'top') {
-                        if (displayIndex > dragIdx && displayIndex < hoverIdx) {
-                          displacement = -itemHeight;
-                        }
-                      } else if (dragDropZone === 'bottom') {
-                        if (displayIndex > dragIdx && displayIndex <= hoverIdx) {
-                          displacement = -itemHeight;
-                        }
-                      }
-                    } else if (dragIdx > hoverIdx) {
-                      // Dragging upward
-                      if (dragDropZone === 'top') {
-                        if (displayIndex >= hoverIdx && displayIndex < dragIdx) {
-                          displacement = itemHeight;
-                        }
-                      } else if (dragDropZone === 'bottom') {
-                        if (displayIndex > hoverIdx && displayIndex < dragIdx) {
-                          displacement = itemHeight;
-                        }
-                      }
-                    }
-                  }
-                  
                   return (
                   <div
                     key={item.id}
                     className="relative py-[2px]"
-                    style={{
-                      transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.2, 0, 0, 1)',
-                      transform: `translateY(${displacement}px)`,
-                      zIndex: isDragging ? 50 : displacement !== 0 ? 5 : 1,
-                    }}
                     onDragOver={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -554,10 +517,6 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       handleDrop(e, displayIndex);
                     }}
                   >
-                    {/* 위쪽 삽입 인디케이터 */}
-                    {isOverThis && dragDropZone === 'top' && (
-                      <div className="absolute top-0 left-0 right-0 h-[3px] bg-primary rounded-full z-10 -translate-y-1/2" />
-                    )}
                     <div
                     draggable={!isEditingOrder && !isSelecting}
                     onDragStart={(e) => !isEditingOrder && !isSelecting && handleDragStart(e, item, displayIndex)}
@@ -570,9 +529,8 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       !isEditingOrder && !isSelecting && "cursor-grab active:cursor-grabbing",
                       isSelecting && "cursor-pointer",
                       isSelecting && selectedIds.has(item.id) && "border-primary bg-primary/5",
-                      isDragging && "opacity-50 scale-95",
-                      isOverThis && dragDropZone === 'center' && "border-primary border-2 bg-primary/10 shadow-md",
-                      isOverThis && (dragDropZone === 'top' || dragDropZone === 'bottom') && "border-muted-foreground/30",
+                      isDragging && "opacity-50",
+                      isOverThis && "border-primary border-2 bg-primary/10 shadow-md",
                       item.is_dummy && "bg-muted/50 border-dashed opacity-70",
                       !item.is_dummy && shiftType(displayIndex) === 'early' && "border-green-500/50 bg-green-500/5",
                       !item.is_dummy && shiftType(displayIndex) === 'mid' && "border-blue-500/50 bg-blue-500/5"
@@ -659,30 +617,9 @@ export function RotationPlaylist({ department }: RotationPlaylistProps) {
                       <X className="h-3 w-3 text-destructive" />
                     </button>
                     </div>
-                    {/* 아래쪽 삽입 인디케이터 */}
-                    {isOverThis && dragDropZone === 'bottom' && (
-                      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-full z-10 translate-y-1/2" />
-                    )}
                   </div>
                   );
                 })}
-                {/* 맨 끝 빈 공간 드롭 영역 */}
-                {draggedItem && (
-                  <div
-                    className="h-16 rounded-md border-2 border-dashed border-transparent"
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (dragNodeRef.current !== null && rotatedPlaylist.length > 0) {
-                        handleDropToEnd(e);
-                      }
-                    }}
-                  />
-                )}
                 {playlist.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground text-sm">
                     플레이리스트가 비어있습니다.

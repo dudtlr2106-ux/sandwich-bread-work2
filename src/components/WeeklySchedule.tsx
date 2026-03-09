@@ -1147,10 +1147,10 @@ const WeeklySchedule = () => {
                     const isSundayShift = day === "일";
                     return (
                       <React.Fragment key={`${day}-shifts`}>
-                        <th className={`px-2 py-1 text-center border-b border-r border-border text-xs font-semibold ${hasSecondShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""} ${isSundayShift ? "print-hide-sunday" : ""}`}>
+                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${!isCompact && hasSecondShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""} ${isSundayShift ? "print-hide-sunday" : ""}`}>
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-primary">초반</span>
-                            {hasSecondShiftVacation && (
+                            <span className="text-primary">{isCompact ? '초' : '초반'}</span>
+                            {!isCompact && hasSecondShiftVacation && (
                               <div className="flex items-center gap-0.5 text-[9px] text-orange-600">
                                 <Clock className="h-2.5 w-2.5" />
                                 <span>잔업가능</span>
@@ -1158,10 +1158,10 @@ const WeeklySchedule = () => {
                             )}
                           </div>
                         </th>
-                        <th className={`px-2 py-1 text-center border-b border-r border-border text-xs font-semibold ${hasFirstShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""} ${isSundayShift ? "print-hide-sunday" : ""}`}>
+                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${!isCompact && hasFirstShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""} ${isSundayShift ? "print-hide-sunday" : ""}`}>
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-secondary-foreground">중반</span>
-                            {hasFirstShiftVacation && (
+                            <span className="text-secondary-foreground">{isCompact ? '중' : '중반'}</span>
+                            {!isCompact && hasFirstShiftVacation && (
                               <div className="flex items-center gap-0.5 text-[9px] text-orange-600">
                                 <Clock className="h-2.5 w-2.5" />
                                 <span>잔업가능</span>

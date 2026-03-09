@@ -1567,8 +1567,8 @@ const WeeklySchedule = () => {
             </table>
           </div>
 
-          {/* 주말 출근 가능 여부 체크란 - 토요일이 휴무가 아닌 경우에만 표시 */}
-          {isSaturdayWorkday() && (
+          {/* 주말 출근 가능 여부 체크란 - 컴팩트 모드에서는 숨김 */}
+          {!isCompact && isSaturdayWorkday() && (
             <div className="p-4 border-t border-border bg-blue-50/50 dark:bg-blue-950/20 print-hide">
               <div className="flex items-center gap-2 mb-3">
                 <Calendar className="h-4 w-4 text-blue-600" />

@@ -596,21 +596,17 @@ const WeeklySchedule = () => {
       baseEnd = 22;
     }
     
-    // 시간잔업이 있으면 잔업 시간을 반영
+    // 시간잔업이 있으면 잔업 시간을 반영 (마지막 변경 시간 우선)
     if (partialOvertimeInfo) {
       const overtimeStartHour = parseInt(partialOvertimeInfo.start_time.split(":")[0]);
       const overtimeEndHour = parseInt(partialOvertimeInfo.end_time.split(":")[0]);
       
       if (isFirstShift) {
-        // 초반조: 잔업 시간이 정규 근무 이후이면 퇴근 시간 연장
-        if (overtimeEndHour > baseEnd) {
-          baseEnd = overtimeEndHour;
-        }
+        // 초반조: 시간잔업의 종료 시간을 퇴근 시간으로 직접 반영
+        baseEnd = overtimeEndHour;
       } else {
-        // 중반조: 잔업 시간이 정규 근무 이전이면 출근 시간 앞당김
-        if (overtimeStartHour < baseStart) {
-          baseStart = overtimeStartHour;
-        }
+        // 중반조: 시간잔업의 시작 시간을 출근 시간으로 직접 반영
+        baseStart = overtimeStartHour;
       }
     }
     

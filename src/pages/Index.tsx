@@ -1,6 +1,7 @@
 import WeeklySchedule from "@/components/WeeklySchedule";
 import AdminRequestList from "@/components/AdminRequestList";
 import { TestPushButton } from "@/components/TestPushButton";
+import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {

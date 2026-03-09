@@ -67,6 +67,8 @@ import {
   Settings,
   Sparkles,
   Printer,
+  Minimize2,
+  Maximize2,
 } from "lucide-react";
 import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";

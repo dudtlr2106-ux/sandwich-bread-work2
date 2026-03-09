@@ -67,6 +67,8 @@ import {
   Settings,
   Sparkles,
   Printer,
+  Minimize2,
+  Maximize2,
 } from "lucide-react";
 import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -248,7 +250,14 @@ const WeeklySchedule = () => {
 
   // 팀 관리 화면 상태
   const [showTeamManagement, setShowTeamManagement] = useState(false);
-  
+  const [isCompact, setIsCompact] = useState(() => {
+    const saved = localStorage.getItem('scheduleCompactMode');
+    return saved === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('scheduleCompactMode', String(isCompact));
+  }, [isCompact]);
 
   // 근태 수정 요청 다이얼로그 열기
   const openRequestDialog = (workerName: string, dateKey: string, day: string, currentStatus: string) => {
@@ -947,6 +956,17 @@ const WeeklySchedule = () => {
                   <Printer className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
                 </Button>
               )}
+
+              {/* 컴팩트 모드 토글 */}
+              <Button
+                variant={isCompact ? "default" : "outline"}
+                size="icon"
+                onClick={() => setIsCompact(!isCompact)}
+                className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'}
+                title={isCompact ? "일반 보기" : "컴팩트 보기"}
+              >
+                {isCompact ? <Maximize2 className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} /> : <Minimize2 className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />}
+              </Button>
               
               <Button
                 variant="outline"
@@ -980,8 +1000,8 @@ const WeeklySchedule = () => {
           </div>
           
 
-          {/* Notice display - 공개이거나 관리자인 경우에만 표시 */}
-          {noticeMemo && (noticeMemoIsPublic || isAdmin) && (
+          {/* Notice display - 컴팩트 모드에서는 숨김 */}
+          {!isCompact && noticeMemo && (noticeMemoIsPublic || isAdmin) && (
             <Collapsible open={!noticeCollapsed} onOpenChange={(open) => setNoticeCollapsed(!open)}>
               <div className={`mt-4 border rounded-lg p-4 ${noticeMemoIsPublic ? 'bg-muted/50 border-border' : 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800'}`}>
                 <div className="flex items-start gap-2">
@@ -1010,7 +1030,7 @@ const WeeklySchedule = () => {
             </Collapsible>
           )}
         </CardHeader>
-        <CardContent className="p-0 schedule-table-container">
+        <CardContent className={`p-0 ${isCompact ? '' : 'schedule-table-container'}`}>
           {/* 인쇄 전용 제목 */}
           <h1 className="print-title hidden">
             {format(currentWeekStart, "yyyy년 M월", { locale: ko })} 주간 근무표 ({formatWeekRange()})
@@ -1071,25 +1091,28 @@ const WeeklySchedule = () => {
                       <th
                         key={day}
                         colSpan={2}
-                        className={`p-2 text-center border-b border-r border-border cursor-pointer hover:bg-muted/70 transition-colors ${getDayHeaderClass(day, date)} ${isOff ? "bg-muted/50" : ""} ${isSunday ? "print-hide-sunday" : ""}`}
+                        className={`${isCompact ? 'p-1' : 'p-2'} text-center border-b border-r border-border cursor-pointer hover:bg-muted/70 transition-colors ${getDayHeaderClass(day, date)} ${isOff ? "bg-muted/50" : ""} ${isSunday ? "print-hide-sunday" : ""}`}
                         onClick={() => toggleDayOff(dateKey)}
                       >
                         <div className="flex items-center justify-center gap-1 flex-wrap">
-                          <span className="text-lg">{day}</span>
-                          <span className="text-xs text-muted-foreground font-normal">
+                          <span className={isCompact ? "text-xs" : "text-lg"}>{day}</span>
+                          <span className={`${isCompact ? 'text-[8px]' : 'text-xs'} text-muted-foreground font-normal`}>
                             {format(date, "M/d")}
                           </span>
-                          {isOff && (
+                          {isOff && !isCompact && (
                             <span className="text-[10px] bg-gray-500 text-white px-1 rounded">
                               휴무
                             </span>
                           )}
-                          {!isOff && holiday && (
+                          {isOff && isCompact && (
+                            <span className="text-[8px] text-muted-foreground">휴</span>
+                          )}
+                          {!isOff && holiday && !isCompact && (
                             <span className="text-[10px] bg-red-500 text-white px-1 rounded">
                               {holiday.name}
                             </span>
                           )}
-                          {!isOff && isSpecialWork && !holiday && (
+                          {!isOff && isSpecialWork && !holiday && !isCompact && (
                             <span className="text-[10px] bg-blue-500 text-white px-1 rounded">
                               특근
                             </span>
@@ -1124,10 +1147,10 @@ const WeeklySchedule = () => {
                     const isSundayShift = day === "일";
                     return (
                       <React.Fragment key={`${day}-shifts`}>
-                        <th className={`px-2 py-1 text-center border-b border-r border-border text-xs font-semibold ${hasSecondShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""} ${isSundayShift ? "print-hide-sunday" : ""}`}>
+                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${!isCompact && hasSecondShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""} ${isSundayShift ? "print-hide-sunday" : ""}`}>
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-primary">초반</span>
-                            {hasSecondShiftVacation && (
+                            <span className="text-primary">{isCompact ? '초' : '초반'}</span>
+                            {!isCompact && hasSecondShiftVacation && (
                               <div className="flex items-center gap-0.5 text-[9px] text-orange-600">
                                 <Clock className="h-2.5 w-2.5" />
                                 <span>잔업가능</span>
@@ -1135,10 +1158,10 @@ const WeeklySchedule = () => {
                             )}
                           </div>
                         </th>
-                        <th className={`px-2 py-1 text-center border-b border-r border-border text-xs font-semibold ${hasFirstShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""} ${isSundayShift ? "print-hide-sunday" : ""}`}>
+                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${!isCompact && hasFirstShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""} ${isSundayShift ? "print-hide-sunday" : ""}`}>
                           <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-secondary-foreground">중반</span>
-                            {hasFirstShiftVacation && (
+                            <span className="text-secondary-foreground">{isCompact ? '중' : '중반'}</span>
+                            {!isCompact && hasFirstShiftVacation && (
                               <div className="flex items-center gap-0.5 text-[9px] text-orange-600">
                                 <Clock className="h-2.5 w-2.5" />
                                 <span>잔업가능</span>
@@ -1207,10 +1230,10 @@ const WeeklySchedule = () => {
                         <React.Fragment key={`${dept.id}-${day}`}>
                           {/* 초반 셀 */}
                           <td
-                            className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-primary/5 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${isSundayCell ? "print-hide-sunday" : ""}`}
+                            className={`schedule-cell border-b border-r border-border ${isCompact ? 'p-0.5 min-h-0' : 'p-1'} cursor-pointer group hover:bg-primary/5 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${isSundayCell ? "print-hide-sunday" : ""}`}
                             onClick={() => isSaturday ? openSaturdaySelectDialog(dept.id, firstShiftKey) : openEditDialog(dept.id, day, firstShiftKey)}
                           >
-                            <div className="flex flex-wrap gap-x-1 gap-y-1.5 justify-center">
+                            <div className={`flex flex-wrap justify-center ${isCompact ? 'gap-x-0.5 gap-y-0.5' : 'gap-x-1 gap-y-1.5'}`}>
                                 {firstShiftWorkers.length > 0 ? (
                                   firstShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
@@ -1218,6 +1241,19 @@ const WeeklySchedule = () => {
                                     const hasPartialOvertime = !!getPartialOvertimeInfo(worker, dateKey);
                                     const statusStyle = getStatusStyle(status, hasPartialVacation, hasPartialOvertime);
                                     const times = getShiftTimes(firstShiftKey, day, status, worker, dateKey);
+
+                                    if (isCompact) {
+                                      return (
+                                        <span
+                                          key={idx}
+                                          className={`text-[10px] font-semibold whitespace-nowrap px-0.5 ${statusStyle.className || "text-foreground"}`}
+                                          title={`${worker} (${times.start}~${times.end})`}
+                                        >
+                                          {worker}
+                                        </span>
+                                      );
+                                    }
+
                                     return (
                                       <TapOnlyDropdown
                                         key={idx}
@@ -1295,10 +1331,10 @@ const WeeklySchedule = () => {
                           </td>
                           {/* 중반 셀 */}
                           <td
-                            className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-secondary/50 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${isSundayCell ? "print-hide-sunday" : ""}`}
+                            className={`schedule-cell border-b border-r border-border ${isCompact ? 'p-0.5 min-h-0' : 'p-1'} cursor-pointer group hover:bg-secondary/50 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${isSundayCell ? "print-hide-sunday" : ""}`}
                             onClick={() => isSaturday ? openSaturdaySelectDialog(dept.id, secondShiftKey) : openEditDialog(dept.id, day, secondShiftKey)}
                           >
-                            <div className="flex flex-wrap gap-x-1 gap-y-1.5 justify-center">
+                            <div className={`flex flex-wrap justify-center ${isCompact ? 'gap-x-0.5 gap-y-0.5' : 'gap-x-1 gap-y-1.5'}`}>
                               {secondShiftWorkers.length > 0 ? (
                                   secondShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
@@ -1306,6 +1342,19 @@ const WeeklySchedule = () => {
                                     const hasPartialOvertime = !!getPartialOvertimeInfo(worker, dateKey);
                                     const statusStyle = getStatusStyle(status, hasPartialVacation, hasPartialOvertime);
                                     const times = getShiftTimes(secondShiftKey, day, status, worker, dateKey);
+
+                                    if (isCompact) {
+                                      return (
+                                        <span
+                                          key={idx}
+                                          className={`text-[10px] font-semibold whitespace-nowrap px-0.5 ${statusStyle.className || "text-foreground"}`}
+                                          title={`${worker} (${times.start}~${times.end})`}
+                                        >
+                                          {worker}
+                                        </span>
+                                      );
+                                    }
+
                                     return (
                                       <TapOnlyDropdown
                                         key={idx}
@@ -1518,8 +1567,8 @@ const WeeklySchedule = () => {
             </table>
           </div>
 
-          {/* 주말 출근 가능 여부 체크란 - 토요일이 휴무가 아닌 경우에만 표시 */}
-          {isSaturdayWorkday() && (
+          {/* 주말 출근 가능 여부 체크란 - 컴팩트 모드에서는 숨김 */}
+          {!isCompact && isSaturdayWorkday() && (
             <div className="p-4 border-t border-border bg-blue-50/50 dark:bg-blue-950/20 print-hide">
               <div className="flex items-center gap-2 mb-3">
                 <Calendar className="h-4 w-4 text-blue-600" />

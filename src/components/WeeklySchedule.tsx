@@ -1095,21 +1095,24 @@ const WeeklySchedule = () => {
                         onClick={() => toggleDayOff(dateKey)}
                       >
                         <div className="flex items-center justify-center gap-1 flex-wrap">
-                          <span className="text-lg">{day}</span>
-                          <span className="text-xs text-muted-foreground font-normal">
+                          <span className={isCompact ? "text-xs" : "text-lg"}>{day}</span>
+                          <span className={`${isCompact ? 'text-[8px]' : 'text-xs'} text-muted-foreground font-normal`}>
                             {format(date, "M/d")}
                           </span>
-                          {isOff && (
+                          {isOff && !isCompact && (
                             <span className="text-[10px] bg-gray-500 text-white px-1 rounded">
                               휴무
                             </span>
                           )}
-                          {!isOff && holiday && (
+                          {isOff && isCompact && (
+                            <span className="text-[8px] text-muted-foreground">휴</span>
+                          )}
+                          {!isOff && holiday && !isCompact && (
                             <span className="text-[10px] bg-red-500 text-white px-1 rounded">
                               {holiday.name}
                             </span>
                           )}
-                          {!isOff && isSpecialWork && !holiday && (
+                          {!isOff && isSpecialWork && !holiday && !isCompact && (
                             <span className="text-[10px] bg-blue-500 text-white px-1 rounded">
                               특근
                             </span>

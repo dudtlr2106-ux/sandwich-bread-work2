@@ -1000,8 +1000,8 @@ const WeeklySchedule = () => {
           </div>
           
 
-          {/* Notice display - 공개이거나 관리자인 경우에만 표시 */}
-          {noticeMemo && (noticeMemoIsPublic || isAdmin) && (
+          {/* Notice display - 컴팩트 모드에서는 숨김 */}
+          {!isCompact && noticeMemo && (noticeMemoIsPublic || isAdmin) && (
             <Collapsible open={!noticeCollapsed} onOpenChange={(open) => setNoticeCollapsed(!open)}>
               <div className={`mt-4 border rounded-lg p-4 ${noticeMemoIsPublic ? 'bg-muted/50 border-border' : 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800'}`}>
                 <div className="flex items-start gap-2">
@@ -1030,7 +1030,7 @@ const WeeklySchedule = () => {
             </Collapsible>
           )}
         </CardHeader>
-        <CardContent className="p-0 schedule-table-container">
+        <CardContent className={`p-0 ${isCompact ? '' : 'schedule-table-container'}`}>
           {/* 인쇄 전용 제목 */}
           <h1 className="print-title hidden">
             {format(currentWeekStart, "yyyy년 M월", { locale: ko })} 주간 근무표 ({formatWeekRange()})

@@ -956,6 +956,17 @@ const WeeklySchedule = () => {
                   <Printer className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
                 </Button>
               )}
+
+              {/* 컴팩트 모드 토글 */}
+              <Button
+                variant={isCompact ? "default" : "outline"}
+                size="icon"
+                onClick={() => setIsCompact(!isCompact)}
+                className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'}
+                title={isCompact ? "일반 보기" : "컴팩트 보기"}
+              >
+                {isCompact ? <Maximize2 className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} /> : <Minimize2 className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />}
+              </Button>
               
               <Button
                 variant="outline"

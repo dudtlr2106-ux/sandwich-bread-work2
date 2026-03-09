@@ -1328,10 +1328,10 @@ const WeeklySchedule = () => {
                           </td>
                           {/* 중반 셀 */}
                           <td
-                            className={`schedule-cell border-b border-r border-border p-1 cursor-pointer group hover:bg-secondary/50 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${isSundayCell ? "print-hide-sunday" : ""}`}
+                            className={`schedule-cell border-b border-r border-border ${isCompact ? 'p-0.5 min-h-0' : 'p-1'} cursor-pointer group hover:bg-secondary/50 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${isSundayCell ? "print-hide-sunday" : ""}`}
                             onClick={() => isSaturday ? openSaturdaySelectDialog(dept.id, secondShiftKey) : openEditDialog(dept.id, day, secondShiftKey)}
                           >
-                            <div className="flex flex-wrap gap-x-1 gap-y-1.5 justify-center">
+                            <div className={`flex flex-wrap justify-center ${isCompact ? 'gap-x-0.5 gap-y-0.5' : 'gap-x-1 gap-y-1.5'}`}>
                               {secondShiftWorkers.length > 0 ? (
                                   secondShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
@@ -1339,6 +1339,19 @@ const WeeklySchedule = () => {
                                     const hasPartialOvertime = !!getPartialOvertimeInfo(worker, dateKey);
                                     const statusStyle = getStatusStyle(status, hasPartialVacation, hasPartialOvertime);
                                     const times = getShiftTimes(secondShiftKey, day, status, worker, dateKey);
+
+                                    if (isCompact) {
+                                      return (
+                                        <span
+                                          key={idx}
+                                          className={`text-[10px] font-semibold whitespace-nowrap px-0.5 ${statusStyle.className || "text-foreground"}`}
+                                          title={`${worker} (${times.start}~${times.end})`}
+                                        >
+                                          {worker}
+                                        </span>
+                                      );
+                                    }
+
                                     return (
                                       <TapOnlyDropdown
                                         key={idx}

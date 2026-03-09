@@ -1091,7 +1091,7 @@ const WeeklySchedule = () => {
                       <th
                         key={day}
                         colSpan={2}
-                        className={`p-2 text-center border-b border-r border-border cursor-pointer hover:bg-muted/70 transition-colors ${getDayHeaderClass(day, date)} ${isOff ? "bg-muted/50" : ""} ${isSunday ? "print-hide-sunday" : ""}`}
+                        className={`${isCompact ? 'p-1' : 'p-2'} text-center border-b border-r border-border cursor-pointer hover:bg-muted/70 transition-colors ${getDayHeaderClass(day, date)} ${isOff ? "bg-muted/50" : ""} ${isSunday ? "print-hide-sunday" : ""}`}
                         onClick={() => toggleDayOff(dateKey)}
                       >
                         <div className="flex items-center justify-center gap-1 flex-wrap">

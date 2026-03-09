@@ -250,7 +250,14 @@ const WeeklySchedule = () => {
 
   // 팀 관리 화면 상태
   const [showTeamManagement, setShowTeamManagement] = useState(false);
-  
+  const [isCompact, setIsCompact] = useState(() => {
+    const saved = localStorage.getItem('scheduleCompactMode');
+    return saved === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('scheduleCompactMode', String(isCompact));
+  }, [isCompact]);
 
   // 근태 수정 요청 다이얼로그 열기
   const openRequestDialog = (workerName: string, dateKey: string, day: string, currentStatus: string) => {

@@ -400,24 +400,55 @@ export function useScheduleData(currentWeekStart?: Date) {
         }
       }
       
-      // 주말 출근 가능자를 토요일에 자동 배치 (평일 월요일 기준 부서/조 위치로)
+      // 주말 출근 가능자를 토요일에 자동 배치 (초반조(A)에만 배치, 중반조 인원도 초반조로)
       if (weekendRes.data) {
         const availabilityMap: { [name: string]: boolean } = {};
         weekendRes.data.forEach((row) => {
           availabilityMap[row.worker_name] = row.is_available;
         });
         
+        const saturdayDateKey = getDateKeyForDay(weekStart, 5);
+        
         DEPARTMENTS.forEach((deptId) => {
           const mondayData = newScheduleData[deptId]?.["월"];
           if (mondayData) {
-            const saturdayA = mondayData.A.filter((w) => availabilityMap[w]);
-            const saturdayB = mondayData.B.filter((w) => availabilityMap[w]);
+            // 초반+중반 모두 초반조(A)로 합침
+            const allAvailable = [
+              ...mondayData.A.filter((w) => availabilityMap[w]),
+              ...mondayData.B.filter((w) => availabilityMap[w]),
+            ];
             if (!newScheduleData[deptId]["토"]) {
               newScheduleData[deptId]["토"] = { A: [], B: [] };
             }
-            newScheduleData[deptId]["토"] = { A: saturdayA, B: saturdayB };
+            newScheduleData[deptId]["토"] = { A: allAvailable, B: [] };
           }
         });
+        
+        // 토요일 출근자는 기본 잔업 상태로 설정
+        const allSaturdayWorkers: string[] = [];
+        DEPARTMENTS.forEach((deptId) => {
+          const satData = newScheduleData[deptId]?.["토"];
+          if (satData) {
+            allSaturdayWorkers.push(...satData.A);
+          }
+        });
+        // workerStatusData에 잔업 상태 설정 (로드 시)
+        if (allSaturdayWorkers.length > 0) {
+          const saturdayStatuses: { [worker: string]: WorkerStatus } = {};
+          allSaturdayWorkers.forEach((w) => {
+            saturdayStatuses[w] = 'overtime';
+          });
+          // 기존 상태와 병합 (수동 설정이 없는 경우에만)
+          setWorkerStatusDataLocal((prev) => {
+            const existing = prev[saturdayDateKey] || {};
+            const merged = { ...saturdayStatuses };
+            // 기존에 수동 설정된 상태는 유지
+            Object.entries(existing).forEach(([worker, status]) => {
+              merged[worker] = status;
+            });
+            return { ...prev, [saturdayDateKey]: merged };
+          });
+        }
       }
 
       // 플레이리스트에서 자동 생성된 데이터가 DB에 없으면 자동 저장
@@ -808,20 +839,33 @@ export function useScheduleData(currentWeekStart?: Date) {
     const updatedAvailability = { ...weekendAvailability, [workerName]: newAvailability };
     setWeekendAvailabilityLocal(updatedAvailability);
 
-    // 토요일 근무표도 즉시 업데이트 (평일 월요일 기준 부서/조 위치로)
+    // 토요일 근무표도 즉시 업데이트 (초반조에만 배치, 중반조 인원도 초반조로)
     setScheduleDataLocal((prev) => {
       const newData = JSON.parse(JSON.stringify(prev));
       DEPARTMENTS.forEach((deptId) => {
         const mondayData = newData[deptId]?.["월"];
         if (mondayData) {
-          newData[deptId]["토"] = {
-            A: mondayData.A.filter((w: string) => updatedAvailability[w]),
-            B: mondayData.B.filter((w: string) => updatedAvailability[w]),
-          };
+          const allAvailable = [
+            ...mondayData.A.filter((w: string) => updatedAvailability[w]),
+            ...mondayData.B.filter((w: string) => updatedAvailability[w]),
+          ];
+          newData[deptId]["토"] = { A: allAvailable, B: [] };
         }
       });
       return newData;
     });
+
+    // 토요일 출근자 잔업 상태 설정
+    const saturdayDateKey = getDateKeyForDay(weekStart, 5);
+    if (newAvailability) {
+      setWorkerStatusDataLocal((prev) => ({
+        ...prev,
+        [saturdayDateKey]: {
+          ...(prev[saturdayDateKey] || {}),
+          [workerName]: 'overtime' as WorkerStatus,
+        },
+      }));
+    }
 
     const { error } = await supabase
       .from('weekend_availability')

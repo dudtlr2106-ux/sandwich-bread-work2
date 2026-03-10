@@ -400,6 +400,27 @@ export function useScheduleData(currentWeekStart?: Date) {
         }
       }
       
+      // 주말 출근 가능자를 토요일에 자동 배치 (평일 월요일 기준 부서/조 위치로)
+      // 기존 데이터가 없는 새 주차 생성 시에만 적용
+      if (!hasExistingData && isCurrentOrFutureWeek && weekendRes.data) {
+        const availabilityMap: { [name: string]: boolean } = {};
+        weekendRes.data.forEach((row) => {
+          availabilityMap[row.worker_name] = row.is_available;
+        });
+        
+        DEPARTMENTS.forEach((deptId) => {
+          const mondayData = newScheduleData[deptId]?.["월"];
+          if (mondayData) {
+            const saturdayA = mondayData.A.filter((w) => availabilityMap[w]);
+            const saturdayB = mondayData.B.filter((w) => availabilityMap[w]);
+            if (!newScheduleData[deptId]["토"]) {
+              newScheduleData[deptId]["토"] = { A: [], B: [] };
+            }
+            newScheduleData[deptId]["토"] = { A: saturdayA, B: saturdayB };
+          }
+        });
+      }
+
       // 플레이리스트에서 자동 생성된 데이터가 DB에 없으면 자동 저장
       if (!hasExistingData && isCurrentOrFutureWeek) {
         try {

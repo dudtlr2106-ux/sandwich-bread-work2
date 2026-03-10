@@ -401,8 +401,7 @@ export function useScheduleData(currentWeekStart?: Date) {
       }
       
       // 주말 출근 가능자를 토요일에 자동 배치 (평일 월요일 기준 부서/조 위치로)
-      // 기존 데이터가 없는 새 주차 생성 시에만 적용
-      if (!hasExistingData && isCurrentOrFutureWeek && weekendRes.data) {
+      if (weekendRes.data) {
         const availabilityMap: { [name: string]: boolean } = {};
         weekendRes.data.forEach((row) => {
           availabilityMap[row.worker_name] = row.is_available;

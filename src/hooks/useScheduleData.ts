@@ -401,8 +401,7 @@ export function useScheduleData(currentWeekStart?: Date) {
       }
       
       // 주말 출근 가능자를 토요일에 자동 배치 (평일 월요일 기준 부서/조 위치로)
-      // 기존 데이터가 없는 새 주차 생성 시에만 적용
-      if (!hasExistingData && isCurrentOrFutureWeek && weekendRes.data) {
+      if (weekendRes.data) {
         const availabilityMap: { [name: string]: boolean } = {};
         weekendRes.data.forEach((row) => {
           availabilityMap[row.worker_name] = row.is_available;
@@ -805,10 +804,24 @@ export function useScheduleData(currentWeekStart?: Date) {
     const currentAvailability = weekendAvailability[workerName] || false;
     const newAvailability = !currentAvailability;
     
-    setWeekendAvailabilityLocal((prev) => ({
-      ...prev,
-      [workerName]: newAvailability,
-    }));
+    // 즉시 로컬 상태 업데이트
+    const updatedAvailability = { ...weekendAvailability, [workerName]: newAvailability };
+    setWeekendAvailabilityLocal(updatedAvailability);
+
+    // 토요일 근무표도 즉시 업데이트 (평일 월요일 기준 부서/조 위치로)
+    setScheduleDataLocal((prev) => {
+      const newData = JSON.parse(JSON.stringify(prev));
+      DEPARTMENTS.forEach((deptId) => {
+        const mondayData = newData[deptId]?.["월"];
+        if (mondayData) {
+          newData[deptId]["토"] = {
+            A: mondayData.A.filter((w: string) => updatedAvailability[w]),
+            B: mondayData.B.filter((w: string) => updatedAvailability[w]),
+          };
+        }
+      });
+      return newData;
+    });
 
     const { error } = await supabase
       .from('weekend_availability')
@@ -821,7 +834,6 @@ export function useScheduleData(currentWeekStart?: Date) {
       console.error('Failed to save weekend availability:', error);
       toast.error('주말 출근 가능 여부 저장에 실패했습니다');
     } else if (!isAdmin) {
-      // 관리자가 아닌 경우에만 관리자에게 알림 발송
       try {
         await supabase.functions.invoke('send-push-notification', {
           body: {

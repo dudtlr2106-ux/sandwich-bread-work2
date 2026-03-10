@@ -839,20 +839,33 @@ export function useScheduleData(currentWeekStart?: Date) {
     const updatedAvailability = { ...weekendAvailability, [workerName]: newAvailability };
     setWeekendAvailabilityLocal(updatedAvailability);
 
-    // 토요일 근무표도 즉시 업데이트 (평일 월요일 기준 부서/조 위치로)
+    // 토요일 근무표도 즉시 업데이트 (초반조에만 배치, 중반조 인원도 초반조로)
     setScheduleDataLocal((prev) => {
       const newData = JSON.parse(JSON.stringify(prev));
       DEPARTMENTS.forEach((deptId) => {
         const mondayData = newData[deptId]?.["월"];
         if (mondayData) {
-          newData[deptId]["토"] = {
-            A: mondayData.A.filter((w: string) => updatedAvailability[w]),
-            B: mondayData.B.filter((w: string) => updatedAvailability[w]),
-          };
+          const allAvailable = [
+            ...mondayData.A.filter((w: string) => updatedAvailability[w]),
+            ...mondayData.B.filter((w: string) => updatedAvailability[w]),
+          ];
+          newData[deptId]["토"] = { A: allAvailable, B: [] };
         }
       });
       return newData;
     });
+
+    // 토요일 출근자 잔업 상태 설정
+    const saturdayDateKey = getDateKeyForDay(weekStart, 5);
+    if (newAvailability) {
+      setWorkerStatusDataLocal((prev) => ({
+        ...prev,
+        [saturdayDateKey]: {
+          ...(prev[saturdayDateKey] || {}),
+          [workerName]: 'overtime' as WorkerStatus,
+        },
+      }));
+    }
 
     const { error } = await supabase
       .from('weekend_availability')

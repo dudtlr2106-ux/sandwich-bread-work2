@@ -321,6 +321,7 @@ const AttendanceRequestForm = ({
                 placeholder="14:00"
                 value={startTime}
                 onChange={(e) => handleTimeChange(e.target.value, setStartTime)}
+                onKeyDown={(e) => handleTimeKeyDown(e, startTime, setStartTime)}
                 className="h-8 text-sm text-center w-20"
                 maxLength={5}
               />
@@ -331,6 +332,7 @@ const AttendanceRequestForm = ({
                 placeholder="18:00"
                 value={endTime}
                 onChange={(e) => handleTimeChange(e.target.value, setEndTime)}
+                onKeyDown={(e) => handleTimeKeyDown(e, endTime, setEndTime)}
                 className="h-8 text-sm text-center w-20"
                 maxLength={5}
               />

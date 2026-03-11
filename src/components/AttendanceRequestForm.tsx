@@ -309,6 +309,7 @@ const AttendanceRequestForm = ({
           {(requestedStatus === "partial_vacation" || requestedStatus === "partial_overtime") && (
             <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border">
               <Input
+                ref={startTimeRef}
                 type="text"
                 inputMode="numeric"
                 placeholder="14:00"

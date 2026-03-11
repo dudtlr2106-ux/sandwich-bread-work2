@@ -45,6 +45,7 @@ const AttendanceRequestForm = ({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const startTimeRef = React.useRef<HTMLInputElement>(null);
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
   const [isNameMismatch, setIsNameMismatch] = useState(false);
 
@@ -209,6 +210,9 @@ const AttendanceRequestForm = ({
       setStartTime("");
       setEndTime("");
     }
+    if (value === "partial_vacation" || value === "partial_overtime") {
+      setTimeout(() => startTimeRef.current?.focus(), 100);
+    }
   };
 
   // 시간 입력 시 자동 콜론 추가
@@ -305,6 +309,7 @@ const AttendanceRequestForm = ({
           {(requestedStatus === "partial_vacation" || requestedStatus === "partial_overtime") && (
             <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border">
               <Input
+                ref={startTimeRef}
                 type="text"
                 inputMode="numeric"
                 placeholder="14:00"

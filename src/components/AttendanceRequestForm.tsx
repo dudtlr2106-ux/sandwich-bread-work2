@@ -87,7 +87,7 @@ const AttendanceRequestForm = ({
     "2026-10-03", "2026-10-09", "2026-12-25",
   ];
 
-  const isHolidayOrWeekend = day === "토" || day === "일" || holidays.includes(dateKey);
+  const isHolidayOrWeekend = day === "일" || holidays.includes(dateKey);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

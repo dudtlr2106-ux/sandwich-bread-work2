@@ -215,21 +215,27 @@ const AttendanceRequestForm = ({
     }
   };
 
-  // 시간 입력 시 자동 콜론 추가
-  const formatTimeInput = (value: string): string => {
-    // 숫자만 추출
+  // 시간 입력 시 자동 콜론 추가 + 백스페이스 시 콜론 무시
+  const handleTimeChange = (value: string, setter: (val: string) => void) => {
     const digits = value.replace(/\D/g, "");
-    
-    // 2자리 이상이면 콜론 자동 추가
     if (digits.length >= 2) {
-      return `${digits.slice(0, 2)}:${digits.slice(2, 4)}`;
+      setter(`${digits.slice(0, 2)}:${digits.slice(2, 4)}`);
+    } else {
+      setter(digits);
     }
-    return digits;
   };
 
-  const handleTimeChange = (value: string, setter: (val: string) => void) => {
-    const formatted = formatTimeInput(value);
-    setter(formatted);
+  const handleTimeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, currentValue: string, setter: (val: string) => void) => {
+    if (e.key === "Backspace" && currentValue.includes(":")) {
+      e.preventDefault();
+      const digits = currentValue.replace(/\D/g, "");
+      const newDigits = digits.slice(0, -1);
+      if (newDigits.length >= 2) {
+        setter(`${newDigits.slice(0, 2)}:${newDigits.slice(2)}`);
+      } else {
+        setter(newDigits);
+      }
+    }
   };
 
   return (
@@ -315,6 +321,7 @@ const AttendanceRequestForm = ({
                 placeholder="14:00"
                 value={startTime}
                 onChange={(e) => handleTimeChange(e.target.value, setStartTime)}
+                onKeyDown={(e) => handleTimeKeyDown(e, startTime, setStartTime)}
                 className="h-8 text-sm text-center w-20"
                 maxLength={5}
               />
@@ -325,6 +332,7 @@ const AttendanceRequestForm = ({
                 placeholder="18:00"
                 value={endTime}
                 onChange={(e) => handleTimeChange(e.target.value, setEndTime)}
+                onKeyDown={(e) => handleTimeKeyDown(e, endTime, setEndTime)}
                 className="h-8 text-sm text-center w-20"
                 maxLength={5}
               />

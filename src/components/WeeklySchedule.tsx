@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import TapOnlyDropdown from "@/components/TapOnlyDropdown";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Link } from "react-router-dom";
@@ -532,12 +533,16 @@ const WeeklySchedule = () => {
     moveWorker(worker, fromDeptId, fromDay, fromShift, fromDeptId, fromDay, toShift);
   };
 
-  // 공통 이동 로직
+  // 공통 이동 로직 (로컬 + DB 즉시 저장)
   const moveWorker = (worker: string, fromDeptId: string, fromDay: string, fromShift: "A" | "B", toDeptId: string, toDay: string, toShift: "A" | "B") => {
     // 같은 위치면 무시
     if (fromDeptId === toDeptId && fromDay === toDay && fromShift === toShift) {
       return;
     }
+    
+    // 로컬 상태와 DB 저장을 위한 새 배열 계산
+    let newFromWorkers: string[] = [];
+    let newToWorkers: string[] = [];
     
     setScheduleData((prev) => {
       const newData = { ...prev };
@@ -555,6 +560,7 @@ const WeeklySchedule = () => {
           },
         };
       }
+      newFromWorkers = fromWorkers;
       
       // 새 위치에 추가
       const toWorkers = [...(newData[toDeptId]?.[toDay]?.[toShift] || [])];
@@ -568,9 +574,30 @@ const WeeklySchedule = () => {
           },
         };
       }
+      newToWorkers = toWorkers;
       
       return newData;
     });
+    
+    // DB에 즉시 저장 (이동 원본 + 대상 셀)
+    const fromDayIndex = DAYS.indexOf(fromDay);
+    const toDayIndex = DAYS.indexOf(toDay);
+    if (fromDayIndex !== -1 && toDayIndex !== -1) {
+      const fromDateKey = getDateKey(fromDayIndex);
+      const toDateKey = getDateKey(toDayIndex);
+      
+      // 비동기로 DB 저장 (두 셀 동시)
+      setTimeout(async () => {
+        try {
+          await supabase.from('schedule_data').upsert([
+            { date_key: fromDateKey, department: fromDeptId, shift: fromShift, workers: newFromWorkers },
+            { date_key: toDateKey, department: toDeptId, shift: toShift, workers: newToWorkers },
+          ], { onConflict: 'date_key,department,shift' });
+        } catch (error) {
+          console.error('Failed to save worker move:', error);
+        }
+      }, 0);
+    }
   };
 
   // 시간휴가 정보 가져오기

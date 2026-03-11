@@ -1306,9 +1306,17 @@ const WeeklySchedule = () => {
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 잔업
                                               </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "partial_overtime")} className="text-blue-600">
+                                                <Clock className="h-4 w-4 mr-2" />
+                                                시간잔업
+                                              </DropdownMenuItem>
                                               <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "vacation")} className="text-green-600">
                                                 <Palmtree className="h-4 w-4 mr-2" />
                                                 휴가
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "partial_vacation")} className="text-green-600">
+                                                <Clock className="h-4 w-4 mr-2" />
+                                                시간휴가
                                               </DropdownMenuItem>
                                               <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "dayoff")} className="text-gray-600">
                                                 <X className="h-4 w-4 mr-2" />
@@ -1407,9 +1415,17 @@ const WeeklySchedule = () => {
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 잔업
                                               </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "partial_overtime")} className="text-blue-600">
+                                                <Clock className="h-4 w-4 mr-2" />
+                                                시간잔업
+                                              </DropdownMenuItem>
                                               <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "vacation")} className="text-green-600">
                                                 <Palmtree className="h-4 w-4 mr-2" />
                                                 휴가
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "partial_vacation")} className="text-green-600">
+                                                <Clock className="h-4 w-4 mr-2" />
+                                                시간휴가
                                               </DropdownMenuItem>
                                               <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "dayoff")} className="text-gray-600">
                                                 <X className="h-4 w-4 mr-2" />

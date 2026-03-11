@@ -210,6 +210,9 @@ const AttendanceRequestForm = ({
       setStartTime("");
       setEndTime("");
     }
+    if (value === "partial_vacation" || value === "partial_overtime") {
+      setTimeout(() => startTimeRef.current?.focus(), 100);
+    }
   };
 
   // 시간 입력 시 자동 콜론 추가

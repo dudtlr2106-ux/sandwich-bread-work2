@@ -427,32 +427,29 @@ export function useScheduleData(currentWeekStart?: Date) {
             newScheduleData[deptId]["토"] = { A: allAvailable, B: [] };
           }
         });
-        
-        // 토요일 출근자는 기본 잔업 상태로 설정
-        const allSaturdayWorkers: string[] = [];
-        DEPARTMENTS.forEach((deptId) => {
-          const satData = newScheduleData[deptId]?.["토"];
-          if (satData) {
-            allSaturdayWorkers.push(...satData.A);
-          }
-        });
-        // workerStatusData에 잔업 상태 설정 (로드 시)
-        if (allSaturdayWorkers.length > 0) {
-          const saturdayStatuses: { [worker: string]: WorkerStatus } = {};
-          allSaturdayWorkers.forEach((w) => {
-            saturdayStatuses[w] = 'overtime';
-          });
-          // 기존 상태와 병합 (수동 설정이 없는 경우에만)
-          setWorkerStatusDataLocal((prev) => {
-            const existing = prev[saturdayDateKey] || {};
-            const merged = { ...saturdayStatuses };
-            // 기존에 수동 설정된 상태는 유지
-            Object.entries(existing).forEach(([worker, status]) => {
-              merged[worker] = status;
-            });
-            return { ...prev, [saturdayDateKey]: merged };
-          });
+      }
+      
+      // 토요일 출근자는 기본 잔업 상태로 설정 (DB 데이터 유무와 무관하게)
+      const allSaturdayWorkers: string[] = [];
+      DEPARTMENTS.forEach((deptId) => {
+        const satData = newScheduleData[deptId]?.["토"];
+        if (satData) {
+          allSaturdayWorkers.push(...satData.A);
         }
+      });
+      if (allSaturdayWorkers.length > 0) {
+        const saturdayStatuses: { [worker: string]: WorkerStatus } = {};
+        allSaturdayWorkers.forEach((w) => {
+          saturdayStatuses[w] = 'overtime';
+        });
+        setWorkerStatusDataLocal((prev) => {
+          const existing = prev[saturdayDateKey] || {};
+          const merged = { ...saturdayStatuses };
+          Object.entries(existing).forEach(([worker, status]) => {
+            merged[worker] = status;
+          });
+          return { ...prev, [saturdayDateKey]: merged };
+        });
       }
 
       // 플레이리스트에서 자동 생성된 데이터가 DB에 없으면 자동 저장

@@ -401,13 +401,17 @@ export function useScheduleData(currentWeekStart?: Date) {
       }
       
       // 주말 출근 가능자를 토요일에 자동 배치 (초반조(A)에만 배치, 중반조 인원도 초반조로)
-      if (weekendRes.data) {
+      // DB에 토요일 데이터가 이미 있으면 자동 배치를 건너뜀 (수동 이동 등이 보존됨)
+      const saturdayDateKey = getDateKeyForDay(weekStart, 5);
+      const hasSaturdayDBData = scheduleRes.data && scheduleRes.data.some(
+        (row) => row.date_key === saturdayDateKey
+      );
+      
+      if (weekendRes.data && !hasSaturdayDBData) {
         const availabilityMap: { [name: string]: boolean } = {};
         weekendRes.data.forEach((row) => {
           availabilityMap[row.worker_name] = row.is_available;
         });
-        
-        const saturdayDateKey = getDateKeyForDay(weekStart, 5);
         
         DEPARTMENTS.forEach((deptId) => {
           const mondayData = newScheduleData[deptId]?.["월"];

@@ -634,15 +634,19 @@ const WeeklySchedule = () => {
     
     // 시간잔업이 있으면 잔업 시간을 반영 (마지막 변경 시간 우선)
     if (partialOvertimeInfo) {
-      const overtimeStartHour = parseInt(partialOvertimeInfo.start_time.split(":")[0]);
-      const overtimeEndHour = parseInt(partialOvertimeInfo.end_time.split(":")[0]);
+      const overtimeStartParts = partialOvertimeInfo.start_time.split(":");
+      const overtimeEndParts = partialOvertimeInfo.end_time.split(":");
+      const overtimeStartHour = parseInt(overtimeStartParts[0]);
+      const overtimeStartMin = parseInt(overtimeStartParts[1] || "0");
+      const overtimeEndHour = parseInt(overtimeEndParts[0]);
+      const overtimeEndMin = parseInt(overtimeEndParts[1] || "0");
       
       if (isFirstShift) {
-        // 초반조: 시간잔업의 종료 시간을 퇴근 시간으로 직접 반영
         baseEnd = overtimeEndHour;
+        endMin = overtimeEndMin;
       } else {
-        // 중반조: 시간잔업의 시작 시간을 출근 시간으로 직접 반영
         baseStart = overtimeStartHour;
+        startMin = overtimeStartMin;
       }
     }
     

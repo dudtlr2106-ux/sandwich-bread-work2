@@ -46,6 +46,7 @@ const AttendanceRequestForm = ({
   const [endTime, setEndTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const startTimeRef = React.useRef<HTMLInputElement>(null);
+  const endTimeRef = React.useRef<HTMLInputElement>(null);
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
   const [isNameMismatch, setIsNameMismatch] = useState(false);
 

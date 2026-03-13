@@ -1403,7 +1403,7 @@ const WeeklySchedule = () => {
                                         <span
                                           key={idx}
                                           className={`text-[10px] font-semibold whitespace-nowrap px-0.5 ${statusStyle.className || "text-foreground"}`}
-                                          title={`${worker} (${times.start}~${times.end})`}
+                                          title={`${worker} (${times.start}${times.startMin ? ':' + times.startMin.toString().padStart(2, '0') : ''}~${times.end}${times.endMin ? ':' + times.endMin.toString().padStart(2, '0') : ''})`}
                                         >
                                           {worker}
                                         </span>

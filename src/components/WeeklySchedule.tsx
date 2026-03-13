@@ -654,26 +654,30 @@ const WeeklySchedule = () => {
     
     // 시간휴가가 있으면 휴가 시간을 반영
     if (partialVacationInfo) {
-      const vacationStartHour = parseInt(partialVacationInfo.start_time.split(":")[0]);
-      const vacationEndHour = parseInt(partialVacationInfo.end_time.split(":")[0]);
+      const vacationStartParts = partialVacationInfo.start_time.split(":");
+      const vacationEndParts = partialVacationInfo.end_time.split(":");
+      const vacationStartHour = parseInt(vacationStartParts[0]);
+      const vacationStartMin = parseInt(vacationStartParts[1] || "0");
+      const vacationEndHour = parseInt(vacationEndParts[0]);
+      const vacationEndMin = parseInt(vacationEndParts[1] || "0");
       
       if (isFirstShift) {
-        // 초반조: 휴가 시간이 시작 시간과 겹치면 출근 시간을 늦춤
         if (vacationStartHour <= baseStart && vacationEndHour > baseStart) {
           baseStart = vacationEndHour;
+          startMin = vacationEndMin;
         }
-        // 초반조: 휴가 시간이 퇴근 시간과 겹치면 퇴근 시간을 앞당김
         if (vacationEndHour >= baseEnd && vacationStartHour < baseEnd) {
           baseEnd = vacationStartHour;
+          endMin = vacationStartMin;
         }
       } else {
-        // 중반조: 휴가 시간이 시작 시간(14시)과 겹치면 출근 시간을 늦춤
         if (vacationStartHour <= baseStart && vacationEndHour > baseStart) {
           baseStart = vacationEndHour;
+          startMin = vacationEndMin;
         }
-        // 중반조: 휴가 시간이 종료 시간(22시)과 겹치면 퇴근 시간을 앞당김
         if (vacationEndHour >= baseEnd && vacationStartHour < baseEnd) {
           baseEnd = vacationStartHour;
+          endMin = vacationStartMin;
         }
       }
     }

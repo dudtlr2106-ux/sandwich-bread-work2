@@ -690,6 +690,14 @@ const WeeklySchedule = () => {
     };
   };
 
+  // 시간을 첨자(superscript) 분 포함하여 렌더링
+  const renderTime = (hour: string, min: number, className: string) => (
+    <span className={className}>
+      {hour}
+      {min > 0 && <sup className="text-[7px] ml-px">{min.toString().padStart(2, "0")}</sup>}
+    </span>
+  );
+
   // 전체 근무자 목록 가져오기 (조별 정렬: A조 → B조, 반장 → 1조 → 2조)
   const getAllWorkers = (): string[] => {
     const workersSet = new Set<string>();

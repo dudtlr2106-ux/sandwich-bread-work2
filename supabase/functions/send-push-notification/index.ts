@@ -434,9 +434,10 @@ serve(async (req) => {
     if (isRequestResult) {
       const resultLabel = resultStatus === 'approved' ? '승인' : '반려';
       const emoji = resultStatus === 'approved' ? '✅' : '❌';
+      const timeInfo = startTime && endTime ? ` (${startTime}~${endTime})` : '';
       payload = {
         title: `${emoji} 근태 수정 ${resultLabel}`,
-        body: `${dateKey} ${workerName}의 ${statusLabels[requestedStatus] || requestedStatus} 변경 요청이 ${resultLabel}되었습니다.`,
+        body: `${dateKey} ${workerName}의 ${statusLabels[requestedStatus] || requestedStatus}${timeInfo} 변경 요청이 ${resultLabel}되었습니다.`,
         icon: "/favicon.ico",
         badge: "/favicon.ico",
         data: {

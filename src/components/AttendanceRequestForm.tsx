@@ -340,19 +340,20 @@ const AttendanceRequestForm = ({
                 inputMode="numeric"
                 placeholder="14:00"
                 value={startTime}
-                onChange={(e) => handleTimeChange(e.target.value, setStartTime)}
-                onKeyDown={(e) => handleTimeKeyDown(e, startTime, setStartTime)}
+                onChange={(e) => handleTimeChange(e.target.value, setStartTime, true)}
+                onKeyDown={(e) => handleTimeKeyDown(e, startTime, setStartTime, true)}
                 className="h-8 text-sm text-center w-20"
                 maxLength={5}
               />
               <span className="text-muted-foreground">~</span>
               <Input
+                ref={endTimeRef}
                 type="text"
                 inputMode="numeric"
                 placeholder="18:00"
                 value={endTime}
-                onChange={(e) => handleTimeChange(e.target.value, setEndTime)}
-                onKeyDown={(e) => handleTimeKeyDown(e, endTime, setEndTime)}
+                onChange={(e) => handleTimeChange(e.target.value, setEndTime, false)}
+                onKeyDown={(e) => handleTimeKeyDown(e, endTime, setEndTime, false)}
                 className="h-8 text-sm text-center w-20"
                 maxLength={5}
               />

@@ -1418,12 +1418,12 @@ const WeeklySchedule = () => {
                                             className="flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 rounded px-0.5"
                                             onClick={(e) => e.stopPropagation()}
                                           >
-                                            <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.start}</span>
+                                            {renderTime(times.start, times.startMin, `text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`)}
                                             {statusStyle.icon}
                                             <span className={`text-sm font-semibold whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
                                               {worker}
                                             </span>
-                                            <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.end}</span>
+                                            {renderTime(times.end, times.endMin, `text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`)}
                                           </div>
                                         }
                                         onContentClick={(e) => e.stopPropagation()}

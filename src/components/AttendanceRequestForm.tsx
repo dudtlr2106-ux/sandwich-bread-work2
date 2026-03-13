@@ -217,16 +217,35 @@ const AttendanceRequestForm = ({
   };
 
   // 시간 입력 시 자동 콜론 추가 + 백스페이스 시 콜론 무시
-  const handleTimeChange = (value: string, setter: (val: string) => void) => {
+  const handleTimeChange = (value: string, setter: (val: string) => void, isStartTime?: boolean) => {
     const digits = value.replace(/\D/g, "");
     if (digits.length >= 2) {
-      setter(`${digits.slice(0, 2)}:${digits.slice(2, 4)}`);
+      const formatted = `${digits.slice(0, 2)}:${digits.slice(2, 4)}`;
+      setter(formatted);
+      // Auto-focus to end time when start time is fully entered (4 digits)
+      if (isStartTime && digits.length >= 4) {
+        setTimeout(() => endTimeRef.current?.focus(), 50);
+      }
     } else {
       setter(digits);
     }
   };
 
-  const handleTimeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, currentValue: string, setter: (val: string) => void) => {
+  const handleTimeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, currentValue: string, setter: (val: string) => void, isStartTime?: boolean) => {
+    // When backspace on empty end time, jump to start time
+    if (e.key === "Backspace" && !isStartTime && currentValue === "") {
+      e.preventDefault();
+      startTimeRef.current?.focus();
+      // Also delete last char from start time
+      const startDigits = startTime.replace(/\D/g, "");
+      const newDigits = startDigits.slice(0, -1);
+      if (newDigits.length >= 2) {
+        setStartTime(`${newDigits.slice(0, 2)}:${newDigits.slice(2)}`);
+      } else {
+        setStartTime(newDigits);
+      }
+      return;
+    }
     if (e.key === "Backspace" && currentValue.includes(":")) {
       e.preventDefault();
       const digits = currentValue.replace(/\D/g, "");

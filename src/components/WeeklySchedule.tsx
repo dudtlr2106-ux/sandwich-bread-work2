@@ -623,6 +623,8 @@ const WeeklySchedule = () => {
     // 기본 시간 계산
     let baseStart: number;
     let baseEnd: number;
+    let startMin = 0;
+    let endMin = 0;
     
     if (isFirstShift) {
       baseStart = 6;

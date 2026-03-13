@@ -684,7 +684,9 @@ const WeeklySchedule = () => {
     
     return { 
       start: baseStart.toString().padStart(2, "0"), 
-      end: baseEnd.toString().padStart(2, "0") 
+      end: baseEnd.toString().padStart(2, "0"),
+      startMin,
+      endMin,
     };
   };
 

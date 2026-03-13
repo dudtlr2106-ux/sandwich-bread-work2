@@ -345,7 +345,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    const { type, requesterName, workerName, dateKey, requestedStatus, content, resultStatus, newAvailability } = body;
+    const { type, requesterName, workerName, dateKey, requestedStatus, content, resultStatus, newAvailability, startTime, endTime } = body;
 
     const isNoticeUpdate = type === 'notice_update';
     const isRequestResult = type === 'request_result';

@@ -968,6 +968,14 @@ const WeeklySchedule = () => {
                 </Button>
               )}
 
+  // 시간을 첨자(superscript) 분 포함하여 렌더링
+  const renderTime = (hour: string, min: number, className: string) => (
+    <span className={className}>
+      {hour}
+      {min > 0 && <sup className="text-[7px] ml-px">{min.toString().padStart(2, "0")}</sup>}
+    </span>
+  );
+
 
               {/* 패턴 관리 버튼 - 관리자만 표시 */}
               {isAdmin && (

@@ -623,6 +623,8 @@ const WeeklySchedule = () => {
     // 기본 시간 계산
     let baseStart: number;
     let baseEnd: number;
+    let startMin = 0;
+    let endMin = 0;
     
     if (isFirstShift) {
       baseStart = 6;
@@ -634,49 +636,67 @@ const WeeklySchedule = () => {
     
     // 시간잔업이 있으면 잔업 시간을 반영 (마지막 변경 시간 우선)
     if (partialOvertimeInfo) {
-      const overtimeStartHour = parseInt(partialOvertimeInfo.start_time.split(":")[0]);
-      const overtimeEndHour = parseInt(partialOvertimeInfo.end_time.split(":")[0]);
+      const overtimeStartParts = partialOvertimeInfo.start_time.split(":");
+      const overtimeEndParts = partialOvertimeInfo.end_time.split(":");
+      const overtimeStartHour = parseInt(overtimeStartParts[0]);
+      const overtimeStartMin = parseInt(overtimeStartParts[1] || "0");
+      const overtimeEndHour = parseInt(overtimeEndParts[0]);
+      const overtimeEndMin = parseInt(overtimeEndParts[1] || "0");
       
       if (isFirstShift) {
-        // 초반조: 시간잔업의 종료 시간을 퇴근 시간으로 직접 반영
         baseEnd = overtimeEndHour;
+        endMin = overtimeEndMin;
       } else {
-        // 중반조: 시간잔업의 시작 시간을 출근 시간으로 직접 반영
         baseStart = overtimeStartHour;
+        startMin = overtimeStartMin;
       }
     }
     
     // 시간휴가가 있으면 휴가 시간을 반영
     if (partialVacationInfo) {
-      const vacationStartHour = parseInt(partialVacationInfo.start_time.split(":")[0]);
-      const vacationEndHour = parseInt(partialVacationInfo.end_time.split(":")[0]);
+      const vacationStartParts = partialVacationInfo.start_time.split(":");
+      const vacationEndParts = partialVacationInfo.end_time.split(":");
+      const vacationStartHour = parseInt(vacationStartParts[0]);
+      const vacationStartMin = parseInt(vacationStartParts[1] || "0");
+      const vacationEndHour = parseInt(vacationEndParts[0]);
+      const vacationEndMin = parseInt(vacationEndParts[1] || "0");
       
       if (isFirstShift) {
-        // 초반조: 휴가 시간이 시작 시간과 겹치면 출근 시간을 늦춤
         if (vacationStartHour <= baseStart && vacationEndHour > baseStart) {
           baseStart = vacationEndHour;
+          startMin = vacationEndMin;
         }
-        // 초반조: 휴가 시간이 퇴근 시간과 겹치면 퇴근 시간을 앞당김
         if (vacationEndHour >= baseEnd && vacationStartHour < baseEnd) {
           baseEnd = vacationStartHour;
+          endMin = vacationStartMin;
         }
       } else {
-        // 중반조: 휴가 시간이 시작 시간(14시)과 겹치면 출근 시간을 늦춤
         if (vacationStartHour <= baseStart && vacationEndHour > baseStart) {
           baseStart = vacationEndHour;
+          startMin = vacationEndMin;
         }
-        // 중반조: 휴가 시간이 종료 시간(22시)과 겹치면 퇴근 시간을 앞당김
         if (vacationEndHour >= baseEnd && vacationStartHour < baseEnd) {
           baseEnd = vacationStartHour;
+          endMin = vacationStartMin;
         }
       }
     }
     
     return { 
       start: baseStart.toString().padStart(2, "0"), 
-      end: baseEnd.toString().padStart(2, "0") 
+      end: baseEnd.toString().padStart(2, "0"),
+      startMin,
+      endMin,
     };
   };
+
+  // 시간을 첨자(superscript) 분 포함하여 렌더링
+  const renderTime = (hour: string, min: number, className: string) => (
+    <span className={className}>
+      {hour}
+      {min > 0 && <sup className="text-[7px] ml-px">{min.toString().padStart(2, "0")}</sup>}
+    </span>
+  );
 
   // 전체 근무자 목록 가져오기 (조별 정렬: A조 → B조, 반장 → 1조 → 2조)
   const getAllWorkers = (): string[] => {
@@ -1274,7 +1294,7 @@ const WeeklySchedule = () => {
                                         <span
                                           key={idx}
                                           className={`text-[10px] font-semibold whitespace-nowrap px-0.5 ${statusStyle.className || "text-foreground"}`}
-                                          title={`${worker} (${times.start}~${times.end})`}
+                                          title={`${worker} (${times.start}${times.startMin ? ':' + times.startMin.toString().padStart(2, '0') : ''}~${times.end}${times.endMin ? ':' + times.endMin.toString().padStart(2, '0') : ''})`}
                                         >
                                           {worker}
                                         </span>
@@ -1289,12 +1309,12 @@ const WeeklySchedule = () => {
                                             className="flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 rounded px-0.5"
                                             onClick={(e) => e.stopPropagation()}
                                           >
-                                            <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.start}</span>
+                                            {renderTime(times.start, times.startMin, `text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`)}
                                             {statusStyle.icon}
                                             <span className={`text-sm font-semibold whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
                                               {worker}
                                             </span>
-                                            <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.end}</span>
+                                            {renderTime(times.end, times.endMin, `text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`)}
                                           </div>
                                         }
                                         onContentClick={(e) => e.stopPropagation()}
@@ -1383,7 +1403,7 @@ const WeeklySchedule = () => {
                                         <span
                                           key={idx}
                                           className={`text-[10px] font-semibold whitespace-nowrap px-0.5 ${statusStyle.className || "text-foreground"}`}
-                                          title={`${worker} (${times.start}~${times.end})`}
+                                          title={`${worker} (${times.start}${times.startMin ? ':' + times.startMin.toString().padStart(2, '0') : ''}~${times.end}${times.endMin ? ':' + times.endMin.toString().padStart(2, '0') : ''})`}
                                         >
                                           {worker}
                                         </span>
@@ -1398,12 +1418,12 @@ const WeeklySchedule = () => {
                                             className="flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 rounded px-0.5"
                                             onClick={(e) => e.stopPropagation()}
                                           >
-                                            <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.start}</span>
+                                            {renderTime(times.start, times.startMin, `text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`)}
                                             {statusStyle.icon}
                                             <span className={`text-sm font-semibold whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
                                               {worker}
                                             </span>
-                                            <span className={`text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`}>{times.end}</span>
+                                            {renderTime(times.end, times.endMin, `text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`)}
                                           </div>
                                         }
                                         onContentClick={(e) => e.stopPropagation()}

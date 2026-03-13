@@ -179,12 +179,15 @@ const AttendanceRequestForm = ({
       
       // Send push notification to admins
       try {
+        const needsTimeInput = requestedStatus === "partial_vacation" || requestedStatus === "partial_overtime";
         await supabase.functions.invoke('send-push-notification', {
           body: {
             requesterName: userDisplayName || workerName,
             workerName,
             dateKey,
             requestedStatus,
+            startTime: needsTimeInput ? startTime : null,
+            endTime: needsTimeInput ? endTime : null,
           },
         });
       } catch (pushError) {

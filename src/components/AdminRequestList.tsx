@@ -133,6 +133,8 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
         dateKey: request.date_key,
         requestedStatus: request.requested_status,
         resultStatus: 'approved',
+        startTime: request.start_time,
+        endTime: request.end_time,
       },
     }).catch(err => console.error('승인 알림 발송 실패:', err));
 
@@ -226,6 +228,8 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
           dateKey: request.date_key,
           requestedStatus: request.requested_status,
           resultStatus: 'rejected',
+          startTime: request.start_time,
+          endTime: request.end_time,
         },
       }).catch(err => console.error('반려 알림 발송 실패:', err));
 

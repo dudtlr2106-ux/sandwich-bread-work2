@@ -345,7 +345,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    const { type, requesterName, workerName, dateKey, requestedStatus, content, resultStatus, newAvailability } = body;
+    const { type, requesterName, workerName, dateKey, requestedStatus, content, resultStatus, newAvailability, startTime, endTime } = body;
 
     const isNoticeUpdate = type === 'notice_update';
     const isRequestResult = type === 'request_result';
@@ -434,9 +434,10 @@ serve(async (req) => {
     if (isRequestResult) {
       const resultLabel = resultStatus === 'approved' ? '승인' : '반려';
       const emoji = resultStatus === 'approved' ? '✅' : '❌';
+      const timeInfo = startTime && endTime ? ` (${startTime}~${endTime})` : '';
       payload = {
         title: `${emoji} 근태 수정 ${resultLabel}`,
-        body: `${dateKey} ${workerName}의 ${statusLabels[requestedStatus] || requestedStatus} 변경 요청이 ${resultLabel}되었습니다.`,
+        body: `${dateKey} ${workerName}의 ${statusLabels[requestedStatus] || requestedStatus}${timeInfo} 변경 요청이 ${resultLabel}되었습니다.`,
         icon: "/favicon.ico",
         badge: "/favicon.ico",
         data: {
@@ -468,9 +469,10 @@ serve(async (req) => {
         },
       };
     } else {
+      const timeInfo = startTime && endTime ? ` (${startTime}~${endTime})` : '';
       payload = {
         title: "근태 수정 요청",
-        body: `${requesterName}님이 ${dateKey} ${workerName}의 근태를 ${statusLabels[requestedStatus] || requestedStatus}(으)로 변경 요청했습니다.`,
+        body: `${requesterName}님이 ${dateKey} ${workerName}의 근태를 ${statusLabels[requestedStatus] || requestedStatus}${timeInfo}(으)로 변경 요청했습니다.`,
         icon: "/favicon.ico",
         badge: "/favicon.ico",
         data: {

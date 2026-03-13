@@ -469,9 +469,10 @@ serve(async (req) => {
         },
       };
     } else {
+      const timeInfo = startTime && endTime ? ` (${startTime}~${endTime})` : '';
       payload = {
         title: "근태 수정 요청",
-        body: `${requesterName}님이 ${dateKey} ${workerName}의 근태를 ${statusLabels[requestedStatus] || requestedStatus}(으)로 변경 요청했습니다.`,
+        body: `${requesterName}님이 ${dateKey} ${workerName}의 근태를 ${statusLabels[requestedStatus] || requestedStatus}${timeInfo}(으)로 변경 요청했습니다.`,
         icon: "/favicon.ico",
         badge: "/favicon.ico",
         data: {

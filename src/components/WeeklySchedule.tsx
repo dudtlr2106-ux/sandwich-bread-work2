@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import TapOnlyDropdown from "@/components/TapOnlyDropdown";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -251,6 +252,18 @@ const WeeklySchedule = () => {
 
   // 팀 관리 화면 상태
   const [showTeamManagement, setShowTeamManagement] = useState(false);
+
+  // 관리자 시간잔업/시간휴가 시간 입력 다이얼로그 상태
+  const [partialTimeDialogOpen, setPartialTimeDialogOpen] = useState(false);
+  const [partialTimeTarget, setPartialTimeTarget] = useState<{
+    worker: string;
+    dateKey: string;
+    status: "partial_overtime" | "partial_vacation";
+  } | null>(null);
+  const [partialStartTime, setPartialStartTime] = useState("");
+  const [partialEndTime, setPartialEndTime] = useState("");
+  const partialStartTimeRef = React.useRef<HTMLInputElement>(null);
+  const partialEndTimeRef = React.useRef<HTMLInputElement>(null);
   const [isCompact, setIsCompact] = useState(() => {
     const saved = localStorage.getItem('scheduleCompactMode');
     return saved === 'true';
@@ -502,6 +515,91 @@ const WeeklySchedule = () => {
   const setWorkerStatus = (worker: string, dateKey: string, status: WorkerStatus) => {
     saveWorkerStatus(dateKey, worker, status);
   };
+
+  // 관리자 시간잔업/시간휴가 선택 시 시간 입력 다이얼로그 열기
+  const openPartialTimeDialog = (worker: string, dateKey: string, status: "partial_overtime" | "partial_vacation") => {
+    setPartialTimeTarget({ worker, dateKey, status });
+    setPartialStartTime("");
+    setPartialEndTime("");
+    setPartialTimeDialogOpen(true);
+    setTimeout(() => partialStartTimeRef.current?.focus(), 100);
+  };
+
+  // 시간 입력 핸들러 (자동 콜론 + 포커스 이동)
+  const handlePartialTimeChange = (value: string, setter: (val: string) => void, isStart?: boolean) => {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length >= 2) {
+      const formatted = `${digits.slice(0, 2)}:${digits.slice(2, 4)}`;
+      setter(formatted);
+      if (isStart && digits.length >= 4) {
+        setTimeout(() => partialEndTimeRef.current?.focus(), 50);
+      }
+    } else {
+      setter(digits);
+    }
+  };
+
+  const handlePartialTimeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, currentValue: string, setter: (val: string) => void, isStart?: boolean) => {
+    if (e.key === "Backspace" && !isStart && currentValue === "") {
+      e.preventDefault();
+      partialStartTimeRef.current?.focus();
+      const startDigits = partialStartTime.replace(/\D/g, "");
+      const newDigits = startDigits.slice(0, -1);
+      if (newDigits.length >= 2) {
+        setPartialStartTime(`${newDigits.slice(0, 2)}:${newDigits.slice(2)}`);
+      } else {
+        setPartialStartTime(newDigits);
+      }
+      return;
+    }
+    if (e.key === "Backspace" && currentValue.includes(":")) {
+      e.preventDefault();
+      const digits = currentValue.replace(/\D/g, "");
+      const newDigits = digits.slice(0, -1);
+      if (newDigits.length >= 2) {
+        setter(`${newDigits.slice(0, 2)}:${newDigits.slice(2)}`);
+      } else {
+        setter(newDigits);
+      }
+    }
+  };
+
+  // 관리자 시간잔업/시간휴가 확정 (자동 승인된 요청 생성)
+  const confirmPartialTime = async () => {
+    if (!partialTimeTarget || !partialStartTime || !partialEndTime) return;
+    if (partialStartTime >= partialEndTime) {
+      toast.error("종료 시간이 시작 시간보다 늦어야 합니다");
+      return;
+    }
+
+    const { worker, dateKey, status } = partialTimeTarget;
+    const currentStatus = workerStatusData[dateKey]?.[worker] || "normal";
+
+    // 자동 승인된 attendance_request 생성
+    const { error } = await supabase.from("attendance_requests").insert({
+      requester_name: "관리자",
+      worker_name: worker,
+      date_key: dateKey,
+      day: "",
+      current_status: currentStatus,
+      requested_status: status,
+      start_time: partialStartTime,
+      end_time: partialEndTime,
+      status: "approved",
+      reviewed_by: user?.id,
+      reviewed_at: new Date().toISOString(),
+    });
+
+    if (error) {
+      toast.error("시간 저장 실패");
+    } else {
+      toast.success(`${worker}님의 ${status === "partial_overtime" ? "시간잔업" : "시간휴가"}(${partialStartTime}~${partialEndTime})이 적용되었습니다`);
+    }
+
+    setPartialTimeDialogOpen(false);
+    setPartialTimeTarget(null);
+  };
+
 
   // 인원 이동 다이얼로그 열기
   const openMoveDialog = (worker: string, deptId: string, day: string, shift: "A" | "B") => {
@@ -1353,7 +1451,7 @@ const WeeklySchedule = () => {
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 잔업
                                               </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "partial_overtime")} className="text-blue-600">
+                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, "partial_overtime")} className="text-blue-600">
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 시간잔업
                                               </DropdownMenuItem>
@@ -1361,7 +1459,7 @@ const WeeklySchedule = () => {
                                                 <Palmtree className="h-4 w-4 mr-2" />
                                                 휴가
                                               </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "partial_vacation")} className="text-green-600">
+                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, "partial_vacation")} className="text-green-600">
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 시간휴가
                                               </DropdownMenuItem>
@@ -1462,7 +1560,7 @@ const WeeklySchedule = () => {
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 잔업
                                               </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "partial_overtime")} className="text-blue-600">
+                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, "partial_overtime")} className="text-blue-600">
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 시간잔업
                                               </DropdownMenuItem>
@@ -1470,7 +1568,7 @@ const WeeklySchedule = () => {
                                                 <Palmtree className="h-4 w-4 mr-2" />
                                                 휴가
                                               </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => setWorkerStatus(worker, dateKey, "partial_vacation")} className="text-green-600">
+                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, "partial_vacation")} className="text-green-600">
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 시간휴가
                                               </DropdownMenuItem>
@@ -1933,6 +2031,63 @@ const WeeklySchedule = () => {
         />
       )}
 
+
+      {/* 관리자 시간잔업/시간휴가 시간 입력 다이얼로그 */}
+      <Dialog open={partialTimeDialogOpen} onOpenChange={setPartialTimeDialogOpen}>
+        <DialogContent className="sm:max-w-[320px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Clock className="h-4 w-4 text-primary" />
+              {partialTimeTarget?.status === "partial_overtime" ? "시간잔업" : "시간휴가"} 시간 입력
+            </DialogTitle>
+          </DialogHeader>
+          {partialTimeTarget && (
+            <div className="space-y-3">
+              <div className="p-3 bg-muted/50 rounded-lg border text-sm">
+                <span className="font-semibold">{partialTimeTarget.worker}</span>
+                <span className="text-muted-foreground ml-2">{partialTimeTarget.dateKey}</span>
+              </div>
+              <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border">
+                <Input
+                  ref={partialStartTimeRef}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="14:00"
+                  value={partialStartTime}
+                  onChange={(e) => handlePartialTimeChange(e.target.value, setPartialStartTime, true)}
+                  onKeyDown={(e) => handlePartialTimeKeyDown(e, partialStartTime, setPartialStartTime, true)}
+                  className="h-8 text-sm text-center w-20"
+                  maxLength={5}
+                />
+                <span className="text-muted-foreground">~</span>
+                <Input
+                  ref={partialEndTimeRef}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="18:00"
+                  value={partialEndTime}
+                  onChange={(e) => handlePartialTimeChange(e.target.value, setPartialEndTime, false)}
+                  onKeyDown={(e) => handlePartialTimeKeyDown(e, partialEndTime, setPartialEndTime, false)}
+                  className="h-8 text-sm text-center w-20"
+                  maxLength={5}
+                />
+              </div>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button type="button" variant="outline" size="sm" onClick={() => setPartialTimeDialogOpen(false)}>
+                  취소
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={confirmPartialTime}
+                  disabled={!partialStartTime || !partialEndTime}
+                >
+                  적용
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* 플로팅 저장 버튼 */}
       {hasUnsavedChanges && isAdmin && (

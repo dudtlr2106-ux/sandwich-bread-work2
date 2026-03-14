@@ -2032,6 +2032,63 @@ const WeeklySchedule = () => {
       )}
 
 
+      {/* 관리자 시간잔업/시간휴가 시간 입력 다이얼로그 */}
+      <Dialog open={partialTimeDialogOpen} onOpenChange={setPartialTimeDialogOpen}>
+        <DialogContent className="sm:max-w-[320px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Clock className="h-4 w-4 text-primary" />
+              {partialTimeTarget?.status === "partial_overtime" ? "시간잔업" : "시간휴가"} 시간 입력
+            </DialogTitle>
+          </DialogHeader>
+          {partialTimeTarget && (
+            <div className="space-y-3">
+              <div className="p-3 bg-muted/50 rounded-lg border text-sm">
+                <span className="font-semibold">{partialTimeTarget.worker}</span>
+                <span className="text-muted-foreground ml-2">{partialTimeTarget.dateKey}</span>
+              </div>
+              <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg border">
+                <Input
+                  ref={partialStartTimeRef}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="14:00"
+                  value={partialStartTime}
+                  onChange={(e) => handlePartialTimeChange(e.target.value, setPartialStartTime, true)}
+                  onKeyDown={(e) => handlePartialTimeKeyDown(e, partialStartTime, setPartialStartTime, true)}
+                  className="h-8 text-sm text-center w-20"
+                  maxLength={5}
+                />
+                <span className="text-muted-foreground">~</span>
+                <Input
+                  ref={partialEndTimeRef}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="18:00"
+                  value={partialEndTime}
+                  onChange={(e) => handlePartialTimeChange(e.target.value, setPartialEndTime, false)}
+                  onKeyDown={(e) => handlePartialTimeKeyDown(e, partialEndTime, setPartialEndTime, false)}
+                  className="h-8 text-sm text-center w-20"
+                  maxLength={5}
+                />
+              </div>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button type="button" variant="outline" size="sm" onClick={() => setPartialTimeDialogOpen(false)}>
+                  취소
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={confirmPartialTime}
+                  disabled={!partialStartTime || !partialEndTime}
+                >
+                  적용
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* 플로팅 저장 버튼 */}
       {hasUnsavedChanges && isAdmin && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex gap-2 bg-card border border-border rounded-full shadow-lg px-4 py-2">

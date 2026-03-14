@@ -519,8 +519,8 @@ const WeeklySchedule = () => {
   };
 
   // 관리자 시간잔업/시간휴가 선택 시 시간 입력 다이얼로그 열기
-  const openPartialTimeDialog = (worker: string, dateKey: string, status: "partial_overtime" | "partial_vacation") => {
-    setPartialTimeTarget({ worker, dateKey, status });
+  const openPartialTimeDialog = (worker: string, dateKey: string, day: string, status: "partial_overtime" | "partial_vacation") => {
+    setPartialTimeTarget({ worker, dateKey, day, status });
     setPartialStartTime("");
     setPartialEndTime("");
     setPartialTimeDialogOpen(true);

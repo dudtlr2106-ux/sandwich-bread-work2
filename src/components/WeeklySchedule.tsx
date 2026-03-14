@@ -1473,7 +1473,7 @@ const WeeklySchedule = () => {
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 잔업
                                               </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, "partial_overtime")} className="text-blue-600">
+                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, day, "partial_overtime")} className="text-blue-600">
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 시간잔업
                                               </DropdownMenuItem>

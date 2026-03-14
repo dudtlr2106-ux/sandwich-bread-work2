@@ -573,7 +573,7 @@ const WeeklySchedule = () => {
     }
 
     const { worker, dateKey, status } = partialTimeTarget;
-    const currentStatus = getWorkerStatus(worker, dateKey);
+    const currentStatus = workerStatusData[dateKey]?.[worker] || "normal";
 
     // 자동 승인된 attendance_request 생성
     const { error } = await supabase.from("attendance_requests").insert({

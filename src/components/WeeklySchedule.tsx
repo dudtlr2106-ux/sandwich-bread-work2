@@ -251,6 +251,18 @@ const WeeklySchedule = () => {
 
   // 팀 관리 화면 상태
   const [showTeamManagement, setShowTeamManagement] = useState(false);
+
+  // 관리자 시간잔업/시간휴가 시간 입력 다이얼로그 상태
+  const [partialTimeDialogOpen, setPartialTimeDialogOpen] = useState(false);
+  const [partialTimeTarget, setPartialTimeTarget] = useState<{
+    worker: string;
+    dateKey: string;
+    status: "partial_overtime" | "partial_vacation";
+  } | null>(null);
+  const [partialStartTime, setPartialStartTime] = useState("");
+  const [partialEndTime, setPartialEndTime] = useState("");
+  const partialStartTimeRef = React.useRef<HTMLInputElement>(null);
+  const partialEndTimeRef = React.useRef<HTMLInputElement>(null);
   const [isCompact, setIsCompact] = useState(() => {
     const saved = localStorage.getItem('scheduleCompactMode');
     return saved === 'true';

@@ -259,6 +259,7 @@ const WeeklySchedule = () => {
   const [partialTimeTarget, setPartialTimeTarget] = useState<{
     worker: string;
     dateKey: string;
+    day: string;
     status: "partial_overtime" | "partial_vacation";
   } | null>(null);
   const [partialStartTime, setPartialStartTime] = useState("");

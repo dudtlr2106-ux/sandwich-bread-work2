@@ -574,29 +574,49 @@ const WeeklySchedule = () => {
       return;
     }
 
-    const { worker, dateKey, status } = partialTimeTarget;
+    if (!user) {
+      toast.error("로그인 후 다시 시도해주세요");
+      return;
+    }
+
+    const { worker, dateKey, day, status } = partialTimeTarget;
     const currentStatus = workerStatusData[dateKey]?.[worker] || "normal";
 
-    // 자동 승인된 attendance_request 생성
-    const { error } = await supabase.from("attendance_requests").insert({
-      requester_name: "관리자",
-      worker_name: worker,
-      date_key: dateKey,
-      day: "",
-      current_status: currentStatus,
-      requested_status: status,
-      start_time: partialStartTime,
-      end_time: partialEndTime,
-      status: "approved",
-      reviewed_by: user?.id,
-      reviewed_at: new Date().toISOString(),
-    });
+    const { data: insertedRequest, error: insertError } = await supabase
+      .from("attendance_requests")
+      .insert({
+        requester_name: "관리자",
+        worker_name: worker,
+        date_key: dateKey,
+        day,
+        current_status: currentStatus,
+        requested_status: status,
+        start_time: partialStartTime,
+        end_time: partialEndTime,
+      })
+      .select("id")
+      .single();
 
-    if (error) {
-      toast.error("시간 저장 실패");
-    } else {
-      toast.success(`${worker}님의 ${status === "partial_overtime" ? "시간잔업" : "시간휴가"}(${partialStartTime}~${partialEndTime})이 적용되었습니다`);
+    if (insertError || !insertedRequest) {
+      toast.error(`시간 저장 실패: ${insertError?.message ?? "요청 생성 오류"}`);
+      return;
     }
+
+    const { error: approveError } = await supabase
+      .from("attendance_requests")
+      .update({
+        status: "approved",
+        reviewed_by: user.id,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", insertedRequest.id);
+
+    if (approveError) {
+      toast.error(`시간 승인 처리 실패: ${approveError.message}`);
+      return;
+    }
+
+    toast.success(`${worker}님의 ${status === "partial_overtime" ? "시간잔업" : "시간휴가"}(${partialStartTime}~${partialEndTime})이 적용되었습니다`);
 
     setPartialTimeDialogOpen(false);
     setPartialTimeTarget(null);

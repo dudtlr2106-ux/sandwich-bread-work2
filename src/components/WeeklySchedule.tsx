@@ -16,6 +16,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -258,6 +259,7 @@ const WeeklySchedule = () => {
   const [partialTimeTarget, setPartialTimeTarget] = useState<{
     worker: string;
     dateKey: string;
+    day: string;
     status: "partial_overtime" | "partial_vacation";
   } | null>(null);
   const [partialStartTime, setPartialStartTime] = useState("");
@@ -517,8 +519,8 @@ const WeeklySchedule = () => {
   };
 
   // 관리자 시간잔업/시간휴가 선택 시 시간 입력 다이얼로그 열기
-  const openPartialTimeDialog = (worker: string, dateKey: string, status: "partial_overtime" | "partial_vacation") => {
-    setPartialTimeTarget({ worker, dateKey, status });
+  const openPartialTimeDialog = (worker: string, dateKey: string, day: string, status: "partial_overtime" | "partial_vacation") => {
+    setPartialTimeTarget({ worker, dateKey, day, status });
     setPartialStartTime("");
     setPartialEndTime("");
     setPartialTimeDialogOpen(true);
@@ -572,29 +574,49 @@ const WeeklySchedule = () => {
       return;
     }
 
-    const { worker, dateKey, status } = partialTimeTarget;
+    if (!user) {
+      toast.error("로그인 후 다시 시도해주세요");
+      return;
+    }
+
+    const { worker, dateKey, day, status } = partialTimeTarget;
     const currentStatus = workerStatusData[dateKey]?.[worker] || "normal";
 
-    // 자동 승인된 attendance_request 생성
-    const { error } = await supabase.from("attendance_requests").insert({
-      requester_name: "관리자",
-      worker_name: worker,
-      date_key: dateKey,
-      day: "",
-      current_status: currentStatus,
-      requested_status: status,
-      start_time: partialStartTime,
-      end_time: partialEndTime,
-      status: "approved",
-      reviewed_by: user?.id,
-      reviewed_at: new Date().toISOString(),
-    });
+    const { data: insertedRequest, error: insertError } = await supabase
+      .from("attendance_requests")
+      .insert({
+        requester_name: "관리자",
+        worker_name: worker,
+        date_key: dateKey,
+        day,
+        current_status: currentStatus,
+        requested_status: status,
+        start_time: partialStartTime,
+        end_time: partialEndTime,
+      })
+      .select("id")
+      .single();
 
-    if (error) {
-      toast.error("시간 저장 실패");
-    } else {
-      toast.success(`${worker}님의 ${status === "partial_overtime" ? "시간잔업" : "시간휴가"}(${partialStartTime}~${partialEndTime})이 적용되었습니다`);
+    if (insertError || !insertedRequest) {
+      toast.error(`시간 저장 실패: ${insertError?.message ?? "요청 생성 오류"}`);
+      return;
     }
+
+    const { error: approveError } = await supabase
+      .from("attendance_requests")
+      .update({
+        status: "approved",
+        reviewed_by: user.id,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", insertedRequest.id);
+
+    if (approveError) {
+      toast.error(`시간 승인 처리 실패: ${approveError.message}`);
+      return;
+    }
+
+    toast.success(`${worker}님의 ${status === "partial_overtime" ? "시간잔업" : "시간휴가"}(${partialStartTime}~${partialEndTime})이 적용되었습니다`);
 
     setPartialTimeDialogOpen(false);
     setPartialTimeTarget(null);
@@ -1451,7 +1473,7 @@ const WeeklySchedule = () => {
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 잔업
                                               </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, "partial_overtime")} className="text-blue-600">
+                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, day, "partial_overtime")} className="text-blue-600">
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 시간잔업
                                               </DropdownMenuItem>
@@ -1459,7 +1481,7 @@ const WeeklySchedule = () => {
                                                 <Palmtree className="h-4 w-4 mr-2" />
                                                 휴가
                                               </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, "partial_vacation")} className="text-green-600">
+                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, day, "partial_vacation")} className="text-green-600">
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 시간휴가
                                               </DropdownMenuItem>
@@ -1560,7 +1582,7 @@ const WeeklySchedule = () => {
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 잔업
                                               </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, "partial_overtime")} className="text-blue-600">
+                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, day, "partial_overtime")} className="text-blue-600">
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 시간잔업
                                               </DropdownMenuItem>
@@ -1568,7 +1590,7 @@ const WeeklySchedule = () => {
                                                 <Palmtree className="h-4 w-4 mr-2" />
                                                 휴가
                                               </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, "partial_vacation")} className="text-green-600">
+                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, day, "partial_vacation")} className="text-green-600">
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 시간휴가
                                               </DropdownMenuItem>
@@ -2040,6 +2062,9 @@ const WeeklySchedule = () => {
               <Clock className="h-4 w-4 text-primary" />
               {partialTimeTarget?.status === "partial_overtime" ? "시간잔업" : "시간휴가"} 시간 입력
             </DialogTitle>
+            <DialogDescription className="text-xs">
+              시작/종료 시간을 입력 후 적용하면 즉시 반영됩니다.
+            </DialogDescription>
           </DialogHeader>
           {partialTimeTarget && (
             <div className="space-y-3">

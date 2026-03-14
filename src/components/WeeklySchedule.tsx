@@ -600,10 +600,6 @@ const WeeklySchedule = () => {
     setPartialTimeTarget(null);
   };
 
-  // 근태 상태 가져오기
-  const getWorkerStatus = (worker: string, dateKey: string): string => {
-    return workerStatusData[dateKey]?.[worker] || "normal";
-  };
 
   // 인원 이동 다이얼로그 열기
   const openMoveDialog = (worker: string, deptId: string, day: string, shift: "A" | "B") => {

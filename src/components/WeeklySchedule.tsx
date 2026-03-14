@@ -2062,6 +2062,9 @@ const WeeklySchedule = () => {
               <Clock className="h-4 w-4 text-primary" />
               {partialTimeTarget?.status === "partial_overtime" ? "시간잔업" : "시간휴가"} 시간 입력
             </DialogTitle>
+            <DialogDescription className="text-xs">
+              시작/종료 시간을 입력 후 적용하면 즉시 반영됩니다.
+            </DialogDescription>
           </DialogHeader>
           {partialTimeTarget && (
             <div className="space-y-3">

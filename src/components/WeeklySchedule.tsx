@@ -515,6 +515,95 @@ const WeeklySchedule = () => {
     saveWorkerStatus(dateKey, worker, status);
   };
 
+  // 관리자 시간잔업/시간휴가 선택 시 시간 입력 다이얼로그 열기
+  const openPartialTimeDialog = (worker: string, dateKey: string, status: "partial_overtime" | "partial_vacation") => {
+    setPartialTimeTarget({ worker, dateKey, status });
+    setPartialStartTime("");
+    setPartialEndTime("");
+    setPartialTimeDialogOpen(true);
+    setTimeout(() => partialStartTimeRef.current?.focus(), 100);
+  };
+
+  // 시간 입력 핸들러 (자동 콜론 + 포커스 이동)
+  const handlePartialTimeChange = (value: string, setter: (val: string) => void, isStart?: boolean) => {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length >= 2) {
+      const formatted = `${digits.slice(0, 2)}:${digits.slice(2, 4)}`;
+      setter(formatted);
+      if (isStart && digits.length >= 4) {
+        setTimeout(() => partialEndTimeRef.current?.focus(), 50);
+      }
+    } else {
+      setter(digits);
+    }
+  };
+
+  const handlePartialTimeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, currentValue: string, setter: (val: string) => void, isStart?: boolean) => {
+    if (e.key === "Backspace" && !isStart && currentValue === "") {
+      e.preventDefault();
+      partialStartTimeRef.current?.focus();
+      const startDigits = partialStartTime.replace(/\D/g, "");
+      const newDigits = startDigits.slice(0, -1);
+      if (newDigits.length >= 2) {
+        setPartialStartTime(`${newDigits.slice(0, 2)}:${newDigits.slice(2)}`);
+      } else {
+        setPartialStartTime(newDigits);
+      }
+      return;
+    }
+    if (e.key === "Backspace" && currentValue.includes(":")) {
+      e.preventDefault();
+      const digits = currentValue.replace(/\D/g, "");
+      const newDigits = digits.slice(0, -1);
+      if (newDigits.length >= 2) {
+        setter(`${newDigits.slice(0, 2)}:${newDigits.slice(2)}`);
+      } else {
+        setter(newDigits);
+      }
+    }
+  };
+
+  // 관리자 시간잔업/시간휴가 확정 (자동 승인된 요청 생성)
+  const confirmPartialTime = async () => {
+    if (!partialTimeTarget || !partialStartTime || !partialEndTime) return;
+    if (partialStartTime >= partialEndTime) {
+      toast.error("종료 시간이 시작 시간보다 늦어야 합니다");
+      return;
+    }
+
+    const { worker, dateKey, status } = partialTimeTarget;
+    const currentStatus = getWorkerStatus(worker, dateKey);
+
+    // 자동 승인된 attendance_request 생성
+    const { error } = await supabase.from("attendance_requests").insert({
+      requester_name: "관리자",
+      worker_name: worker,
+      date_key: dateKey,
+      day: "",
+      current_status: currentStatus,
+      requested_status: status,
+      start_time: partialStartTime,
+      end_time: partialEndTime,
+      status: "approved",
+      reviewed_by: user?.id,
+      reviewed_at: new Date().toISOString(),
+    });
+
+    if (error) {
+      toast.error("시간 저장 실패");
+    } else {
+      toast.success(`${worker}님의 ${status === "partial_overtime" ? "시간잔업" : "시간휴가"}(${partialStartTime}~${partialEndTime})이 적용되었습니다`);
+    }
+
+    setPartialTimeDialogOpen(false);
+    setPartialTimeTarget(null);
+  };
+
+  // 근태 상태 가져오기
+  const getWorkerStatus = (worker: string, dateKey: string): string => {
+    return workerStatusData[dateKey]?.[worker] || "normal";
+  };
+
   // 인원 이동 다이얼로그 열기
   const openMoveDialog = (worker: string, deptId: string, day: string, shift: "A" | "B") => {
     setMovingWorker({ worker, fromDeptId: deptId, fromDay: day, fromShift: shift });

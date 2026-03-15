@@ -351,6 +351,117 @@ const PatternManagement = () => {
               </CardContent>
             </Card>
 
+            {/* 특수 규칙 메모 */}
+            <Collapsible>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3">
+                    <CardTitle className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-orange-500" />
+                        코드 내 특수 규칙 (하드코딩)
+                      </span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </CardTitle>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    <div className="text-sm space-y-3">
+                      <p className="text-muted-foreground">
+                        아래 규칙들은 마스터 룰이 아닌 <strong>코드에 직접 작성된 특수 규칙</strong>입니다. 
+                        변경이 필요하면 개발자에게 요청하세요.
+                      </p>
+                      <div className="space-y-2">
+                        <div className="p-3 rounded-lg border border-orange-500/20 bg-orange-500/5">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant="outline" className="text-xs border-orange-500/30 text-orange-600">근무 시간</Badge>
+                            <span className="text-xs text-muted-foreground">WeeklySchedule.tsx</span>
+                          </div>
+                          <p className="text-sm">
+                            <strong>서민성</strong> — 초반조(A조) 잔업 시 퇴근 시간이 18:00이 아닌 <strong>17:30</strong>으로 적용됨
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground italic">
+                        * 새로운 특수 규칙이 추가되면 이 목록도 함께 업데이트됩니다.
+                      </p>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+
+            {/* 사용법 가이드 */}
+            <Collapsible>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3">
+                    <CardTitle className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4 text-blue-500" />
+                        마스터 룰 사용 가이드
+                      </span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </CardTitle>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    <div className="text-sm space-y-4">
+                      {/* 작동 원리 */}
+                      <div>
+                        <h4 className="font-semibold mb-2 flex items-center gap-1.5">
+                          <Zap className="h-3.5 w-3.5 text-primary" />
+                          작동 원리
+                        </h4>
+                        <ul className="space-y-1 text-muted-foreground list-disc list-inside">
+                          <li>마스터 룰은 <strong>새로운 주차의 근무표를 자동 생성할 때</strong> 순서대로 적용됩니다.</li>
+                          <li>이미 생성된(과거/현재) 근무표에는 영향을 주지 않습니다.</li>
+                          <li>플레이리스트 순서대로 인원을 배치한 뒤, 마스터 룰이 후처리로 적용됩니다.</li>
+                          <li>룰은 등록된 순서(위→아래)대로 실행됩니다.</li>
+                        </ul>
+                      </div>
+
+                      <Separator />
+
+                      {/* 사용 방법 */}
+                      <div>
+                        <h4 className="font-semibold mb-2 flex items-center gap-1.5">
+                          <Send className="h-3.5 w-3.5 text-primary" />
+                          사용 방법
+                        </h4>
+                        <ul className="space-y-1 text-muted-foreground list-disc list-inside">
+                          <li>입력창에 <strong>자연어로 규칙을 설명</strong>하면 AI가 분석합니다.</li>
+                          <li>AI 해석 결과를 확인한 뒤 "마스터 룰로 저장"을 누르세요.</li>
+                          <li>저장된 룰은 활성 목록에 표시되며, 수정/삭제가 가능합니다.</li>
+                          <li>예시: "초반조와 중반조를 교대해줘", "김광시를 설비로 고정 배치해줘"</li>
+                        </ul>
+                      </div>
+
+                      <Separator />
+
+                      {/* 주의사항 & 오류 */}
+                      <div>
+                        <h4 className="font-semibold mb-2 flex items-center gap-1.5">
+                          <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />
+                          주의사항 및 발생 가능한 오류
+                        </h4>
+                        <ul className="space-y-1.5 text-muted-foreground list-disc list-inside">
+                          <li><strong>이름 오타:</strong> 작업자 이름이 팀원 목록에 없으면 경고가 표시되고 저장이 차단됩니다. 정확한 이름을 입력하세요.</li>
+                          <li><strong>룰 충돌:</strong> 두 룰이 같은 작업자를 다른 부서로 배치하면 나중에 등록된 룰이 우선됩니다.</li>
+                          <li><strong>삭제된 인원:</strong> 팀원 관리에서 퇴사 처리된 작업자가 룰에 남아있으면, 해당 룰은 무시됩니다.</li>
+                          <li><strong>현재 주차 미적용:</strong> 이번 주 근무표를 바꾸려면 마스터 룰이 아닌 근무표 화면에서 직접 수정하세요.</li>
+                          <li><strong>AI 오해석:</strong> 복잡한 명령은 AI가 의도와 다르게 해석할 수 있습니다. 해석 결과를 꼭 확인 후 저장하세요.</li>
+                          <li><strong>서버 오류 (500):</strong> 일시적인 서버 문제입니다. 잠시 후 다시 시도하세요.</li>
+                          <li><strong>크레딧 부족 (402):</strong> AI 요청 크레딧이 소진되었습니다.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
         {/* AI 명령 입력 */}
         <Card>
           <CardHeader>

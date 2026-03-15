@@ -435,8 +435,39 @@ const PatternManagement = () => {
                           <li>입력창에 <strong>자연어로 규칙을 설명</strong>하면 AI가 분석합니다.</li>
                           <li>AI 해석 결과를 확인한 뒤 "마스터 룰로 저장"을 누르세요.</li>
                           <li>저장된 룰은 활성 목록에 표시되며, 수정/삭제가 가능합니다.</li>
-                          <li>예시: "초반조와 중반조를 교대해줘", "김광시를 설비로 고정 배치해줘"</li>
                         </ul>
+                      </div>
+
+                      <Separator />
+
+                      {/* 사용 예시 */}
+                      <div>
+                        <h4 className="font-semibold mb-2 flex items-center gap-1.5">
+                          <Sparkles className="h-3.5 w-3.5 text-primary" />
+                          사용 가능한 예시
+                        </h4>
+                        <div className="space-y-2">
+                          <div className="p-2.5 rounded-md bg-muted/50 border">
+                            <p className="text-xs font-medium text-foreground mb-1">조 교대</p>
+                            <p className="text-xs text-muted-foreground">"초반조와 중반조를 교대해줘"</p>
+                          </div>
+                          <div className="p-2.5 rounded-md bg-muted/50 border">
+                            <p className="text-xs font-medium text-foreground mb-1">조 고정</p>
+                            <p className="text-xs text-muted-foreground">"매주 A조는 초반, B조는 중반으로 고정해줘"</p>
+                          </div>
+                          <div className="p-2.5 rounded-md bg-muted/50 border">
+                            <p className="text-xs font-medium text-foreground mb-1">인원 고정 배치</p>
+                            <p className="text-xs text-muted-foreground">"김광시를 설비로 고정 배치해줘"</p>
+                          </div>
+                          <div className="p-2.5 rounded-md bg-muted/50 border">
+                            <p className="text-xs font-medium text-foreground mb-1">인원 이동</p>
+                            <p className="text-xs text-muted-foreground">"홍길동을 초반조에서 중반조로 옮겨줘"</p>
+                          </div>
+                          <div className="p-2.5 rounded-md bg-muted/50 border">
+                            <p className="text-xs font-medium text-foreground mb-1">부서 변경</p>
+                            <p className="text-xs text-muted-foreground">"이영수를 물류에서 검사로 이동해줘"</p>
+                          </div>
+                        </div>
                       </div>
 
                       <Separator />

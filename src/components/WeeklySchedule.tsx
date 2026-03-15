@@ -748,7 +748,17 @@ const WeeklySchedule = () => {
     
     if (isFirstShift) {
       baseStart = 6;
-      baseEnd = isOvertime ? 18 : 14;
+      if (isOvertime) {
+        // 서민성은 초반조 잔업 시 17:30까지
+        if (worker === "서민성") {
+          baseEnd = 17;
+          endMin = 30;
+        } else {
+          baseEnd = 18;
+        }
+      } else {
+        baseEnd = 14;
+      }
     } else {
       baseStart = isOvertime ? 10 : 14;
       baseEnd = 22;

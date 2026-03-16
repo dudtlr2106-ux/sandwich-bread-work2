@@ -50,6 +50,8 @@ async function getNotificationSettings() {
   }
 }
 
+const CACHE_VERSION = 'v1';
+
 self.addEventListener('install', (event) => {
   console.log('Service Worker installed');
   self.skipWaiting();
@@ -57,7 +59,15 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   console.log('Service Worker activated');
-  event.waitUntil(clients.claim());
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_VERSION)
+          .map((name) => caches.delete(name))
+      );
+    }).then(() => clients.claim())
+  );
 });
 
 self.addEventListener('push', (event) => {

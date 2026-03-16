@@ -1177,35 +1177,6 @@ const WeeklySchedule = () => {
           </div>
           
 
-          {/* Notice display - 컴팩트 모드에서는 숨김 */}
-          {!isCompact && noticeMemo && (noticeMemoIsPublic || isAdmin) && (
-            <Collapsible open={!noticeCollapsed} onOpenChange={(open) => setNoticeCollapsed(!open)}>
-              <div className={`mt-4 border rounded-lg p-4 ${noticeMemoIsPublic ? 'bg-muted/50 border-border' : 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800'}`}>
-                <div className="flex items-start gap-2">
-                  <StickyNote className={`h-4 w-4 mt-0.5 flex-shrink-0 ${noticeMemoIsPublic ? 'text-muted-foreground' : 'text-orange-500'}`} />
-                  <div className="flex-1 min-w-0">
-                    <CollapsibleTrigger asChild>
-                      <button className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-primary transition-colors cursor-pointer">
-                        공지사항
-                        {!noticeMemoIsPublic && isAdmin && (
-                          <Badge variant="outline" className="ml-2 text-xs text-orange-600 border-orange-300">비공개</Badge>
-                        )}
-                        <ChevronDown className={`h-4 w-4 transition-transform ${noticeCollapsed ? '-rotate-90' : ''}`} />
-                      </button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words mt-1">{noticeMemo}</p>
-                    </CollapsibleContent>
-                  </div>
-                  {isAdmin && (
-                    <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => setNoticeMemo("", noticeMemoIsPublic)}>
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </Collapsible>
-          )}
         </CardHeader>
         <CardContent className={`p-0 ${isCompact ? '' : 'schedule-table-container'}`}>
           {/* 인쇄 전용 제목 */}

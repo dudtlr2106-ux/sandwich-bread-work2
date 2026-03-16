@@ -1,6 +1,6 @@
 import WeeklySchedule from "@/components/WeeklySchedule";
 import AdminRequestList from "@/components/AdminRequestList";
-import { TestPushButton } from "@/components/TestPushButton";
+
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -33,12 +33,6 @@ const Index = () => {
         {/* 관리자만 볼 수 있는 요청 목록 */}
         {isAdmin && <AdminRequestList onStatusChange={handleStatusChange} />}
         
-        {/* 관리자만 볼 수 있는 테스트 버튼 */}
-        {isAdmin && (
-          <div className="mt-6 flex justify-end">
-            <TestPushButton />
-          </div>
-        )}
       </div>
     </main>
   );

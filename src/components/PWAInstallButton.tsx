@@ -48,12 +48,7 @@ export const PWAInstallButton = () => {
   };
 
   if (isInstalled) {
-    return (
-      <Button variant="outline" size="sm" disabled className="gap-2">
-        <Check className="h-4 w-4" />
-        설치됨
-      </Button>
-    );
+    return null;
   }
 
   if (!deferredPrompt) return null;

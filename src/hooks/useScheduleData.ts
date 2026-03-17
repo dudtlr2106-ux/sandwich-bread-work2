@@ -875,12 +875,32 @@ export function useScheduleData(currentWeekStart?: Date) {
       }));
     }
 
+    // 토요일 schedule_data도 DB에 즉시 저장
+    const saturdayScheduleUpsert: { date_key: string; department: string; shift: string; workers: string[] }[] = [];
+    setScheduleDataLocal((prev) => {
+      DEPARTMENTS.forEach((deptId) => {
+        const satData = prev[deptId]?.["토"];
+        if (satData) {
+          saturdayScheduleUpsert.push({ date_key: saturdayDateKey, department: deptId, shift: 'A', workers: satData.A });
+          saturdayScheduleUpsert.push({ date_key: saturdayDateKey, department: deptId, shift: 'B', workers: satData.B });
+        }
+      });
+      return prev;
+    });
+
     const { error } = await supabase
       .from('weekend_availability')
       .upsert(
         { worker_name: workerName, is_available: newAvailability, week_key: weekStartKey },
         { onConflict: 'worker_name,week_key' }
       );
+
+    // 토요일 근무표 DB 저장
+    if (saturdayScheduleUpsert.length > 0) {
+      await supabase
+        .from('schedule_data')
+        .upsert(saturdayScheduleUpsert, { onConflict: 'date_key,department,shift' });
+    }
 
     if (error) {
       console.error('Failed to save weekend availability:', error);

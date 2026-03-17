@@ -160,6 +160,9 @@ export function useScheduleData(currentWeekStart?: Date) {
   
   // 이전 주차 키를 추적하여 주차 변경 감지
   const prevWeekStartKeyRef = useRef<string>(weekStartKey);
+  
+  // Realtime 이벤트로 인한 loadData 호출을 일시적으로 무시하기 위한 플래그
+  const suppressRealtimeRef = useRef(false);
 
   // 마스터 룰 적용 함수
   const applyMasterRules = useCallback((baseData: ScheduleData, rules: PatternRule[]): ScheduleData => {
@@ -587,6 +590,7 @@ export function useScheduleData(currentWeekStart?: Date) {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'schedule_data' },
           (payload) => {
+            if (suppressRealtimeRef.current) return;
             const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
             if (weekDateKeys.includes(dateKey)) {
               loadData();
@@ -624,7 +628,9 @@ export function useScheduleData(currentWeekStart?: Date) {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'weekend_availability' },
           () => {
-            loadData();
+            if (!suppressRealtimeRef.current) {
+              loadData();
+            }
           }
         )
         .on(
@@ -833,6 +839,9 @@ export function useScheduleData(currentWeekStart?: Date) {
     const currentAvailability = weekendAvailability[workerName] || false;
     const newAvailability = !currentAvailability;
     
+    // Realtime 이벤트로 인한 loadData 호출 억제 (자체 변경으로 인한 덮어쓰기 방지)
+    suppressRealtimeRef.current = true;
+    
     // 즉시 로컬 상태 업데이트
     const updatedAvailability = { ...weekendAvailability, [workerName]: newAvailability };
     setWeekendAvailabilityLocal(updatedAvailability);
@@ -908,6 +917,11 @@ export function useScheduleData(currentWeekStart?: Date) {
         console.error('Failed to send push notification:', pushError);
       }
     }
+    
+    // 일정 시간 후 Realtime 억제 해제
+    setTimeout(() => {
+      suppressRealtimeRef.current = false;
+    }, 2000);
   }, [weekendAvailability, weekStartKey, weekStart]);
 
   // 주말 출근 가능 여부 확인

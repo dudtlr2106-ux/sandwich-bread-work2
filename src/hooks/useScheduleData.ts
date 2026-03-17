@@ -917,6 +917,11 @@ export function useScheduleData(currentWeekStart?: Date) {
         console.error('Failed to send push notification:', pushError);
       }
     }
+    
+    // 일정 시간 후 Realtime 억제 해제
+    setTimeout(() => {
+      suppressRealtimeRef.current = false;
+    }, 2000);
   }, [weekendAvailability, weekStartKey, weekStart]);
 
   // 주말 출근 가능 여부 확인

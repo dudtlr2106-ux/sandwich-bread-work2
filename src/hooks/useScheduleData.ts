@@ -878,8 +878,8 @@ export function useScheduleData(currentWeekStart?: Date) {
     const { error } = await supabase
       .from('weekend_availability')
       .upsert(
-        { worker_name: workerName, is_available: newAvailability },
-        { onConflict: 'worker_name' }
+        { worker_name: workerName, is_available: newAvailability, week_key: weekStartKey },
+        { onConflict: 'worker_name,week_key' }
       );
 
     if (error) {

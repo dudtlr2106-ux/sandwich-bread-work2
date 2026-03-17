@@ -160,9 +160,6 @@ export function useScheduleData(currentWeekStart?: Date) {
   
   // 이전 주차 키를 추적하여 주차 변경 감지
   const prevWeekStartKeyRef = useRef<string>(weekStartKey);
-  
-  // Realtime 이벤트로 인한 loadData 호출을 일시적으로 무시하기 위한 플래그
-  const suppressRealtimeRef = useRef(false);
 
   // 마스터 룰 적용 함수
   const applyMasterRules = useCallback((baseData: ScheduleData, rules: PatternRule[]): ScheduleData => {
@@ -297,7 +294,7 @@ export function useScheduleData(currentWeekStart?: Date) {
         supabase.from('worker_statuses').select('*').in('date_key', weekDateKeys),
         supabase.from('day_offs').select('*').in('date_key', weekDateKeys),
         supabase.from('notice_memos').select('*').limit(1),
-        supabase.from('weekend_availability').select('*').eq('week_key', weekStartKey),
+        supabase.from('weekend_availability').select('*'),
         // 현재 주 또는 미래 주차인 경우 마스터 룰도 로드
         isCurrentOrFutureWeek 
           ? supabase.from('pattern_rules').select('*').eq('is_active', true).order('applied_at', { ascending: true })
@@ -404,9 +401,11 @@ export function useScheduleData(currentWeekStart?: Date) {
       }
       
       // 주말 출근 가능자를 토요일에 자동 배치 (초반조(A)에만 배치, 중반조 인원도 초반조로)
-      // DB에 저장된 데이터가 있더라도, 주말 체크 데이터 기반으로 토요일을 항상 재계산
-      // (수동으로 부서 이동된 데이터가 있는 부서는 건너뜀)
+      // 부서별로 DB에 근무자가 있으면 수동 데이터로 보존, 없으면 주말 체크 기반으로 자동 배치
       const saturdayDateKey = getDateKeyForDay(weekStart, 5);
+      const saturdayDBRows = scheduleRes.data ? scheduleRes.data.filter(
+        (row) => row.date_key === saturdayDateKey
+      ) : [];
       
       if (weekendRes.data) {
         const availabilityMap: { [name: string]: boolean } = {};
@@ -415,6 +414,14 @@ export function useScheduleData(currentWeekStart?: Date) {
         });
         
         DEPARTMENTS.forEach((deptId) => {
+          // 해당 부서의 토요일 DB 데이터에 실제 근무자가 있는지 확인
+          const deptHasWorkers = saturdayDBRows.some(
+            (row) => row.department === deptId && row.workers && row.workers.length > 0
+          );
+          
+          // 이미 근무자가 배정된 부서는 건너뜀 (수동 이동 보존)
+          if (deptHasWorkers) return;
+          
           const mondayData = newScheduleData[deptId]?.["월"];
           if (mondayData) {
             const allAvailable = [
@@ -590,7 +597,6 @@ export function useScheduleData(currentWeekStart?: Date) {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'schedule_data' },
           (payload) => {
-            if (suppressRealtimeRef.current) return;
             const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
             if (weekDateKeys.includes(dateKey)) {
               loadData();
@@ -628,9 +634,7 @@ export function useScheduleData(currentWeekStart?: Date) {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'weekend_availability' },
           () => {
-            if (!suppressRealtimeRef.current) {
-              loadData();
-            }
+            loadData();
           }
         )
         .on(
@@ -839,9 +843,6 @@ export function useScheduleData(currentWeekStart?: Date) {
     const currentAvailability = weekendAvailability[workerName] || false;
     const newAvailability = !currentAvailability;
     
-    // Realtime 이벤트로 인한 loadData 호출 억제 (자체 변경으로 인한 덮어쓰기 방지)
-    suppressRealtimeRef.current = true;
-    
     // 즉시 로컬 상태 업데이트
     const updatedAvailability = { ...weekendAvailability, [workerName]: newAvailability };
     setWeekendAvailabilityLocal(updatedAvailability);
@@ -874,32 +875,12 @@ export function useScheduleData(currentWeekStart?: Date) {
       }));
     }
 
-    // 토요일 schedule_data도 DB에 즉시 저장
-    const saturdayScheduleUpsert: { date_key: string; department: string; shift: string; workers: string[] }[] = [];
-    setScheduleDataLocal((prev) => {
-      DEPARTMENTS.forEach((deptId) => {
-        const satData = prev[deptId]?.["토"];
-        if (satData) {
-          saturdayScheduleUpsert.push({ date_key: saturdayDateKey, department: deptId, shift: 'A', workers: satData.A });
-          saturdayScheduleUpsert.push({ date_key: saturdayDateKey, department: deptId, shift: 'B', workers: satData.B });
-        }
-      });
-      return prev;
-    });
-
     const { error } = await supabase
       .from('weekend_availability')
       .upsert(
-        { worker_name: workerName, is_available: newAvailability, week_key: weekStartKey },
-        { onConflict: 'worker_name,week_key' }
+        { worker_name: workerName, is_available: newAvailability },
+        { onConflict: 'worker_name' }
       );
-
-    // 토요일 근무표 DB 저장
-    if (saturdayScheduleUpsert.length > 0) {
-      await supabase
-        .from('schedule_data')
-        .upsert(saturdayScheduleUpsert, { onConflict: 'date_key,department,shift' });
-    }
 
     if (error) {
       console.error('Failed to save weekend availability:', error);
@@ -917,12 +898,7 @@ export function useScheduleData(currentWeekStart?: Date) {
         console.error('Failed to send push notification:', pushError);
       }
     }
-    
-    // 일정 시간 후 Realtime 억제 해제
-    setTimeout(() => {
-      suppressRealtimeRef.current = false;
-    }, 2000);
-  }, [weekendAvailability, weekStartKey, weekStart]);
+  }, [weekendAvailability]);
 
   // 주말 출근 가능 여부 확인
   const isWeekendAvailable = useCallback((workerName: string) => {

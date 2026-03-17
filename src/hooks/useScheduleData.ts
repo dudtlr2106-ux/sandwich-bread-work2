@@ -627,7 +627,9 @@ export function useScheduleData(currentWeekStart?: Date) {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'weekend_availability' },
           () => {
-            loadData();
+            if (!suppressRealtimeRef.current) {
+              loadData();
+            }
           }
         )
         .on(

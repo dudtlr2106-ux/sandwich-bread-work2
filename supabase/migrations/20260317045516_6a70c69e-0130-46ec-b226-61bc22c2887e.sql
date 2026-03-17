@@ -1,1 +1,0 @@
-DELETE FROM public.weekend_availability WHERE week_key = '' OR week_key IS NULL;

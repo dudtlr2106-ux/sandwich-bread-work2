@@ -448,18 +448,21 @@ export type Database = {
           id: string
           is_available: boolean
           updated_at: string
+          week_key: string
           worker_name: string
         }
         Insert: {
           id?: string
           is_available?: boolean
           updated_at?: string
+          week_key?: string
           worker_name: string
         }
         Update: {
           id?: string
           is_available?: boolean
           updated_at?: string
+          week_key?: string
           worker_name?: string
         }
         Relationships: []

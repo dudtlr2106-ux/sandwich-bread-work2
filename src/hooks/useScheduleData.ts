@@ -590,6 +590,7 @@ export function useScheduleData(currentWeekStart?: Date) {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'schedule_data' },
           (payload) => {
+            if (suppressRealtimeRef.current) return;
             const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
             if (weekDateKeys.includes(dateKey)) {
               loadData();

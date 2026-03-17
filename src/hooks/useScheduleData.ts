@@ -401,11 +401,9 @@ export function useScheduleData(currentWeekStart?: Date) {
       }
       
       // 주말 출근 가능자를 토요일에 자동 배치 (초반조(A)에만 배치, 중반조 인원도 초반조로)
-      // 부서별로 DB에 근무자가 있으면 수동 데이터로 보존, 없으면 주말 체크 기반으로 자동 배치
+      // DB에 저장된 데이터가 있더라도, 주말 체크 데이터 기반으로 토요일을 항상 재계산
+      // (수동으로 부서 이동된 데이터가 있는 부서는 건너뜀)
       const saturdayDateKey = getDateKeyForDay(weekStart, 5);
-      const saturdayDBRows = scheduleRes.data ? scheduleRes.data.filter(
-        (row) => row.date_key === saturdayDateKey
-      ) : [];
       
       if (weekendRes.data) {
         const availabilityMap: { [name: string]: boolean } = {};
@@ -414,14 +412,6 @@ export function useScheduleData(currentWeekStart?: Date) {
         });
         
         DEPARTMENTS.forEach((deptId) => {
-          // 해당 부서의 토요일 DB 데이터에 실제 근무자가 있는지 확인
-          const deptHasWorkers = saturdayDBRows.some(
-            (row) => row.department === deptId && row.workers && row.workers.length > 0
-          );
-          
-          // 이미 근무자가 배정된 부서는 건너뜀 (수동 이동 보존)
-          if (deptHasWorkers) return;
-          
           const mondayData = newScheduleData[deptId]?.["월"];
           if (mondayData) {
             const allAvailable = [

@@ -160,6 +160,9 @@ export function useScheduleData(currentWeekStart?: Date) {
   
   // 이전 주차 키를 추적하여 주차 변경 감지
   const prevWeekStartKeyRef = useRef<string>(weekStartKey);
+  
+  // Realtime 이벤트로 인한 loadData 호출을 일시적으로 무시하기 위한 플래그
+  const suppressRealtimeRef = useRef(false);
 
   // 마스터 룰 적용 함수
   const applyMasterRules = useCallback((baseData: ScheduleData, rules: PatternRule[]): ScheduleData => {

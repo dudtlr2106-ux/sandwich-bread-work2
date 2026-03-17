@@ -839,6 +839,9 @@ export function useScheduleData(currentWeekStart?: Date) {
     const currentAvailability = weekendAvailability[workerName] || false;
     const newAvailability = !currentAvailability;
     
+    // Realtime 이벤트로 인한 loadData 호출 억제 (자체 변경으로 인한 덮어쓰기 방지)
+    suppressRealtimeRef.current = true;
+    
     // 즉시 로컬 상태 업데이트
     const updatedAvailability = { ...weekendAvailability, [workerName]: newAvailability };
     setWeekendAvailabilityLocal(updatedAvailability);

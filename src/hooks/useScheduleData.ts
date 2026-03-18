@@ -294,7 +294,7 @@ export function useScheduleData(currentWeekStart?: Date) {
         supabase.from('worker_statuses').select('*').in('date_key', weekDateKeys),
         supabase.from('day_offs').select('*').in('date_key', weekDateKeys),
         supabase.from('notice_memos').select('*').limit(1),
-        supabase.from('weekend_availability').select('*'),
+        supabase.from('weekend_availability').select('*').order('updated_at', { ascending: true }),
         // 현재 주 또는 미래 주차인 경우 마스터 룰도 로드
         isCurrentOrFutureWeek 
           ? supabase.from('pattern_rules').select('*').eq('is_active', true).order('applied_at', { ascending: true })

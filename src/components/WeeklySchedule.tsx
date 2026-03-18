@@ -200,6 +200,7 @@ const WeeklySchedule = () => {
     weekendAvailability,
     toggleWeekendAvailability: toggleWeekendAvailabilityDb,
     isLoading: isDataLoading,
+    regenerateFromPlaylist,
     getDateKey,
   } = useScheduleData(currentWeekStart);
 

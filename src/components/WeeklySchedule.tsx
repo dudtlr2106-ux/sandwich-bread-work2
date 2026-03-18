@@ -72,6 +72,7 @@ import {
   Printer,
   Minimize2,
   Maximize2,
+  RefreshCw,
 } from "lucide-react";
 import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -200,6 +201,7 @@ const WeeklySchedule = () => {
     weekendAvailability,
     toggleWeekendAvailability: toggleWeekendAvailabilityDb,
     isLoading: isDataLoading,
+    regenerateFromPlaylist,
     getDateKey,
   } = useScheduleData(currentWeekStart);
 
@@ -253,6 +255,7 @@ const WeeklySchedule = () => {
 
   // 팀 관리 화면 상태
   const [showTeamManagement, setShowTeamManagement] = useState(false);
+  const [regenerateConfirmOpen, setRegenerateConfirmOpen] = useState(false);
 
   // 관리자 시간잔업/시간휴가 시간 입력 다이얼로그 상태
   const [partialTimeDialogOpen, setPartialTimeDialogOpen] = useState(false);
@@ -1134,7 +1137,40 @@ const WeeklySchedule = () => {
                 </Button>
               )}
 
-              {/* 컴팩트 모드 토글 */}
+              {/* 근무표 재생성 버튼 - 관리자만 표시 */}
+              {isAdmin && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setRegenerateConfirmOpen(true)}
+                    className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'}
+                    title="플레이리스트 기준 재생성"
+                  >
+                    <RefreshCw className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
+                  </Button>
+                  <AlertDialog open={regenerateConfirmOpen} onOpenChange={setRegenerateConfirmOpen}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>근무표 재생성</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          현재 주차({format(currentWeekStart, "M/d")})의 근무표를 삭제하고 로테이션 플레이리스트 기준으로 다시 생성합니다. 수동으로 변경한 내용이 모두 초기화됩니다. 계속하시겠습니까?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>취소</AlertDialogCancel>
+                        <AlertDialogAction onClick={async () => {
+                          setRegenerateConfirmOpen(false);
+                          await regenerateFromPlaylist();
+                        }}>
+                          재생성
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              )}
+
               <Button
                 variant={isCompact ? "default" : "outline"}
                 size="icon"

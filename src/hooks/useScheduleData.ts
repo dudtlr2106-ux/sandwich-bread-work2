@@ -905,6 +905,27 @@ export function useScheduleData(currentWeekStart?: Date) {
     return weekendAvailability[workerName] || false;
   }, [weekendAvailability]);
 
+  // 현재 주차 데이터 삭제 후 플레이리스트 기준으로 재생성
+  const regenerateFromPlaylist = useCallback(async () => {
+    const weekDateKeys = getWeekDateKeys(weekStart);
+    
+    // 1. 현재 주차의 schedule_data 삭제
+    const { error: deleteError } = await supabase
+      .from('schedule_data')
+      .delete()
+      .in('date_key', weekDateKeys);
+    
+    if (deleteError) {
+      console.error('Failed to delete schedule data:', deleteError);
+      toast.error('근무표 삭제에 실패했습니다');
+      return;
+    }
+    
+    // 2. 데이터 다시 로드 (DB에 데이터가 없으므로 플레이리스트 기준으로 자동 생성됨)
+    await loadData();
+    toast.success('플레이리스트 기준으로 근무표가 재생성되었습니다');
+  }, [weekStart, loadData]);
+
   return {
     scheduleData,
     setScheduleData,
@@ -926,6 +947,7 @@ export function useScheduleData(currentWeekStart?: Date) {
     isWeekendAvailable,
     isLoading,
     refreshData: loadData,
+    regenerateFromPlaylist,
     getDateKey,
   };
 }

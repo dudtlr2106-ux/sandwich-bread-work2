@@ -864,19 +864,56 @@ export function useScheduleData(currentWeekStart?: Date) {
     const updatedAvailability = { ...weekendAvailability, [workerName]: newAvailability };
     setWeekendAvailabilityLocal(updatedAvailability);
 
-    // 토요일 근무표도 즉시 업데이트 (초반조에만 배치, 중반조 인원도 초반조로)
+    // 토요일 근무표도 즉시 업데이트 (체크 순서대로 맨 위 부서부터 채움)
     setScheduleDataLocal((prev) => {
       const newData = JSON.parse(JSON.stringify(prev));
+      
+      // 현재 체크된 인원 목록 (새로운 토글 반영)
+      // updated_at 순서 유지를 위해 기존 순서 보존 + 새 체크는 맨 끝에 추가
+      const currentAvailableWorkers: string[] = [];
+      
+      // 기존 토요일 배치된 인원 순서 유지 (체크 해제된 인원 제외)
       DEPARTMENTS.forEach((deptId) => {
-        const mondayData = newData[deptId]?.["월"];
-        if (mondayData) {
-          const allAvailable = [
-            ...mondayData.A.filter((w: string) => updatedAvailability[w]),
-            ...mondayData.B.filter((w: string) => updatedAvailability[w]),
-          ];
-          newData[deptId]["토"] = { A: allAvailable, B: [] };
-        }
+        const satWorkers = prev[deptId]?.["토"]?.A || [];
+        satWorkers.forEach((w: string) => {
+          if (w !== workerName && updatedAvailability[w] && !currentAvailableWorkers.includes(w)) {
+            currentAvailableWorkers.push(w);
+          }
+        });
       });
+      
+      // 새로 체크된 인원은 맨 끝에 추가
+      if (newAvailability && !currentAvailableWorkers.includes(workerName)) {
+        currentAvailableWorkers.push(workerName);
+      }
+      
+      // 부서별 용량에 따라 순서대로 채움
+      const saturdayDeptOrder = [
+        { dept: 'foreman', capacity: 2 },
+        { dept: 'equipment', capacity: 3 },
+        { dept: 'inspection', capacity: 2 },
+        { dept: 'logistics', capacity: 1 },
+        { dept: 'package', capacity: 4 },
+      ];
+      
+      let workerIdx = 0;
+      saturdayDeptOrder.forEach(({ dept, capacity }) => {
+        const deptWorkers: string[] = [];
+        for (let i = 0; i < capacity && workerIdx < currentAvailableWorkers.length; i++) {
+          deptWorkers.push(currentAvailableWorkers[workerIdx]);
+          workerIdx++;
+        }
+        newData[dept]["토"] = { A: deptWorkers, B: [] };
+      });
+      
+      // 용량 초과 인원은 마지막 부서에 추가
+      if (workerIdx < currentAvailableWorkers.length) {
+        while (workerIdx < currentAvailableWorkers.length) {
+          newData['package']["토"].A.push(currentAvailableWorkers[workerIdx]);
+          workerIdx++;
+        }
+      }
+      
       return newData;
     });
 

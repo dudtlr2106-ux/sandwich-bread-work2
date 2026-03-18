@@ -254,6 +254,7 @@ const WeeklySchedule = () => {
 
   // 팀 관리 화면 상태
   const [showTeamManagement, setShowTeamManagement] = useState(false);
+  const [regenerateConfirmOpen, setRegenerateConfirmOpen] = useState(false);
 
   // 관리자 시간잔업/시간휴가 시간 입력 다이얼로그 상태
   const [partialTimeDialogOpen, setPartialTimeDialogOpen] = useState(false);

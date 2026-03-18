@@ -294,7 +294,7 @@ export function useScheduleData(currentWeekStart?: Date) {
         supabase.from('worker_statuses').select('*').in('date_key', weekDateKeys),
         supabase.from('day_offs').select('*').in('date_key', weekDateKeys),
         supabase.from('notice_memos').select('*').limit(1),
-        supabase.from('weekend_availability').select('*'),
+        supabase.from('weekend_availability').select('*').order('updated_at', { ascending: true }),
         // 현재 주 또는 미래 주차인 경우 마스터 룰도 로드
         isCurrentOrFutureWeek 
           ? supabase.from('pattern_rules').select('*').eq('is_active', true).order('applied_at', { ascending: true })
@@ -400,40 +400,57 @@ export function useScheduleData(currentWeekStart?: Date) {
         }
       }
       
-      // 주말 출근 가능자를 토요일에 자동 배치 (초반조(A)에만 배치, 중반조 인원도 초반조로)
-      // 부서별로 DB에 근무자가 있으면 수동 데이터로 보존, 없으면 주말 체크 기반으로 자동 배치
+      // 주말 출근 가능자를 토요일에 자동 배치 (체크 순서대로 맨 위 부서부터 채움)
+      // 부서별로 DB에 근무자가 있으면 수동 데이터로 보존, 없으면 체크 순서 기반으로 자동 배치
       const saturdayDateKey = getDateKeyForDay(weekStart, 5);
       const saturdayDBRows = scheduleRes.data ? scheduleRes.data.filter(
         (row) => row.date_key === saturdayDateKey
       ) : [];
       
-      if (weekendRes.data) {
-        const availabilityMap: { [name: string]: boolean } = {};
-        weekendRes.data.forEach((row) => {
-          availabilityMap[row.worker_name] = row.is_available;
+      // 토요일에 이미 수동 저장된 데이터가 하나라도 있으면 자동 배치 스킵
+      const hasManuallySavedSaturday = saturdayDBRows.some(
+        (row) => row.workers && row.workers.length > 0
+      );
+      
+      if (weekendRes.data && !hasManuallySavedSaturday) {
+        // 체크된 인원만 updated_at 순서대로 (이미 정렬됨)
+        const availableWorkers = weekendRes.data
+          .filter((row) => row.is_available)
+          .map((row) => row.worker_name);
+        
+        // 부서별 토요일 슬롯 용량 (초반조만 사용)
+        const saturdayDeptOrder: { dept: string; capacity: number }[] = [
+          { dept: 'foreman', capacity: DEPARTMENT_ROTATION_SIZE.foreman.early },
+          { dept: 'equipment', capacity: DEPARTMENT_ROTATION_SIZE.equipment.early },
+          { dept: 'inspection', capacity: DEPARTMENT_ROTATION_SIZE.inspection.early },
+          { dept: 'logistics', capacity: DEPARTMENT_ROTATION_SIZE.logistics.early },
+          { dept: 'package', capacity: DEPARTMENT_ROTATION_SIZE.package.early },
+        ];
+        
+        let workerIdx = 0;
+        saturdayDeptOrder.forEach(({ dept, capacity }) => {
+          const deptWorkers: string[] = [];
+          for (let i = 0; i < capacity && workerIdx < availableWorkers.length; i++) {
+            deptWorkers.push(availableWorkers[workerIdx]);
+            workerIdx++;
+          }
+          if (!newScheduleData[dept]) {
+            newScheduleData[dept] = {};
+          }
+          if (!newScheduleData[dept]["토"]) {
+            newScheduleData[dept]["토"] = { A: [], B: [] };
+          }
+          newScheduleData[dept]["토"] = { A: deptWorkers, B: [] };
         });
         
-        DEPARTMENTS.forEach((deptId) => {
-          // 해당 부서의 토요일 DB 데이터에 실제 근무자가 있는지 확인
-          const deptHasWorkers = saturdayDBRows.some(
-            (row) => row.department === deptId && row.workers && row.workers.length > 0
-          );
-          
-          // 이미 근무자가 배정된 부서는 건너뜀 (수동 이동 보존)
-          if (deptHasWorkers) return;
-          
-          const mondayData = newScheduleData[deptId]?.["월"];
-          if (mondayData) {
-            const allAvailable = [
-              ...mondayData.A.filter((w) => availabilityMap[w]),
-              ...mondayData.B.filter((w) => availabilityMap[w]),
-            ];
-            if (!newScheduleData[deptId]["토"]) {
-              newScheduleData[deptId]["토"] = { A: [], B: [] };
-            }
-            newScheduleData[deptId]["토"] = { A: allAvailable, B: [] };
+        // 용량 초과 인원은 마지막 부서에 추가
+        if (workerIdx < availableWorkers.length) {
+          const lastDept = saturdayDeptOrder[saturdayDeptOrder.length - 1].dept;
+          while (workerIdx < availableWorkers.length) {
+            newScheduleData[lastDept]["토"].A.push(availableWorkers[workerIdx]);
+            workerIdx++;
           }
-        });
+        }
       }
       
       // 토요일 출근자는 기본 잔업 상태로 설정 (DB 데이터 유무와 무관하게)
@@ -847,19 +864,56 @@ export function useScheduleData(currentWeekStart?: Date) {
     const updatedAvailability = { ...weekendAvailability, [workerName]: newAvailability };
     setWeekendAvailabilityLocal(updatedAvailability);
 
-    // 토요일 근무표도 즉시 업데이트 (초반조에만 배치, 중반조 인원도 초반조로)
+    // 토요일 근무표도 즉시 업데이트 (체크 순서대로 맨 위 부서부터 채움)
     setScheduleDataLocal((prev) => {
       const newData = JSON.parse(JSON.stringify(prev));
+      
+      // 현재 체크된 인원 목록 (새로운 토글 반영)
+      // updated_at 순서 유지를 위해 기존 순서 보존 + 새 체크는 맨 끝에 추가
+      const currentAvailableWorkers: string[] = [];
+      
+      // 기존 토요일 배치된 인원 순서 유지 (체크 해제된 인원 제외)
       DEPARTMENTS.forEach((deptId) => {
-        const mondayData = newData[deptId]?.["월"];
-        if (mondayData) {
-          const allAvailable = [
-            ...mondayData.A.filter((w: string) => updatedAvailability[w]),
-            ...mondayData.B.filter((w: string) => updatedAvailability[w]),
-          ];
-          newData[deptId]["토"] = { A: allAvailable, B: [] };
-        }
+        const satWorkers = prev[deptId]?.["토"]?.A || [];
+        satWorkers.forEach((w: string) => {
+          if (w !== workerName && updatedAvailability[w] && !currentAvailableWorkers.includes(w)) {
+            currentAvailableWorkers.push(w);
+          }
+        });
       });
+      
+      // 새로 체크된 인원은 맨 끝에 추가
+      if (newAvailability && !currentAvailableWorkers.includes(workerName)) {
+        currentAvailableWorkers.push(workerName);
+      }
+      
+      // 부서별 용량에 따라 순서대로 채움
+      const saturdayDeptOrder = [
+        { dept: 'foreman', capacity: 2 },
+        { dept: 'equipment', capacity: 3 },
+        { dept: 'inspection', capacity: 2 },
+        { dept: 'logistics', capacity: 1 },
+        { dept: 'package', capacity: 4 },
+      ];
+      
+      let workerIdx = 0;
+      saturdayDeptOrder.forEach(({ dept, capacity }) => {
+        const deptWorkers: string[] = [];
+        for (let i = 0; i < capacity && workerIdx < currentAvailableWorkers.length; i++) {
+          deptWorkers.push(currentAvailableWorkers[workerIdx]);
+          workerIdx++;
+        }
+        newData[dept]["토"] = { A: deptWorkers, B: [] };
+      });
+      
+      // 용량 초과 인원은 마지막 부서에 추가
+      if (workerIdx < currentAvailableWorkers.length) {
+        while (workerIdx < currentAvailableWorkers.length) {
+          newData['package']["토"].A.push(currentAvailableWorkers[workerIdx]);
+          workerIdx++;
+        }
+      }
+      
       return newData;
     });
 
@@ -878,7 +932,7 @@ export function useScheduleData(currentWeekStart?: Date) {
     const { error } = await supabase
       .from('weekend_availability')
       .upsert(
-        { worker_name: workerName, is_available: newAvailability },
+        { worker_name: workerName, is_available: newAvailability, updated_at: new Date().toISOString() },
         { onConflict: 'worker_name' }
       );
 

@@ -1,0 +1,1 @@
+ALTER TABLE public.weekend_availability ADD CONSTRAINT weekend_availability_worker_week_unique UNIQUE (worker_name, week_key);

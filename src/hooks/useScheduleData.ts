@@ -294,7 +294,7 @@ export function useScheduleData(currentWeekStart?: Date) {
         supabase.from('worker_statuses').select('*').in('date_key', weekDateKeys),
         supabase.from('day_offs').select('*').in('date_key', weekDateKeys),
         supabase.from('notice_memos').select('*').limit(1),
-        supabase.from('weekend_availability').select('*').order('updated_at', { ascending: true }),
+        supabase.from('weekend_availability').select('*').eq('week_key', weekStartKey).order('updated_at', { ascending: true }),
         // 현재 주 또는 미래 주차인 경우 마스터 룰도 로드
         isCurrentOrFutureWeek 
           ? supabase.from('pattern_rules').select('*').eq('is_active', true).order('applied_at', { ascending: true })
@@ -932,8 +932,8 @@ export function useScheduleData(currentWeekStart?: Date) {
     const { error } = await supabase
       .from('weekend_availability')
       .upsert(
-        { worker_name: workerName, is_available: newAvailability, updated_at: new Date().toISOString() },
-        { onConflict: 'worker_name' }
+        { worker_name: workerName, week_key: weekStartKey, is_available: newAvailability, updated_at: new Date().toISOString() },
+        { onConflict: 'worker_name,week_key' }
       );
 
     if (error) {
@@ -952,7 +952,7 @@ export function useScheduleData(currentWeekStart?: Date) {
         console.error('Failed to send push notification:', pushError);
       }
     }
-  }, [weekendAvailability]);
+  }, [weekendAvailability, weekStartKey]);
 
   // 주말 출근 가능 여부 확인
   const isWeekendAvailable = useCallback((workerName: string) => {

@@ -1312,9 +1312,11 @@ const WeeklySchedule = () => {
                     const dateKey = getDateKey(actualIndex);
                     const isDayOffDate = isDayOff(dateKey);
                     
-                    // 모든 부서에서 휴가자 체크 (잔업 가능 표시용)
-                    let hasFirstShiftVacation = false;
-                    let hasSecondShiftVacation = false;
+                    // 부서별 휴가자 체크 (잔업 가능 표시용 - 색상 구분)
+                    let hasFirstShiftPackageVacation = false;
+                    let hasSecondShiftPackageVacation = false;
+                    let hasFirstShiftOtherVacation = false;
+                    let hasSecondShiftOtherVacation = false;
                     
                     if (!isDayOffDate) {
                       departments.forEach((dept) => {
@@ -1322,10 +1324,49 @@ const WeeklySchedule = () => {
                         const workersB = getWorkers(dept.id, day, "B");
                         const firstVacations = workersA.filter(w => getWorkerStatus(w, dateKey, day) === "vacation");
                         const secondVacations = workersB.filter(w => getWorkerStatus(w, dateKey, day) === "vacation");
-                        if (firstVacations.length > 0) hasFirstShiftVacation = true;
-                        if (secondVacations.length > 0) hasSecondShiftVacation = true;
+                        if (dept.id === "package") {
+                          if (firstVacations.length > 0) hasFirstShiftPackageVacation = true;
+                          if (secondVacations.length > 0) hasSecondShiftPackageVacation = true;
+                        } else {
+                          if (firstVacations.length > 0) hasFirstShiftOtherVacation = true;
+                          if (secondVacations.length > 0) hasSecondShiftOtherVacation = true;
+                        }
                       });
                     }
+                    
+                    // 초반 헤더: 중반 휴가자 기준
+                    const hasSecondShiftVacation = hasSecondShiftPackageVacation || hasSecondShiftOtherVacation;
+                    const firstShiftBgClass = !isCompact && hasSecondShiftVacation
+                      ? (hasSecondShiftPackageVacation && hasSecondShiftOtherVacation
+                          ? "bg-emerald-100 dark:bg-emerald-950/50"
+                          : hasSecondShiftPackageVacation
+                            ? "bg-sky-100 dark:bg-sky-950/50"
+                            : "bg-orange-100 dark:bg-orange-950/50")
+                      : "";
+                    const firstShiftTextClass = hasSecondShiftVacation
+                      ? (hasSecondShiftPackageVacation && hasSecondShiftOtherVacation
+                          ? "text-emerald-600"
+                          : hasSecondShiftPackageVacation
+                            ? "text-sky-600"
+                            : "text-orange-600")
+                      : "";
+                    
+                    // 중반 헤더: 초반 휴가자 기준
+                    const hasFirstShiftVacation = hasFirstShiftPackageVacation || hasFirstShiftOtherVacation;
+                    const secondShiftBgClass = !isCompact && hasFirstShiftVacation
+                      ? (hasFirstShiftPackageVacation && hasFirstShiftOtherVacation
+                          ? "bg-emerald-100 dark:bg-emerald-950/50"
+                          : hasFirstShiftPackageVacation
+                            ? "bg-sky-100 dark:bg-sky-950/50"
+                            : "bg-orange-100 dark:bg-orange-950/50")
+                      : "";
+                    const secondShiftTextClass = hasFirstShiftVacation
+                      ? (hasFirstShiftPackageVacation && hasFirstShiftOtherVacation
+                          ? "text-emerald-600"
+                          : hasFirstShiftPackageVacation
+                            ? "text-sky-600"
+                            : "text-orange-600")
+                      : "";
                     
                     // 일요일은 인쇄 시 숨김
                     const isSundayShift = day === "일";

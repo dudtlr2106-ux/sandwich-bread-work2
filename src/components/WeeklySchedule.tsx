@@ -1312,9 +1312,11 @@ const WeeklySchedule = () => {
                     const dateKey = getDateKey(actualIndex);
                     const isDayOffDate = isDayOff(dateKey);
                     
-                    // 모든 부서에서 휴가자 체크 (잔업 가능 표시용)
-                    let hasFirstShiftVacation = false;
-                    let hasSecondShiftVacation = false;
+                    // 부서별 휴가자 체크 (잔업 가능 표시용 - 색상 구분)
+                    let hasFirstShiftPackageVacation = false;
+                    let hasSecondShiftPackageVacation = false;
+                    let hasFirstShiftOtherVacation = false;
+                    let hasSecondShiftOtherVacation = false;
                     
                     if (!isDayOffDate) {
                       departments.forEach((dept) => {
@@ -1322,31 +1324,70 @@ const WeeklySchedule = () => {
                         const workersB = getWorkers(dept.id, day, "B");
                         const firstVacations = workersA.filter(w => getWorkerStatus(w, dateKey, day) === "vacation");
                         const secondVacations = workersB.filter(w => getWorkerStatus(w, dateKey, day) === "vacation");
-                        if (firstVacations.length > 0) hasFirstShiftVacation = true;
-                        if (secondVacations.length > 0) hasSecondShiftVacation = true;
+                        if (dept.id === "package") {
+                          if (firstVacations.length > 0) hasFirstShiftPackageVacation = true;
+                          if (secondVacations.length > 0) hasSecondShiftPackageVacation = true;
+                        } else {
+                          if (firstVacations.length > 0) hasFirstShiftOtherVacation = true;
+                          if (secondVacations.length > 0) hasSecondShiftOtherVacation = true;
+                        }
                       });
                     }
+                    
+                    // 초반 헤더: 중반 휴가자 기준
+                    const hasSecondShiftVacation = hasSecondShiftPackageVacation || hasSecondShiftOtherVacation;
+                    const firstShiftBgClass = !isCompact && hasSecondShiftVacation
+                      ? (hasSecondShiftPackageVacation && hasSecondShiftOtherVacation
+                          ? "bg-emerald-100 dark:bg-emerald-950/50"
+                          : hasSecondShiftPackageVacation
+                            ? "bg-sky-100 dark:bg-sky-950/50"
+                            : "bg-orange-100 dark:bg-orange-950/50")
+                      : "";
+                    const firstShiftTextClass = hasSecondShiftVacation
+                      ? (hasSecondShiftPackageVacation && hasSecondShiftOtherVacation
+                          ? "text-emerald-600"
+                          : hasSecondShiftPackageVacation
+                            ? "text-sky-600"
+                            : "text-orange-600")
+                      : "";
+                    
+                    // 중반 헤더: 초반 휴가자 기준
+                    const hasFirstShiftVacation = hasFirstShiftPackageVacation || hasFirstShiftOtherVacation;
+                    const secondShiftBgClass = !isCompact && hasFirstShiftVacation
+                      ? (hasFirstShiftPackageVacation && hasFirstShiftOtherVacation
+                          ? "bg-emerald-100 dark:bg-emerald-950/50"
+                          : hasFirstShiftPackageVacation
+                            ? "bg-sky-100 dark:bg-sky-950/50"
+                            : "bg-orange-100 dark:bg-orange-950/50")
+                      : "";
+                    const secondShiftTextClass = hasFirstShiftVacation
+                      ? (hasFirstShiftPackageVacation && hasFirstShiftOtherVacation
+                          ? "text-emerald-600"
+                          : hasFirstShiftPackageVacation
+                            ? "text-sky-600"
+                            : "text-orange-600")
+                      : "";
                     
                     // 일요일은 인쇄 시 숨김
                     const isSundayShift = day === "일";
                     return (
                       <React.Fragment key={`${day}-shifts`}>
-                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${!isCompact && hasSecondShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""} ${isSundayShift ? "print-hide-sunday" : ""}`}>
+                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${firstShiftBgClass} ${isSundayShift ? "print-hide-sunday" : ""}`}>
                           <div className="flex flex-col items-center gap-0.5">
                             <span className="text-primary">{isCompact ? '초' : '초반'}</span>
                             {!isCompact && hasSecondShiftVacation && (
-                              <div className="flex items-center gap-0.5 text-[9px] text-orange-600">
+                              <div className={`flex items-center gap-0.5 text-[9px] ${firstShiftTextClass}`}>
                                 <Clock className="h-2.5 w-2.5" />
                                 <span>잔업가능</span>
                               </div>
                             )}
                           </div>
                         </th>
-                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${!isCompact && hasFirstShiftVacation ? "bg-orange-100 dark:bg-orange-950/50" : ""} ${isSundayShift ? "print-hide-sunday" : ""}`}>
+                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${secondShiftBgClass} ${isSundayShift ? "print-hide-sunday" : ""}`}>
                           <div className="flex flex-col items-center gap-0.5">
                             <span className="text-secondary-foreground">{isCompact ? '중' : '중반'}</span>
                             {!isCompact && hasFirstShiftVacation && (
-                              <div className="flex items-center gap-0.5 text-[9px] text-orange-600">
+                              <div className={`flex items-center gap-0.5 text-[9px] ${secondShiftTextClass}`}>
                                 <Clock className="h-2.5 w-2.5" />
                                 <span>잔업가능</span>
                               </div>

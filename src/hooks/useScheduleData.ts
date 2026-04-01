@@ -952,7 +952,7 @@ export function useScheduleData(currentWeekStart?: Date) {
         console.error('Failed to send push notification:', pushError);
       }
     }
-  }, [weekendAvailability]);
+  }, [weekendAvailability, weekStartKey]);
 
   // 주말 출근 가능 여부 확인
   const isWeekendAvailable = useCallback((workerName: string) => {

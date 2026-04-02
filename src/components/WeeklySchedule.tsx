@@ -1338,14 +1338,17 @@ const WeeklySchedule = () => {
                     const hasSecondShiftVacation = hasSecondShiftPackageVacation || hasSecondShiftOtherVacation;
                     const firstShiftBgClass = !isCompact && hasSecondShiftVacation
                       ? (hasSecondShiftPackageVacation && hasSecondShiftOtherVacation
-                          ? "bg-emerald-100 dark:bg-emerald-950/50"
+                          ? ""
                           : hasSecondShiftPackageVacation
                             ? "bg-sky-100 dark:bg-sky-950/50"
                             : "bg-orange-100 dark:bg-orange-950/50")
                       : "";
+                    const firstShiftBgStyle = !isCompact && hasSecondShiftPackageVacation && hasSecondShiftOtherVacation
+                      ? { background: 'linear-gradient(to right, #fed7aa 50%, #bae6fd 50%)' }
+                      : undefined;
                     const firstShiftTextClass = hasSecondShiftVacation
                       ? (hasSecondShiftPackageVacation && hasSecondShiftOtherVacation
-                          ? "text-emerald-600"
+                          ? "text-orange-600"
                           : hasSecondShiftPackageVacation
                             ? "text-sky-600"
                             : "text-orange-600")

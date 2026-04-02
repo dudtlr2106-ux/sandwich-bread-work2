@@ -48,6 +48,7 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const [requests, setRequests] = useState<AttendanceRequest[]>([]);
+  const [reviewerNames, setReviewerNames] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<AttendanceRequest | null>(null);

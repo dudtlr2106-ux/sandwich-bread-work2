@@ -62,6 +62,20 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
 
     if (!error && data) {
       setRequests(data);
+      
+      // reviewed_by UUID들로 프로필 이름 조회
+      const reviewerIds = [...new Set(data.map(r => r.reviewed_by).filter(Boolean))] as string[];
+      if (reviewerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", reviewerIds);
+        if (profiles) {
+          const nameMap: Record<string, string> = {};
+          profiles.forEach(p => { nameMap[p.user_id] = p.display_name; });
+          setReviewerNames(nameMap);
+        }
+      }
     }
     setIsLoading(false);
   };

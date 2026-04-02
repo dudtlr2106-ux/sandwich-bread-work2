@@ -26,6 +26,7 @@ interface AttendanceRequest {
   created_at: string;
   rejection_reason: string | null;
   reviewed_at: string | null;
+  reviewed_by: string | null;
   start_time: string | null;
   end_time: string | null;
 }
@@ -47,6 +48,7 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const [requests, setRequests] = useState<AttendanceRequest[]>([]);
+  const [reviewerNames, setReviewerNames] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<AttendanceRequest | null>(null);
@@ -60,6 +62,20 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
 
     if (!error && data) {
       setRequests(data);
+      
+      // reviewed_by UUID들로 프로필 이름 조회
+      const reviewerIds = [...new Set(data.map(r => r.reviewed_by).filter(Boolean))] as string[];
+      if (reviewerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", reviewerIds);
+        if (profiles) {
+          const nameMap: Record<string, string> = {};
+          profiles.forEach(p => { nameMap[p.user_id] = p.display_name; });
+          setReviewerNames(nameMap);
+        }
+      }
     }
     setIsLoading(false);
   };
@@ -503,8 +519,10 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
                           </div>
                         )}
                         <div className="text-xs text-muted-foreground">
-                          요청자: {request.requester_name} • 
-                          요청: {format(new Date(request.created_at), "M월 d일 HH:mm", { locale: ko })}
+                          요청자: {request.requester_name}
+                          {request.reviewed_by && reviewerNames[request.reviewed_by] && (
+                            <> • 승인자: {reviewerNames[request.reviewed_by]}</>
+                          )}
                           {request.reviewed_at && (
                             <> • 승인: {format(new Date(request.reviewed_at), "M월 d일 HH:mm", { locale: ko })}</>
                           )}
@@ -556,8 +574,10 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
                           </div>
                         )}
                         <div className="text-xs text-muted-foreground">
-                          요청자: {request.requester_name} • 
-                          요청: {format(new Date(request.created_at), "M월 d일 HH:mm", { locale: ko })}
+                          요청자: {request.requester_name}
+                          {request.reviewed_by && reviewerNames[request.reviewed_by] && (
+                            <> • 반려자: {reviewerNames[request.reviewed_by]}</>
+                          )}
                           {request.reviewed_at && (
                             <> • 반려: {format(new Date(request.reviewed_at), "M월 d일 HH:mm", { locale: ko })}</>
                           )}
@@ -601,8 +621,10 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
                           </div>
                         )}
                         <div className="text-xs text-muted-foreground">
-                          요청자: {request.requester_name} • 
-                          요청: {format(new Date(request.created_at), "M월 d일 HH:mm", { locale: ko })}
+                          요청자: {request.requester_name}
+                          {request.reviewed_by && reviewerNames[request.reviewed_by] && (
+                            <> • 처리자: {reviewerNames[request.reviewed_by]}</>
+                          )}
                           {request.reviewed_at && (
                             <> • 취소: {format(new Date(request.reviewed_at), "M월 d일 HH:mm", { locale: ko })}</>
                           )}

@@ -1338,14 +1338,17 @@ const WeeklySchedule = () => {
                     const hasSecondShiftVacation = hasSecondShiftPackageVacation || hasSecondShiftOtherVacation;
                     const firstShiftBgClass = !isCompact && hasSecondShiftVacation
                       ? (hasSecondShiftPackageVacation && hasSecondShiftOtherVacation
-                          ? "bg-emerald-100 dark:bg-emerald-950/50"
+                          ? ""
                           : hasSecondShiftPackageVacation
                             ? "bg-sky-100 dark:bg-sky-950/50"
                             : "bg-orange-100 dark:bg-orange-950/50")
                       : "";
+                    const firstShiftBgStyle = !isCompact && hasSecondShiftPackageVacation && hasSecondShiftOtherVacation
+                      ? { background: 'linear-gradient(to right, #fed7aa 50%, #bae6fd 50%)' }
+                      : undefined;
                     const firstShiftTextClass = hasSecondShiftVacation
                       ? (hasSecondShiftPackageVacation && hasSecondShiftOtherVacation
-                          ? "text-emerald-600"
+                          ? "text-orange-600"
                           : hasSecondShiftPackageVacation
                             ? "text-sky-600"
                             : "text-orange-600")
@@ -1355,14 +1358,17 @@ const WeeklySchedule = () => {
                     const hasFirstShiftVacation = hasFirstShiftPackageVacation || hasFirstShiftOtherVacation;
                     const secondShiftBgClass = !isCompact && hasFirstShiftVacation
                       ? (hasFirstShiftPackageVacation && hasFirstShiftOtherVacation
-                          ? "bg-emerald-100 dark:bg-emerald-950/50"
+                          ? ""
                           : hasFirstShiftPackageVacation
                             ? "bg-sky-100 dark:bg-sky-950/50"
                             : "bg-orange-100 dark:bg-orange-950/50")
                       : "";
+                    const secondShiftBgStyle = !isCompact && hasFirstShiftPackageVacation && hasFirstShiftOtherVacation
+                      ? { background: 'linear-gradient(to right, #fed7aa 50%, #bae6fd 50%)' }
+                      : undefined;
                     const secondShiftTextClass = hasFirstShiftVacation
                       ? (hasFirstShiftPackageVacation && hasFirstShiftOtherVacation
-                          ? "text-emerald-600"
+                          ? "text-orange-600"
                           : hasFirstShiftPackageVacation
                             ? "text-sky-600"
                             : "text-orange-600")
@@ -1372,7 +1378,7 @@ const WeeklySchedule = () => {
                     const isSundayShift = day === "일";
                     return (
                       <React.Fragment key={`${day}-shifts`}>
-                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${firstShiftBgClass} ${isSundayShift ? "print-hide-sunday" : ""}`}>
+                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${firstShiftBgClass} ${isSundayShift ? "print-hide-sunday" : ""}`} style={firstShiftBgStyle}>
                           <div className="flex flex-col items-center gap-0.5">
                             <span className="text-primary">{isCompact ? '초' : '초반'}</span>
                             {!isCompact && hasSecondShiftVacation && (
@@ -1383,7 +1389,7 @@ const WeeklySchedule = () => {
                             )}
                           </div>
                         </th>
-                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${secondShiftBgClass} ${isSundayShift ? "print-hide-sunday" : ""}`}>
+                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${secondShiftBgClass} ${isSundayShift ? "print-hide-sunday" : ""}`} style={secondShiftBgStyle}>
                           <div className="flex flex-col items-center gap-0.5">
                             <span className="text-secondary-foreground">{isCompact ? '중' : '중반'}</span>
                             {!isCompact && hasFirstShiftVacation && (

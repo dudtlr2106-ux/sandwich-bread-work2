@@ -1378,7 +1378,7 @@ const WeeklySchedule = () => {
                     const isSundayShift = day === "일";
                     return (
                       <React.Fragment key={`${day}-shifts`}>
-                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${firstShiftBgClass} ${isSundayShift ? "print-hide-sunday" : ""}`}>
+                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${firstShiftBgClass} ${isSundayShift ? "print-hide-sunday" : ""}`} style={firstShiftBgStyle}>
                           <div className="flex flex-col items-center gap-0.5">
                             <span className="text-primary">{isCompact ? '초' : '초반'}</span>
                             {!isCompact && hasSecondShiftVacation && (

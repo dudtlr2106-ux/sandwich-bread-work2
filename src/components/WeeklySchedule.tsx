@@ -1389,7 +1389,7 @@ const WeeklySchedule = () => {
                             )}
                           </div>
                         </th>
-                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${secondShiftBgClass} ${isSundayShift ? "print-hide-sunday" : ""}`}>
+                        <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${secondShiftBgClass} ${isSundayShift ? "print-hide-sunday" : ""}`} style={secondShiftBgStyle}>
                           <div className="flex flex-col items-center gap-0.5">
                             <span className="text-secondary-foreground">{isCompact ? '중' : '중반'}</span>
                             {!isCompact && hasFirstShiftVacation && (

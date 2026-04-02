@@ -519,8 +519,10 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
                           </div>
                         )}
                         <div className="text-xs text-muted-foreground">
-                          요청자: {request.requester_name} • 
-                          요청: {format(new Date(request.created_at), "M월 d일 HH:mm", { locale: ko })}
+                          요청자: {request.requester_name}
+                          {request.reviewed_by && reviewerNames[request.reviewed_by] && (
+                            <> • 승인자: {reviewerNames[request.reviewed_by]}</>
+                          )}
                           {request.reviewed_at && (
                             <> • 승인: {format(new Date(request.reviewed_at), "M월 d일 HH:mm", { locale: ko })}</>
                           )}

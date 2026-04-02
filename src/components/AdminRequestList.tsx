@@ -26,6 +26,7 @@ interface AttendanceRequest {
   created_at: string;
   rejection_reason: string | null;
   reviewed_at: string | null;
+  reviewed_by: string | null;
   start_time: string | null;
   end_time: string | null;
 }

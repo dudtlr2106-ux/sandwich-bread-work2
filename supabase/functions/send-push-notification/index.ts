@@ -365,7 +365,7 @@ serve(async (req) => {
     let targetUserIds: string[] = [];
 
     if (isRequestResult) {
-      // Send to the requester: find user by display_name
+      // Send to the requester + all admins
       const { data: profiles, error: profileError } = await supabase
         .from("profiles")
         .select("user_id")
@@ -376,15 +376,30 @@ serve(async (req) => {
         throw profileError;
       }
 
-      if (!profiles || profiles.length === 0) {
-        console.log(`No profile found for requester: ${requesterName}`);
+      const requesterUserIds = profiles ? profiles.map((p) => p.user_id) : [];
+      console.log(`Found ${requesterUserIds.length} profile(s) for requester: ${requesterName}`);
+
+      // Also fetch admin user IDs
+      const { data: adminRoles, error: adminError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+
+      if (adminError) {
+        console.error("Error fetching admin roles:", adminError);
+      }
+
+      const adminUserIds = adminRoles ? adminRoles.map((r) => r.user_id) : [];
+      console.log(`Found ${adminUserIds.length} admin users for result notification`);
+
+      // Merge and deduplicate
+      targetUserIds = [...new Set([...requesterUserIds, ...adminUserIds])];
+
+      if (targetUserIds.length === 0) {
         return new Response(JSON.stringify({ success: true, sent: 0 }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-
-      targetUserIds = profiles.map((p) => p.user_id);
-      console.log(`Found ${targetUserIds.length} profile(s) for requester: ${requesterName}`);
     } else {
       // Send to all admins
       const { data: adminRoles, error: rolesError } = await supabase

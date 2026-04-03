@@ -73,6 +73,7 @@ import {
   Minimize2,
   Maximize2,
   RefreshCw,
+  Factory,
 } from "lucide-react";
 import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";

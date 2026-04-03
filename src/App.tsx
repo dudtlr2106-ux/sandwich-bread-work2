@@ -34,6 +34,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/pattern-management" element={<PatternManagement />} />
+              <Route path="/production-schedule" element={<ProductionSchedule />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

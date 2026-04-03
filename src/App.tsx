@@ -10,6 +10,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const PatternManagement = lazy(() => import("./pages/PatternManagement"));
+const ProductionSchedule = lazy(() => import("./pages/ProductionSchedule"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/pattern-management" element={<PatternManagement />} />
+              <Route path="/production-schedule" element={<ProductionSchedule />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

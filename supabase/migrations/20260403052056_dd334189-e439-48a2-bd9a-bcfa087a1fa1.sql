@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_display_name_unique;

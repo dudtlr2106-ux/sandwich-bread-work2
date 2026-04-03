@@ -10,6 +10,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const PatternManagement = lazy(() => import("./pages/PatternManagement"));
+const ProductionSchedule = lazy(() => import("./pages/ProductionSchedule"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();

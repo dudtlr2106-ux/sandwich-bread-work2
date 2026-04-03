@@ -1006,6 +1006,11 @@ const WeeklySchedule = () => {
                 <div className="h-9 w-20 bg-muted animate-pulse rounded" />
               ) : user ? (
                 <div className="flex items-center gap-1">
+                  <Link to="/production-schedule">
+                    <Button variant="outline" size="icon" className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'} title="생산일정">
+                      <Factory className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
+                    </Button>
+                  </Link>
                   <PushNotificationToggle />
                 {isAdmin && (
                     <span className="flex items-center text-primary">

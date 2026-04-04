@@ -121,7 +121,7 @@ const ProductionSchedulePage = () => {
     const today = new Date();
     const totalDays = differenceInDays(end, start) + 1;
     const remainingDays = Math.max(0, differenceInDays(end, today));
-    const remainingQty = Math.max(0, s.target_quantity - s.current_quantity);
+    const remainingQty = Math.max(0, s.target_quantity - s.good_quantity);
     const dailyNeeded = remainingDays > 0 ? Math.ceil(remainingQty / remainingDays) : remainingQty;
     const defectQty = Math.max(0, s.current_quantity - s.good_quantity);
     const defectRate = s.current_quantity > 0 ? ((defectQty / s.current_quantity) * 100) : 0;

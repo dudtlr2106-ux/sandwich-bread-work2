@@ -281,8 +281,8 @@ const WeeklySchedule = () => {
   }, [isCompact]);
 
   // 근태 수정 요청 다이얼로그 열기
-  const openRequestDialog = (workerName: string, dateKey: string, day: string, currentStatus: string) => {
-    setRequestingWorker({ workerName, dateKey, day, currentStatus });
+  const openRequestDialog = (workerName: string, dateKey: string, day: string, currentStatus: string, shift: "A" | "B") => {
+    setRequestingWorker({ workerName, dateKey, day, currentStatus, shift });
     setRequestDialogOpen(true);
   };
 

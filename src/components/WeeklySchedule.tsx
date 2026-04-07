@@ -2151,6 +2151,7 @@ const WeeklySchedule = () => {
           dateKey={requestingWorker.dateKey}
           day={requestingWorker.day}
           currentStatus={requestingWorker.currentStatus}
+          shift={requestingWorker.shift}
         />
       )}
 

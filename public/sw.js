@@ -8,11 +8,11 @@ const SETTINGS_KEY = 'notification-settings';
 async function getNotificationSettings() {
   try {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, 1);
+      const request = indexedDB.open(DB_NAME, 2);
       
       request.onerror = () => {
         console.log('IndexedDB open error, using defaults');
-        resolve({ mode: 'all' });
+        resolve({ mode: 'all', categories: { attendance: true, notice: true, weekendAvailability: true } });
       };
       
       request.onupgradeneeded = (event) => {
@@ -31,22 +31,26 @@ async function getNotificationSettings() {
           
           getRequest.onerror = () => {
             db.close();
-            resolve({ mode: 'all' });
+            resolve({ mode: 'all', categories: { attendance: true, notice: true, weekendAvailability: true } });
           };
           
           getRequest.onsuccess = () => {
             db.close();
-            resolve(getRequest.result || { mode: 'all' });
+            const result = getRequest.result || { mode: 'all' };
+            if (!result.categories) {
+              result.categories = { attendance: true, notice: true, weekendAvailability: true };
+            }
+            resolve(result);
           };
         } catch (e) {
           db.close();
-          resolve({ mode: 'all' });
+          resolve({ mode: 'all', categories: { attendance: true, notice: true, weekendAvailability: true } });
         }
       };
     });
   } catch (error) {
     console.error('Error getting notification settings:', error);
-    return { mode: 'all' };
+    return { mode: 'all', categories: { attendance: true, notice: true, weekendAvailability: true } };
   }
 }
 
@@ -74,7 +78,6 @@ self.addEventListener('push', (event) => {
   console.log('Push notification received:', event);
 
   const handlePush = async () => {
-    // Get notification settings from IndexedDB
     const settings = await getNotificationSettings();
     console.log('Notification settings:', settings);
 
@@ -88,11 +91,9 @@ self.addEventListener('push', (event) => {
 
     if (event.data) {
       try {
-        // JSON 형식인 경우 파싱
         const jsonData = event.data.json();
         data = { ...data, ...jsonData };
       } catch (e) {
-        // JSON이 아닌 경우 텍스트로 처리
         console.log('Push data is not JSON, using as text');
         try {
           const textData = event.data.text();
@@ -105,7 +106,28 @@ self.addEventListener('push', (event) => {
       }
     }
 
-    // Build notification options with forced sound and vibration
+    // Check category filter
+    const notifType = data.data?.type;
+    const categories = settings.categories || {};
+    
+    if (notifType === 'attendance_request' || notifType === 'request_result') {
+      if (categories.attendance === false) {
+        console.log('Attendance notification blocked by user settings');
+        return;
+      }
+    } else if (notifType === 'notice_update') {
+      if (categories.notice === false) {
+        console.log('Notice notification blocked by user settings');
+        return;
+      }
+    } else if (notifType === 'weekend_availability') {
+      if (categories.weekendAvailability === false) {
+        console.log('Weekend availability notification blocked by user settings');
+        return;
+      }
+    }
+
+    // Build notification options
     const options = {
       body: data.body,
       icon: data.icon || '/favicon.ico',
@@ -116,14 +138,13 @@ self.addEventListener('push', (event) => {
         { action: 'view', title: '확인' },
         { action: 'close', title: '닫기' }
       ],
-      vibrate: [200, 100, 200],  // 진동 패턴 강제 주입
-      silent: false,             // 무음 모드 해제
-      renotify: true,            // 새로운 알림 시 매번 소리/진동 발생
-      tag: 'attendance-alert'    // 알림 묶기
+      vibrate: [200, 100, 200],
+      silent: false,
+      renotify: true,
+      tag: 'attendance-alert'
     };
 
-    console.log('Showing notification with forced options:', options);
-
+    console.log('Showing notification with options:', options);
     return self.registration.showNotification(data.title, options);
   };
 
@@ -142,14 +163,12 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Check if there's already an open window
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
           client.navigate(urlToOpen);
           return client.focus();
         }
       }
-      // Open a new window if none exist
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
       }

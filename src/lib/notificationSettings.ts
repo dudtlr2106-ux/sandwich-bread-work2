@@ -2,8 +2,15 @@
 
 export type NotificationMode = 'all' | 'sound' | 'vibration' | 'silent';
 
+export interface NotificationCategories {
+  attendance: boolean;      // 근태 수정 요청/결과
+  notice: boolean;          // 공지사항 변경
+  weekendAvailability: boolean; // 주말출근 가능 여부 변경
+}
+
 export interface NotificationSettings {
   mode: NotificationMode;
+  categories: NotificationCategories;
 }
 
 const DB_NAME = 'notification-settings-db';
@@ -12,13 +19,18 @@ const SETTINGS_KEY = 'notification-settings';
 
 // Default settings
 const DEFAULT_SETTINGS: NotificationSettings = {
-  mode: 'all', // 소리 + 진동
+  mode: 'all',
+  categories: {
+    attendance: true,
+    notice: true,
+    weekendAvailability: true,
+  },
 };
 
 // Open IndexedDB
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
+    const request = indexedDB.open(DB_NAME, 2);
     
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
@@ -48,7 +60,12 @@ export async function getNotificationSettings(): Promise<NotificationSettings> {
       
       request.onsuccess = () => {
         db.close();
-        resolve(request.result || DEFAULT_SETTINGS);
+        const result = request.result || DEFAULT_SETTINGS;
+        // Migrate old settings without categories
+        if (!result.categories) {
+          result.categories = DEFAULT_SETTINGS.categories;
+        }
+        resolve(result);
       };
     });
   } catch (error) {

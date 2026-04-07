@@ -252,6 +252,7 @@ const WeeklySchedule = () => {
     dateKey: string;
     day: string;
     currentStatus: string;
+    shift: "A" | "B";
   } | null>(null);
 
   // 팀 관리 화면 상태
@@ -280,8 +281,8 @@ const WeeklySchedule = () => {
   }, [isCompact]);
 
   // 근태 수정 요청 다이얼로그 열기
-  const openRequestDialog = (workerName: string, dateKey: string, day: string, currentStatus: string) => {
-    setRequestingWorker({ workerName, dateKey, day, currentStatus });
+  const openRequestDialog = (workerName: string, dateKey: string, day: string, currentStatus: string, shift: "A" | "B") => {
+    setRequestingWorker({ workerName, dateKey, day, currentStatus, shift });
     setRequestDialogOpen(true);
   };
 
@@ -1562,7 +1563,7 @@ const WeeklySchedule = () => {
                                               <DropdownMenuSeparator />
                                             </>
                                           )}
-                                          <DropdownMenuItem onClick={() => openRequestDialog(worker, dateKey, day, status)} className="text-primary">
+                                          <DropdownMenuItem onClick={() => openRequestDialog(worker, dateKey, day, status, "A")} className="text-primary">
                                             <Send className="h-4 w-4 mr-2" />
                                             근태 수정 요청
                                           </DropdownMenuItem>
@@ -1671,7 +1672,7 @@ const WeeklySchedule = () => {
                                               <DropdownMenuSeparator />
                                             </>
                                           )}
-                                          <DropdownMenuItem onClick={() => openRequestDialog(worker, dateKey, day, status)} className="text-primary">
+                                          <DropdownMenuItem onClick={() => openRequestDialog(worker, dateKey, day, status, "B")} className="text-primary">
                                             <Send className="h-4 w-4 mr-2" />
                                             근태 수정 요청
                                           </DropdownMenuItem>
@@ -2150,6 +2151,7 @@ const WeeklySchedule = () => {
           dateKey={requestingWorker.dateKey}
           day={requestingWorker.day}
           currentStatus={requestingWorker.currentStatus}
+          shift={requestingWorker.shift}
         />
       )}
 

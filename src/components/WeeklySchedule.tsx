@@ -1672,7 +1672,7 @@ const WeeklySchedule = () => {
                                               <DropdownMenuSeparator />
                                             </>
                                           )}
-                                          <DropdownMenuItem onClick={() => openRequestDialog(worker, dateKey, day, status)} className="text-primary">
+                                          <DropdownMenuItem onClick={() => openRequestDialog(worker, dateKey, day, status, "B")} className="text-primary">
                                             <Send className="h-4 w-4 mr-2" />
                                             근태 수정 요청
                                           </DropdownMenuItem>

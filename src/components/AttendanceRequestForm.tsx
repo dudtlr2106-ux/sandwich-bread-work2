@@ -18,6 +18,7 @@ interface AttendanceRequestFormProps {
   dateKey: string;
   day: string;
   currentStatus: string;
+  shift?: "A" | "B";
 }
 
 const statusOptions = [

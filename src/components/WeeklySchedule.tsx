@@ -524,12 +524,32 @@ const WeeklySchedule = () => {
   };
 
   // 관리자 시간잔업/시간휴가 선택 시 시간 입력 다이얼로그 열기
-  const openPartialTimeDialog = (worker: string, dateKey: string, day: string, status: "partial_overtime" | "partial_vacation") => {
+  const openPartialTimeDialog = (worker: string, dateKey: string, day: string, status: "partial_overtime" | "partial_vacation", shift: "A" | "B") => {
     setPartialTimeTarget({ worker, dateKey, day, status });
-    setPartialStartTime("");
-    setPartialEndTime("");
-    setPartialTimeDialogOpen(true);
-    setTimeout(() => partialStartTimeRef.current?.focus(), 100);
+    // 근무 시간대에 따른 기본 시간 설정
+    if (status === "partial_vacation") {
+      setPartialStartTime("");
+      setPartialEndTime(shift === "A" ? "14:00" : "22:00");
+      setPartialTimeDialogOpen(true);
+      setTimeout(() => partialStartTimeRef.current?.focus(), 100);
+    } else if (status === "partial_overtime") {
+      if (shift === "A") {
+        setPartialStartTime("14:00");
+        setPartialEndTime("");
+        setPartialTimeDialogOpen(true);
+        setTimeout(() => partialEndTimeRef.current?.focus(), 100);
+      } else {
+        setPartialStartTime("");
+        setPartialEndTime("14:00");
+        setPartialTimeDialogOpen(true);
+        setTimeout(() => partialStartTimeRef.current?.focus(), 100);
+      }
+    } else {
+      setPartialStartTime("");
+      setPartialEndTime("");
+      setPartialTimeDialogOpen(true);
+      setTimeout(() => partialStartTimeRef.current?.focus(), 100);
+    }
   };
 
   // 시간 입력 핸들러 (자동 콜론 + 포커스 이동)
@@ -1544,7 +1564,7 @@ const WeeklySchedule = () => {
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 잔업
                                               </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, day, "partial_overtime")} className="text-blue-600">
+                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, day, "partial_overtime", "A")} className="text-blue-600">
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 시간잔업
                                               </DropdownMenuItem>
@@ -1552,7 +1572,7 @@ const WeeklySchedule = () => {
                                                 <Palmtree className="h-4 w-4 mr-2" />
                                                 휴가
                                               </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, day, "partial_vacation")} className="text-green-600">
+                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, day, "partial_vacation", "A")} className="text-green-600">
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 시간휴가
                                               </DropdownMenuItem>
@@ -1653,7 +1673,7 @@ const WeeklySchedule = () => {
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 잔업
                                               </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, day, "partial_overtime")} className="text-blue-600">
+                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, day, "partial_overtime", "B")} className="text-blue-600">
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 시간잔업
                                               </DropdownMenuItem>
@@ -1661,7 +1681,7 @@ const WeeklySchedule = () => {
                                                 <Palmtree className="h-4 w-4 mr-2" />
                                                 휴가
                                               </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, day, "partial_vacation")} className="text-green-600">
+                                              <DropdownMenuItem onClick={() => openPartialTimeDialog(worker, dateKey, day, "partial_vacation", "B")} className="text-green-600">
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 시간휴가
                                               </DropdownMenuItem>

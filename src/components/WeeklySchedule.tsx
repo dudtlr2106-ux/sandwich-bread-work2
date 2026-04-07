@@ -252,6 +252,7 @@ const WeeklySchedule = () => {
     dateKey: string;
     day: string;
     currentStatus: string;
+    shift: "A" | "B";
   } | null>(null);
 
   // 팀 관리 화면 상태

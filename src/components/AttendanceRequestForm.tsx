@@ -37,6 +37,7 @@ const AttendanceRequestForm = ({
   dateKey,
   day,
   currentStatus,
+  shift,
 }: AttendanceRequestFormProps) => {
   const { toast } = useToast();
   const { user } = useAuth();

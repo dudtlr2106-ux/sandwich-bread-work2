@@ -345,11 +345,12 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    const { type, requesterName, workerName, dateKey, requestedStatus, content, resultStatus, newAvailability, startTime, endTime } = body;
+    const { type, requesterName, workerName, dateKey, requestedStatus, content, resultStatus, newAvailability, startTime, endTime, adminName, previousStatus } = body;
 
     const isNoticeUpdate = type === 'notice_update';
     const isRequestResult = type === 'request_result';
     const isWeekendAvailability = type === 'weekend_availability';
+    const isAdminStatusChange = type === 'admin_status_change';
 
     console.log(`Sending push notification - type: ${type || 'attendance_request'}`);
 

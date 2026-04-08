@@ -671,6 +671,24 @@ const WeeklySchedule = () => {
 
     toast.success(`${worker}님의 ${status === "partial_overtime" ? "시간잔업" : "시간휴가"}(${partialStartTime}~${partialEndTime})이 적용되었습니다`);
 
+    // 관리자 변경 알림 발송
+    try {
+      await supabase.functions.invoke('send-push-notification', {
+        body: {
+          type: 'admin_status_change',
+          adminName: adminDisplayName || '관리자',
+          workerName: worker,
+          dateKey,
+          requestedStatus: status,
+          previousStatus: currentStatus,
+          startTime: partialStartTime,
+          endTime: partialEndTime,
+        },
+      });
+    } catch (e) {
+      console.error('Failed to send admin status change notification:', e);
+    }
+
     setPartialTimeDialogOpen(false);
     setPartialTimeTarget(null);
   };

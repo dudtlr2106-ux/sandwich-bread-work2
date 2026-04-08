@@ -145,6 +145,20 @@ export function NotificationSettingsPanel({ onSettingsChange }: NotificationSett
             onCheckedChange={() => handleCategoryToggle('weekendAvailability')}
           />
         </div>
+
+        <div className="flex items-center justify-between rounded-md border p-3">
+          <div className="flex items-center gap-2">
+            <UserCog className="h-4 w-4 text-primary" />
+            <div>
+              <div className="text-sm font-medium">관리자 근무 변경 알림</div>
+              <div className="text-xs text-muted-foreground">관리자가 근무를 직접 변경 시 알림</div>
+            </div>
+          </div>
+          <Switch
+            checked={settings.categories.adminStatusChange}
+            onCheckedChange={() => handleCategoryToggle('adminStatusChange')}
+          />
+        </div>
       </div>
 
       <Separator />

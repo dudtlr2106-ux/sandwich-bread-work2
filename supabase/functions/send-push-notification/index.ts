@@ -485,6 +485,20 @@ serve(async (req) => {
           type: "weekend_availability",
         },
       };
+    } else if (isAdminStatusChange) {
+      const prevLabel = statusLabels[previousStatus] || previousStatus || '?';
+      const newLabel = statusLabels[requestedStatus] || requestedStatus;
+      const timeInfo = startTime && endTime ? ` (${startTime}~${endTime})` : '';
+      payload = {
+        title: "🔄 근무 변경",
+        body: `${adminName || '관리자'}님이 ${dateKey} ${workerName}의 근무를 ${prevLabel} → ${newLabel}${timeInfo}(으)로 변경했습니다.`,
+        icon: "/favicon.ico",
+        badge: "/favicon.ico",
+        data: {
+          url: "/",
+          type: "admin_status_change",
+        },
+      };
     } else {
       const timeInfo = startTime && endTime ? ` (${startTime}~${endTime})` : '';
       payload = {

@@ -206,6 +206,15 @@ const WeeklySchedule = () => {
     getDateKey,
   } = useScheduleData(currentWeekStart);
 
+  // 관리자 이름 가져오기
+  const [adminDisplayName, setAdminDisplayName] = useState<string>("");
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('profiles').select('display_name').eq('user_id', user.id).maybeSingle().then(({ data }) => {
+      if (data) setAdminDisplayName(data.display_name);
+    });
+  }, [user]);
+
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingCell, setEditingCell] = useState<{
     deptId: string;
@@ -518,9 +527,28 @@ const WeeklySchedule = () => {
     return "normal";
   };
 
-  // 상태 저장 (DB에 저장)
-  const setWorkerStatus = (worker: string, dateKey: string, status: WorkerStatus) => {
+  // 상태 저장 (DB에 저장) + 관리자 변경 시 알림 발송
+  const setWorkerStatus = async (worker: string, dateKey: string, status: WorkerStatus, day?: string) => {
+    const previousStatus = workerStatusData[dateKey]?.[worker] || "normal";
     saveWorkerStatus(dateKey, worker, status);
+
+    // 관리자가 변경한 경우 알림 발송
+    if (isAdmin && user) {
+      try {
+        await supabase.functions.invoke('send-push-notification', {
+          body: {
+            type: 'admin_status_change',
+            adminName: adminDisplayName || '관리자',
+            workerName: worker,
+            dateKey,
+            requestedStatus: status,
+            previousStatus,
+          },
+        });
+      } catch (e) {
+        console.error('Failed to send admin status change notification:', e);
+      }
+    }
   };
 
   // 관리자 시간잔업/시간휴가 선택 시 시간 입력 다이얼로그 열기
@@ -642,6 +670,24 @@ const WeeklySchedule = () => {
     }
 
     toast.success(`${worker}님의 ${status === "partial_overtime" ? "시간잔업" : "시간휴가"}(${partialStartTime}~${partialEndTime})이 적용되었습니다`);
+
+    // 관리자 변경 알림 발송
+    try {
+      await supabase.functions.invoke('send-push-notification', {
+        body: {
+          type: 'admin_status_change',
+          adminName: adminDisplayName || '관리자',
+          workerName: worker,
+          dateKey,
+          requestedStatus: status,
+          previousStatus: currentStatus,
+          startTime: partialStartTime,
+          endTime: partialEndTime,
+        },
+      });
+    } catch (e) {
+      console.error('Failed to send admin status change notification:', e);
+    }
 
     setPartialTimeDialogOpen(false);
     setPartialTimeTarget(null);

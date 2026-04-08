@@ -6,6 +6,7 @@ export interface NotificationCategories {
   attendance: boolean;      // 근태 수정 요청/결과
   notice: boolean;          // 공지사항 변경
   weekendAvailability: boolean; // 주말출근 가능 여부 변경
+  adminStatusChange: boolean;   // 관리자 근무 변경
 }
 
 export interface NotificationSettings {
@@ -24,6 +25,7 @@ const DEFAULT_SETTINGS: NotificationSettings = {
     attendance: true,
     notice: true,
     weekendAvailability: true,
+    adminStatusChange: true,
   },
 };
 

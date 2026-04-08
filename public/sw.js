@@ -125,6 +125,11 @@ self.addEventListener('push', (event) => {
         console.log('Weekend availability notification blocked by user settings');
         return;
       }
+    } else if (notifType === 'admin_status_change') {
+      if (categories.adminStatusChange === false) {
+        console.log('Admin status change notification blocked by user settings');
+        return;
+      }
     }
 
     // Build notification options

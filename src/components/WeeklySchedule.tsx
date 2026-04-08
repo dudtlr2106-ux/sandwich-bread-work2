@@ -206,6 +206,15 @@ const WeeklySchedule = () => {
     getDateKey,
   } = useScheduleData(currentWeekStart);
 
+  // 관리자 이름 가져오기
+  const [adminDisplayName, setAdminDisplayName] = useState<string>("");
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('profiles').select('display_name').eq('user_id', user.id).maybeSingle().then(({ data }) => {
+      if (data) setAdminDisplayName(data.display_name);
+    });
+  }, [user]);
+
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingCell, setEditingCell] = useState<{
     deptId: string;

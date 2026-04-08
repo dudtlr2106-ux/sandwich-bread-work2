@@ -218,13 +218,8 @@ const AttendanceRequestForm = ({
     }
     // 근무 시간대에 따른 기본 시간 설정
     if (value === "partial_vacation") {
-      // 시간휴가: 종료시간 자동 설정 (초반=14:00, 중반=22:00)
       setStartTime("");
-      if (shift === "A") {
-        setEndTime("14:00");
-      } else if (shift === "B") {
-        setEndTime("22:00");
-      }
+      setEndTime("");
       setTimeout(() => startTimeRef.current?.focus(), 100);
     } else if (value === "partial_overtime") {
       // 시간잔업: 초반=시작 14:00, 중반=종료 14:00

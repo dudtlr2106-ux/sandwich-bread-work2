@@ -557,7 +557,7 @@ const WeeklySchedule = () => {
     // 근무 시간대에 따른 기본 시간 설정
     if (status === "partial_vacation") {
       setPartialStartTime("");
-      setPartialEndTime(shift === "A" ? "14:00" : "22:00");
+      setPartialEndTime("");
       setPartialTimeDialogOpen(true);
       setTimeout(() => partialStartTimeRef.current?.focus(), 100);
     } else if (status === "partial_overtime") {

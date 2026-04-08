@@ -20,7 +20,7 @@ export function NotificationSettingsPanel({ onSettingsChange }: NotificationSett
   const { toast } = useToast();
   const [settings, setSettings] = useState<NotificationSettings>({
     mode: 'all',
-    categories: { attendance: true, notice: true, weekendAvailability: true },
+    categories: { attendance: true, notice: true, weekendAvailability: true, adminStatusChange: true },
   });
   const [isLoading, setIsLoading] = useState(true);
 

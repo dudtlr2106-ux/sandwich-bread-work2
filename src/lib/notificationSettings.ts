@@ -25,6 +25,7 @@ const DEFAULT_SETTINGS: NotificationSettings = {
     attendance: true,
     notice: true,
     weekendAvailability: true,
+    adminStatusChange: true,
   },
 };
 

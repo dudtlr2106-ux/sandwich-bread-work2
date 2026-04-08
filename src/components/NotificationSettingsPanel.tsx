@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Volume2, Vibrate, VolumeX, Bell, FileText, Calendar } from 'lucide-react';
+import { Volume2, Vibrate, VolumeX, Bell, FileText, Calendar, UserCog } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';

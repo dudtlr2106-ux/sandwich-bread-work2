@@ -365,20 +365,21 @@ serve(async (req) => {
 
     let targetUserIds: string[] = [];
 
-    if (isRequestResult) {
-      // Send to the requester + all admins
+    if (isRequestResult || isAdminStatusChange) {
+      // Send to the affected worker + all admins
+      const targetName = isRequestResult ? requesterName : workerName;
       const { data: profiles, error: profileError } = await supabase
         .from("profiles")
         .select("user_id")
-        .eq("display_name", requesterName);
+        .eq("display_name", targetName);
 
       if (profileError) {
-        console.error("Error fetching requester profile:", profileError);
+        console.error("Error fetching target profile:", profileError);
         throw profileError;
       }
 
-      const requesterUserIds = profiles ? profiles.map((p) => p.user_id) : [];
-      console.log(`Found ${requesterUserIds.length} profile(s) for requester: ${requesterName}`);
+      const targetProfileUserIds = profiles ? profiles.map((p) => p.user_id) : [];
+      console.log(`Found ${targetProfileUserIds.length} profile(s) for target: ${targetName}`);
 
       // Also fetch admin user IDs
       const { data: adminRoles, error: adminError } = await supabase
@@ -391,10 +392,10 @@ serve(async (req) => {
       }
 
       const adminUserIds = adminRoles ? adminRoles.map((r) => r.user_id) : [];
-      console.log(`Found ${adminUserIds.length} admin users for result notification`);
+      console.log(`Found ${adminUserIds.length} admin users`);
 
       // Merge and deduplicate
-      targetUserIds = [...new Set([...requesterUserIds, ...adminUserIds])];
+      targetUserIds = [...new Set([...targetProfileUserIds, ...adminUserIds])];
 
       if (targetUserIds.length === 0) {
         return new Response(JSON.stringify({ success: true, sent: 0 }), {

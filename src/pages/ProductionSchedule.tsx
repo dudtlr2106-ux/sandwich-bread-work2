@@ -194,9 +194,39 @@ const ProductionSchedulePage = () => {
             </div>
           </div>
           {isAdmin && (
-            <Button onClick={() => { resetForm(); setEditingId(null); setDialogOpen(true); }} size="sm">
-              <Plus className="h-4 w-4 mr-1" /> 등록
-            </Button>
+            <div className="flex gap-2">
+              <Popover open={satCalendarOpen} onOpenChange={setSatCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <CalendarIcon className="h-4 w-4 mr-1" /> 토요일
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="multiple"
+                    selected={Array.from(workingSaturdays).map(d => parseISO(d))}
+                    onDayClick={(day) => {
+                      if (isSaturday(day)) toggleWorkingSaturday(day);
+                    }}
+                    modifiers={{
+                      saturday: (date) => isSaturday(date),
+                      workingSaturday: (date) => isSaturday(date) && workingSaturdays.has(format(date, "yyyy-MM-dd")),
+                    }}
+                    modifiersStyles={{
+                      workingSaturday: { backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' },
+                    }}
+                    disabled={(date) => !isSaturday(date)}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                  <div className="px-3 pb-3 text-xs text-muted-foreground">
+                    토요일만 선택 가능 · 선택된 날은 출근일로 계산
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Button onClick={() => { resetForm(); setEditingId(null); setDialogOpen(true); }} size="sm">
+                <Plus className="h-4 w-4 mr-1" /> 등록
+              </Button>
+            </div>
           )}
         </div>
 

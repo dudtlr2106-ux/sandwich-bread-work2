@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format, parseISO, eachDayOfInterval, isSunday, isSaturday, addDays } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ArrowLeft, Plus, Trash2, Edit2, Factory, Package, TrendingUp, AlertTriangle, CalendarDays, Target, Calendar as CalendarIcon } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit2, Factory, Package, TrendingUp, AlertTriangle, CalendarDays, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,9 +18,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+
 
 interface ProductionSchedule {
   id: string;
@@ -39,7 +37,6 @@ const ProductionSchedulePage = () => {
   const [workingSaturdays, setWorkingSaturdays] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [satCalendarOpen, setSatCalendarOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -79,24 +76,20 @@ const ProductionSchedulePage = () => {
   };
 
   const fetchWorkingSaturdays = async () => {
-    const { data } = await supabase.from("working_saturdays").select("date_key");
+    // 근무표(schedule_data)에서 토요일에 배정된 데이터가 있으면 출근일로 간주
+    const { data } = await supabase.from("schedule_data").select("date_key");
     if (data) {
-      setWorkingSaturdays(new Set(data.map(d => d.date_key)));
+      const saturdayKeys = new Set<string>();
+      data.forEach(d => {
+        try {
+          const date = parseISO(d.date_key);
+          if (isSaturday(date)) {
+            saturdayKeys.add(d.date_key);
+          }
+        } catch {}
+      });
+      setWorkingSaturdays(saturdayKeys);
     }
-  };
-
-  const toggleWorkingSaturday = async (date: Date) => {
-    if (!isSaturday(date)) return;
-    const key = format(date, "yyyy-MM-dd");
-    const newSet = new Set(workingSaturdays);
-    if (newSet.has(key)) {
-      await supabase.from("working_saturdays").delete().eq("date_key", key);
-      newSet.delete(key);
-    } else {
-      await supabase.from("working_saturdays").insert({ date_key: key });
-      newSet.add(key);
-    }
-    setWorkingSaturdays(newSet);
   };
 
   const handleSave = async () => {
@@ -194,39 +187,9 @@ const ProductionSchedulePage = () => {
             </div>
           </div>
           {isAdmin && (
-            <div className="flex gap-2">
-              <Popover open={satCalendarOpen} onOpenChange={setSatCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <CalendarIcon className="h-4 w-4 mr-1" /> 토요일
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="multiple"
-                    selected={Array.from(workingSaturdays).map(d => parseISO(d))}
-                    onDayClick={(day) => {
-                      if (isSaturday(day)) toggleWorkingSaturday(day);
-                    }}
-                    modifiers={{
-                      saturday: (date) => isSaturday(date),
-                      workingSaturday: (date) => isSaturday(date) && workingSaturdays.has(format(date, "yyyy-MM-dd")),
-                    }}
-                    modifiersStyles={{
-                      workingSaturday: { backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' },
-                    }}
-                    disabled={(date) => !isSaturday(date)}
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                  <div className="px-3 pb-3 text-xs text-muted-foreground">
-                    토요일만 선택 가능 · 선택된 날은 출근일로 계산
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <Button onClick={() => { resetForm(); setEditingId(null); setDialogOpen(true); }} size="sm">
-                <Plus className="h-4 w-4 mr-1" /> 등록
-              </Button>
-            </div>
+            <Button onClick={() => { resetForm(); setEditingId(null); setDialogOpen(true); }} size="sm">
+              <Plus className="h-4 w-4 mr-1" /> 등록
+            </Button>
           )}
         </div>
 

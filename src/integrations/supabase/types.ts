@@ -533,6 +533,24 @@ export type Database = {
         }
         Relationships: []
       }
+      working_saturdays: {
+        Row: {
+          created_at: string
+          date_key: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          date_key: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          date_key?: string
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

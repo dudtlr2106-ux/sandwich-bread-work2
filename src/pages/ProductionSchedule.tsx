@@ -55,6 +55,7 @@ const ProductionSchedulePage = () => {
   useEffect(() => {
     fetchSchedules();
     fetchDayOffs();
+    fetchWorkingSaturdays();
   }, []);
 
   const fetchSchedules = async () => {

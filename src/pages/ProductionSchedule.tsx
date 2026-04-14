@@ -156,6 +156,7 @@ const ProductionSchedulePage = () => {
     const days = eachDayOfInterval({ start: fromDate, end: toDate });
     return days.filter(d => {
       if (isSunday(d)) return false;
+      if (isSaturday(d) && !workingSaturdays.has(format(d, "yyyy-MM-dd"))) return false;
       const key = format(d, "yyyy-MM-dd");
       if (dayOffs.has(key)) return false;
       return true;

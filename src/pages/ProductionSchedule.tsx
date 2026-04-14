@@ -78,24 +78,20 @@ const ProductionSchedulePage = () => {
   };
 
   const fetchWorkingSaturdays = async () => {
-    const { data } = await supabase.from("working_saturdays").select("date_key");
+    // 근무표(schedule_data)에서 토요일에 배정된 데이터가 있으면 출근일로 간주
+    const { data } = await supabase.from("schedule_data").select("date_key");
     if (data) {
-      setWorkingSaturdays(new Set(data.map(d => d.date_key)));
+      const saturdayKeys = new Set<string>();
+      data.forEach(d => {
+        try {
+          const date = parseISO(d.date_key);
+          if (isSaturday(date)) {
+            saturdayKeys.add(d.date_key);
+          }
+        } catch {}
+      });
+      setWorkingSaturdays(saturdayKeys);
     }
-  };
-
-  const toggleWorkingSaturday = async (date: Date) => {
-    if (!isSaturday(date)) return;
-    const key = format(date, "yyyy-MM-dd");
-    const newSet = new Set(workingSaturdays);
-    if (newSet.has(key)) {
-      await supabase.from("working_saturdays").delete().eq("date_key", key);
-      newSet.delete(key);
-    } else {
-      await supabase.from("working_saturdays").insert({ date_key: key });
-      newSet.add(key);
-    }
-    setWorkingSaturdays(newSet);
   };
 
   const handleSave = async () => {

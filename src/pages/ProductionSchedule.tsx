@@ -78,6 +78,27 @@ const ProductionSchedulePage = () => {
     }
   };
 
+  const fetchWorkingSaturdays = async () => {
+    const { data } = await supabase.from("working_saturdays").select("date_key");
+    if (data) {
+      setWorkingSaturdays(new Set(data.map(d => d.date_key)));
+    }
+  };
+
+  const toggleWorkingSaturday = async (date: Date) => {
+    if (!isSaturday(date)) return;
+    const key = format(date, "yyyy-MM-dd");
+    const newSet = new Set(workingSaturdays);
+    if (newSet.has(key)) {
+      await supabase.from("working_saturdays").delete().eq("date_key", key);
+      newSet.delete(key);
+    } else {
+      await supabase.from("working_saturdays").insert({ date_key: key });
+      newSet.add(key);
+    }
+    setWorkingSaturdays(newSet);
+  };
+
   const handleSave = async () => {
     if (!formData.model_name || !formData.start_date || !formData.end_date) {
       toast.error("모델명, 시작일, 종료일을 입력하세요");

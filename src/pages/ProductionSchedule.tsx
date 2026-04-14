@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format, parseISO, eachDayOfInterval, isSunday, isSaturday, addDays } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ArrowLeft, Plus, Trash2, Edit2, Factory, Package, TrendingUp, AlertTriangle, CalendarDays, Target, Calendar as CalendarIcon } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit2, Factory, Package, TrendingUp, AlertTriangle, CalendarDays, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

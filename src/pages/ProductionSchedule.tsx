@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { format, differenceInDays, parseISO } from "date-fns";
+import { format, differenceInDays, parseISO, eachDayOfInterval, isSunday, addDays } from "date-fns";
 import { ko } from "date-fns/locale";
 import { ArrowLeft, Plus, Trash2, Edit2, Factory, Package, TrendingUp, AlertTriangle, CalendarDays, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +32,7 @@ interface ProductionSchedule {
 const ProductionSchedulePage = () => {
   const { user, isAdmin } = useAuth();
   const [schedules, setSchedules] = useState<ProductionSchedule[]>([]);
+  const [dayOffs, setDayOffs] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -48,6 +49,7 @@ const ProductionSchedulePage = () => {
 
   useEffect(() => {
     fetchSchedules();
+    fetchDayOffs();
   }, []);
 
   const fetchSchedules = async () => {
@@ -61,6 +63,13 @@ const ProductionSchedulePage = () => {
       setSchedules(data || []);
     }
     setLoading(false);
+  };
+
+  const fetchDayOffs = async () => {
+    const { data } = await supabase.from("day_offs").select("date_key");
+    if (data) {
+      setDayOffs(new Set(data.map(d => d.date_key)));
+    }
   };
 
   const handleSave = async () => {
@@ -115,12 +124,23 @@ const ProductionSchedulePage = () => {
     setFormData({ model_name: "", start_date: "", end_date: "", target_quantity: 0, current_quantity: 0, good_quantity: 0 });
   };
 
+  const countWorkingDays = (fromDate: Date, toDate: Date) => {
+    if (fromDate > toDate) return 0;
+    const days = eachDayOfInterval({ start: fromDate, end: toDate });
+    return days.filter(d => {
+      if (isSunday(d)) return false;
+      const key = format(d, "yyyy-MM-dd");
+      if (dayOffs.has(key)) return false;
+      return true;
+    }).length;
+  };
+
   const calc = (s: ProductionSchedule) => {
     const start = parseISO(s.start_date);
     const end = parseISO(s.end_date);
     const today = new Date();
-    const totalDays = differenceInDays(end, start) + 1;
-    const remainingDays = Math.max(0, differenceInDays(end, today));
+    const totalDays = countWorkingDays(start, end);
+    const remainingDays = countWorkingDays(today > start ? addDays(today, 0) : start, end);
     const remainingQty = Math.max(0, s.target_quantity - s.good_quantity);
     const dailyNeeded = remainingDays > 0 ? Math.ceil(remainingQty / remainingDays) : remainingQty;
     const defectQty = Math.max(0, s.current_quantity - s.good_quantity);

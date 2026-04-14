@@ -36,8 +36,10 @@ const ProductionSchedulePage = () => {
   const { user, isAdmin } = useAuth();
   const [schedules, setSchedules] = useState<ProductionSchedule[]>([]);
   const [dayOffs, setDayOffs] = useState<Set<string>>(new Set());
+  const [workingSaturdays, setWorkingSaturdays] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [satCalendarOpen, setSatCalendarOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 

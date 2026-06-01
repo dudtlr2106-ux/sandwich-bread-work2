@@ -196,6 +196,8 @@ const WeeklySchedule = () => {
     partialOvertimeData,
     dayOffDates,
     toggleDayOff: toggleDayOffDb,
+    specialWorkdays,
+    toggleSpecialWorkday: toggleSpecialWorkdayDb,
     noticeMemo,
     noticeMemoIsPublic,
     setNoticeMemo,

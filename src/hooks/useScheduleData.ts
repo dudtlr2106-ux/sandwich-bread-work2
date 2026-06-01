@@ -152,6 +152,7 @@ export function useScheduleData(currentWeekStart?: Date) {
   const [partialVacationData, setPartialVacationData] = useState<PartialVacationData>({});
   const [partialOvertimeData, setPartialOvertimeData] = useState<PartialOvertimeData>({});
   const [dayOffDates, setDayOffDatesLocal] = useState<Set<string>>(new Set());
+  const [specialWorkdays, setSpecialWorkdaysLocal] = useState<Set<string>>(new Set());
   const [noticeMemo, setNoticeMemoLocal] = useState("");
   const [noticeMemoIsPublic, setNoticeMemoIsPublicLocal] = useState(true);
   const [weekendAvailability, setWeekendAvailabilityLocal] = useState<{ [workerName: string]: boolean }>({});
@@ -289,10 +290,11 @@ export function useScheduleData(currentWeekStart?: Date) {
       const weekOffset = getISOWeek(weekStart);
       
       // 병렬로 모든 데이터 로드
-      const [scheduleRes, statusRes, dayOffRes, memoRes, weekendRes, patternRes, partialVacationRes, partialOvertimeRes, logisticsPlaylistRes, equipmentPlaylistRes, inspectionPlaylistRes, foremanPlaylistRes, packagePlaylistRes] = await Promise.all([
+      const [scheduleRes, statusRes, dayOffRes, specialWorkdayRes, memoRes, weekendRes, patternRes, partialVacationRes, partialOvertimeRes, logisticsPlaylistRes, equipmentPlaylistRes, inspectionPlaylistRes, foremanPlaylistRes, packagePlaylistRes] = await Promise.all([
         supabase.from('schedule_data').select('*').in('date_key', weekDateKeys),
         supabase.from('worker_statuses').select('*').in('date_key', weekDateKeys),
         supabase.from('day_offs').select('*').in('date_key', weekDateKeys),
+        supabase.from('special_workdays').select('*').in('date_key', weekDateKeys),
         supabase.from('notice_memos').select('*').limit(1),
         supabase.from('weekend_availability').select('*').eq('week_key', weekStartKey).order('updated_at', { ascending: true }),
         // 현재 주 또는 미래 주차인 경우 마스터 룰도 로드
@@ -527,6 +529,13 @@ export function useScheduleData(currentWeekStart?: Date) {
         setDayOffDatesLocal(new Set());
       }
 
+      // 특근일(공휴일/선거일 등) 데이터 처리
+      if (specialWorkdayRes.data && specialWorkdayRes.data.length > 0) {
+        setSpecialWorkdaysLocal(new Set(specialWorkdayRes.data.map((row) => row.date_key)));
+      } else {
+        setSpecialWorkdaysLocal(new Set());
+      }
+
       // 공지 메모 처리
       if (memoRes.data && memoRes.data.length > 0) {
         setNoticeMemoLocal(memoRes.data[0].content || '');
@@ -633,6 +642,16 @@ export function useScheduleData(currentWeekStart?: Date) {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'day_offs' },
+          (payload) => {
+            const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
+            if (weekDateKeys.includes(dateKey)) {
+              loadData();
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'special_workdays' },
           (payload) => {
             const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
             if (weekDateKeys.includes(dateKey)) {
@@ -815,6 +834,40 @@ export function useScheduleData(currentWeekStart?: Date) {
     }
   }, [dayOffDates]);
 
+  // 특근일(공휴일/선거일 등) 토글
+  const toggleSpecialWorkday = useCallback(async (dateKey: string) => {
+    const isCurrentlySpecial = specialWorkdays.has(dateKey);
+
+    if (isCurrentlySpecial) {
+      setSpecialWorkdaysLocal((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(dateKey);
+        return newSet;
+      });
+
+      const { error } = await supabase
+        .from('special_workdays')
+        .delete()
+        .eq('date_key', dateKey);
+
+      if (error) {
+        console.error('Failed to remove special workday:', error);
+        toast.error('특근일 제거에 실패했습니다');
+      }
+    } else {
+      setSpecialWorkdaysLocal((prev) => new Set([...prev, dateKey]));
+
+      const { error } = await supabase
+        .from('special_workdays')
+        .insert({ date_key: dateKey });
+
+      if (error) {
+        console.error('Failed to add special workday:', error);
+        toast.error('특근일 추가에 실패했습니다');
+      }
+    }
+  }, [specialWorkdays]);
+
   // 공지 메모 저장
   const setNoticeMemo = useCallback(async (content: string, isPublic?: boolean) => {
     setNoticeMemoLocal(content);
@@ -993,6 +1046,8 @@ export function useScheduleData(currentWeekStart?: Date) {
     partialOvertimeData,
     dayOffDates,
     toggleDayOff,
+    specialWorkdays,
+    toggleSpecialWorkday,
     noticeMemo,
     noticeMemoIsPublic,
     setNoticeMemo,

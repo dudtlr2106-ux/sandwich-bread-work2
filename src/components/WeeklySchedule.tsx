@@ -1360,15 +1360,26 @@ const WeeklySchedule = () => {
                     const isOff = isDayOff(dateKey);
                     // 일요일은 인쇄 시 숨김
                     const isSunday = day === "일";
+                    const isCustomSpecial = isCustomSpecialWorkday(dateKey);
                     return (
                       <th
                         key={day}
                         colSpan={2}
                         className={`${isCompact ? 'p-1' : 'p-2'} text-center border-b border-r border-border cursor-pointer hover:bg-muted/70 transition-colors ${getDayHeaderClass(day, date)} ${isOff ? "bg-muted/50" : ""} ${isSunday ? "print-hide-sunday" : ""}`}
                         onClick={() => toggleDayOff(dateKey)}
+                        title={isAdmin ? "빈공간 클릭: 휴무 토글 / 요일 글자 클릭: 특근일 토글" : undefined}
                       >
                         <div className="flex items-center justify-center gap-1 flex-wrap">
-                          <span className={isCompact ? "text-xs" : "text-lg"}>{day}</span>
+                          <span
+                            className={`${isCompact ? "text-xs" : "text-lg"} ${isAdmin ? "cursor-pointer hover:underline" : ""}`}
+                            onClick={(e) => {
+                              if (!isAdmin) return;
+                              e.stopPropagation();
+                              toggleSpecialWorkday(dateKey);
+                            }}
+                          >
+                            {day}
+                          </span>
                           <span className={`${isCompact ? 'text-[8px]' : 'text-xs'} text-muted-foreground font-normal`}>
                             {format(date, "M/d")}
                           </span>
@@ -1385,7 +1396,15 @@ const WeeklySchedule = () => {
                               {holiday.name}
                             </span>
                           )}
-                          {!isOff && isSpecialWork && !holiday && !isCompact && (
+                          {!isOff && isCustomSpecial && !isCompact && (
+                            <span className="text-[10px] bg-destructive text-destructive-foreground px-1 rounded">
+                              특근
+                            </span>
+                          )}
+                          {!isOff && isCustomSpecial && isCompact && (
+                            <span className="text-[8px] text-destructive font-semibold">특</span>
+                          )}
+                          {!isOff && !isCustomSpecial && isSpecialWork && !holiday && day === "토" && !isCompact && (
                             <span className="text-[10px] bg-blue-500 text-white px-1 rounded">
                               특근
                             </span>

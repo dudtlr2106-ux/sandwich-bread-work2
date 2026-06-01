@@ -378,13 +378,21 @@ const WeeklySchedule = () => {
     return holidays.find(h => isSameDay(h.date, date));
   };
 
-  // 토요일 특근 체크
+  // 토요일 또는 특근일(공휴일/선거일 등) 체크
   const isSpecialWorkDay = (date: Date, day: string) => {
-    return day === "토";
+    const dateKey = format(date, "yyyy-MM-dd");
+    return day === "토" || specialWorkdays.has(dateKey);
+  };
+
+  // 사용자가 지정한 특근일 (평일 빨강 표시용)
+  const isCustomSpecialWorkday = (dateKey: string) => {
+    return specialWorkdays.has(dateKey);
   };
 
   const getDayHeaderClass = (day: string, date: Date) => {
+    const dateKey = format(date, "yyyy-MM-dd");
     const holiday = getHoliday(date);
+    if (isCustomSpecialWorkday(dateKey)) return "text-destructive font-semibold";
     if (holiday || day === "일") return "text-sunday font-semibold";
     if (day === "토") return "text-saturday font-semibold";
     return "text-foreground font-semibold";
@@ -394,6 +402,12 @@ const WeeklySchedule = () => {
   const toggleDayOff = (dateKey: string) => {
     if (!isAdmin) return;
     toggleDayOffDb(dateKey);
+  };
+
+  // 특근일 토글 - 관리자 전용
+  const toggleSpecialWorkday = (dateKey: string) => {
+    if (!isAdmin) return;
+    toggleSpecialWorkdayDb(dateKey);
   };
 
   // 휴무일 체크

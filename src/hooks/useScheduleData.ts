@@ -152,6 +152,7 @@ export function useScheduleData(currentWeekStart?: Date) {
   const [partialVacationData, setPartialVacationData] = useState<PartialVacationData>({});
   const [partialOvertimeData, setPartialOvertimeData] = useState<PartialOvertimeData>({});
   const [dayOffDates, setDayOffDatesLocal] = useState<Set<string>>(new Set());
+  const [specialWorkdays, setSpecialWorkdaysLocal] = useState<Set<string>>(new Set());
   const [noticeMemo, setNoticeMemoLocal] = useState("");
   const [noticeMemoIsPublic, setNoticeMemoIsPublicLocal] = useState(true);
   const [weekendAvailability, setWeekendAvailabilityLocal] = useState<{ [workerName: string]: boolean }>({});

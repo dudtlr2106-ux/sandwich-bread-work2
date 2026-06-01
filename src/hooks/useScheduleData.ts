@@ -651,6 +651,16 @@ export function useScheduleData(currentWeekStart?: Date) {
         )
         .on(
           'postgres_changes',
+          { event: '*', schema: 'public', table: 'special_workdays' },
+          (payload) => {
+            const dateKey = (payload.new as any)?.date_key || (payload.old as any)?.date_key;
+            if (weekDateKeys.includes(dateKey)) {
+              loadData();
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
           { event: '*', schema: 'public', table: 'notice_memos' },
           () => {
             loadData();

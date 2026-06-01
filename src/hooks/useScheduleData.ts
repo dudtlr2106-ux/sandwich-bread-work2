@@ -529,6 +529,13 @@ export function useScheduleData(currentWeekStart?: Date) {
         setDayOffDatesLocal(new Set());
       }
 
+      // 특근일(공휴일/선거일 등) 데이터 처리
+      if (specialWorkdayRes.data && specialWorkdayRes.data.length > 0) {
+        setSpecialWorkdaysLocal(new Set(specialWorkdayRes.data.map((row) => row.date_key)));
+      } else {
+        setSpecialWorkdaysLocal(new Set());
+      }
+
       // 공지 메모 처리
       if (memoRes.data && memoRes.data.length > 0) {
         setNoticeMemoLocal(memoRes.data[0].content || '');

@@ -431,6 +431,24 @@ export type Database = {
         }
         Relationships: []
       }
+      special_workdays: {
+        Row: {
+          created_at: string
+          date_key: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          date_key: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          date_key?: string
+          id?: string
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           created_at: string

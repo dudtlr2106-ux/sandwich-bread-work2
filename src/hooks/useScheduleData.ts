@@ -1046,6 +1046,8 @@ export function useScheduleData(currentWeekStart?: Date) {
     partialOvertimeData,
     dayOffDates,
     toggleDayOff,
+    specialWorkdays,
+    toggleSpecialWorkday,
     noticeMemo,
     noticeMemoIsPublic,
     setNoticeMemo,

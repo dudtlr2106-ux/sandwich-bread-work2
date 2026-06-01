@@ -834,6 +834,40 @@ export function useScheduleData(currentWeekStart?: Date) {
     }
   }, [dayOffDates]);
 
+  // 특근일(공휴일/선거일 등) 토글
+  const toggleSpecialWorkday = useCallback(async (dateKey: string) => {
+    const isCurrentlySpecial = specialWorkdays.has(dateKey);
+
+    if (isCurrentlySpecial) {
+      setSpecialWorkdaysLocal((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(dateKey);
+        return newSet;
+      });
+
+      const { error } = await supabase
+        .from('special_workdays')
+        .delete()
+        .eq('date_key', dateKey);
+
+      if (error) {
+        console.error('Failed to remove special workday:', error);
+        toast.error('특근일 제거에 실패했습니다');
+      }
+    } else {
+      setSpecialWorkdaysLocal((prev) => new Set([...prev, dateKey]));
+
+      const { error } = await supabase
+        .from('special_workdays')
+        .insert({ date_key: dateKey });
+
+      if (error) {
+        console.error('Failed to add special workday:', error);
+        toast.error('특근일 추가에 실패했습니다');
+      }
+    }
+  }, [specialWorkdays]);
+
   // 공지 메모 저장
   const setNoticeMemo = useCallback(async (content: string, isPublic?: boolean) => {
     setNoticeMemoLocal(content);

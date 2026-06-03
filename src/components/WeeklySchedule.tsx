@@ -1516,7 +1516,7 @@ const WeeklySchedule = () => {
                         <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${firstShiftBgClass} ${isSundayShift ? "print-hide-sunday" : ""}`} style={firstShiftBgStyle}>
                           <div className="flex flex-col items-center gap-0.5">
                             <span className="text-primary">{isCompact ? '초' : '초반'}</span>
-                            {!isCompact && hasSecondShiftVacation && (
+                            {!isCompact && showFirstShiftHint && (
                               <div className={`flex items-center gap-0.5 text-[9px] ${firstShiftTextClass}`}>
                                 <Clock className="h-2.5 w-2.5" />
                                 <span>잔업가능</span>
@@ -1527,7 +1527,7 @@ const WeeklySchedule = () => {
                         <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${secondShiftBgClass} ${isSundayShift ? "print-hide-sunday" : ""}`} style={secondShiftBgStyle}>
                           <div className="flex flex-col items-center gap-0.5">
                             <span className="text-secondary-foreground">{isCompact ? '중' : '중반'}</span>
-                            {!isCompact && hasFirstShiftVacation && (
+                            {!isCompact && showSecondShiftHint && (
                               <div className={`flex items-center gap-0.5 text-[9px] ${secondShiftTextClass}`}>
                                 <Clock className="h-2.5 w-2.5" />
                                 <span>잔업가능</span>
@@ -1535,6 +1535,7 @@ const WeeklySchedule = () => {
                             )}
                           </div>
                         </th>
+
                       </React.Fragment>
                     );
                   })}

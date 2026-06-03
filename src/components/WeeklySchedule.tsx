@@ -1442,19 +1442,44 @@ const WeeklySchedule = () => {
                       });
                     }
                     
+                    // 출근/잔업 인원 합산 계산 (12명 이상이면 잔업가능 숨김)
+                    let firstShiftAttendCount = 0;
+                    let secondShiftAttendCount = 0;
+                    let firstShiftOvertimeCount = 0;
+                    let secondShiftOvertimeCount = 0;
+                    if (!isDayOffDate) {
+                      departments.forEach((dept) => {
+                        const wA = getWorkers(dept.id, day, "A");
+                        const wB = getWorkers(dept.id, day, "B");
+                        wA.forEach(w => {
+                          const s = getWorkerStatus(w, dateKey, day);
+                          if (s !== "dayoff" && s !== "vacation") firstShiftAttendCount++;
+                          if (s === "overtime" || s === "partial_overtime") firstShiftOvertimeCount++;
+                        });
+                        wB.forEach(w => {
+                          const s = getWorkerStatus(w, dateKey, day);
+                          if (s !== "dayoff" && s !== "vacation") secondShiftAttendCount++;
+                          if (s === "overtime" || s === "partial_overtime") secondShiftOvertimeCount++;
+                        });
+                      });
+                    }
+                    const hideFirstOvertimeHint = (secondShiftAttendCount + firstShiftOvertimeCount) >= 12;
+                    const hideSecondOvertimeHint = (firstShiftAttendCount + secondShiftOvertimeCount) >= 12;
+                    
                     // 초반 헤더: 중반 휴가자 기준
                     const hasSecondShiftVacation = hasSecondShiftPackageVacation || hasSecondShiftOtherVacation;
-                    const firstShiftBgClass = !isCompact && hasSecondShiftVacation
+                    const showFirstShiftHint = hasSecondShiftVacation && !hideFirstOvertimeHint;
+                    const firstShiftBgClass = !isCompact && showFirstShiftHint
                       ? (hasSecondShiftPackageVacation && hasSecondShiftOtherVacation
                           ? ""
                           : hasSecondShiftPackageVacation
                             ? "bg-sky-100 dark:bg-sky-950/50"
                             : "bg-orange-100 dark:bg-orange-950/50")
                       : "";
-                    const firstShiftBgStyle = !isCompact && hasSecondShiftPackageVacation && hasSecondShiftOtherVacation
+                    const firstShiftBgStyle = !isCompact && showFirstShiftHint && hasSecondShiftPackageVacation && hasSecondShiftOtherVacation
                       ? { background: 'linear-gradient(to right, #fed7aa 50%, #bae6fd 50%)' }
                       : undefined;
-                    const firstShiftTextClass = hasSecondShiftVacation
+                    const firstShiftTextClass = showFirstShiftHint
                       ? (hasSecondShiftPackageVacation && hasSecondShiftOtherVacation
                           ? "text-orange-600"
                           : hasSecondShiftPackageVacation
@@ -1464,23 +1489,25 @@ const WeeklySchedule = () => {
                     
                     // 중반 헤더: 초반 휴가자 기준
                     const hasFirstShiftVacation = hasFirstShiftPackageVacation || hasFirstShiftOtherVacation;
-                    const secondShiftBgClass = !isCompact && hasFirstShiftVacation
+                    const showSecondShiftHint = hasFirstShiftVacation && !hideSecondOvertimeHint;
+                    const secondShiftBgClass = !isCompact && showSecondShiftHint
                       ? (hasFirstShiftPackageVacation && hasFirstShiftOtherVacation
                           ? ""
                           : hasFirstShiftPackageVacation
                             ? "bg-sky-100 dark:bg-sky-950/50"
                             : "bg-orange-100 dark:bg-orange-950/50")
                       : "";
-                    const secondShiftBgStyle = !isCompact && hasFirstShiftPackageVacation && hasFirstShiftOtherVacation
+                    const secondShiftBgStyle = !isCompact && showSecondShiftHint && hasFirstShiftPackageVacation && hasFirstShiftOtherVacation
                       ? { background: 'linear-gradient(to right, #fed7aa 50%, #bae6fd 50%)' }
                       : undefined;
-                    const secondShiftTextClass = hasFirstShiftVacation
+                    const secondShiftTextClass = showSecondShiftHint
                       ? (hasFirstShiftPackageVacation && hasFirstShiftOtherVacation
                           ? "text-orange-600"
                           : hasFirstShiftPackageVacation
                             ? "text-sky-600"
                             : "text-orange-600")
                       : "";
+
                     
                     // 일요일은 인쇄 시 숨김
                     const isSundayShift = day === "일";
@@ -1489,7 +1516,7 @@ const WeeklySchedule = () => {
                         <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${firstShiftBgClass} ${isSundayShift ? "print-hide-sunday" : ""}`} style={firstShiftBgStyle}>
                           <div className="flex flex-col items-center gap-0.5">
                             <span className="text-primary">{isCompact ? '초' : '초반'}</span>
-                            {!isCompact && hasSecondShiftVacation && (
+                            {!isCompact && showFirstShiftHint && (
                               <div className={`flex items-center gap-0.5 text-[9px] ${firstShiftTextClass}`}>
                                 <Clock className="h-2.5 w-2.5" />
                                 <span>잔업가능</span>
@@ -1500,7 +1527,7 @@ const WeeklySchedule = () => {
                         <th className={`${isCompact ? 'px-0.5 py-0.5' : 'px-2 py-1'} text-center border-b border-r border-border ${isCompact ? 'text-[9px]' : 'text-xs'} font-semibold ${secondShiftBgClass} ${isSundayShift ? "print-hide-sunday" : ""}`} style={secondShiftBgStyle}>
                           <div className="flex flex-col items-center gap-0.5">
                             <span className="text-secondary-foreground">{isCompact ? '중' : '중반'}</span>
-                            {!isCompact && hasFirstShiftVacation && (
+                            {!isCompact && showSecondShiftHint && (
                               <div className={`flex items-center gap-0.5 text-[9px] ${secondShiftTextClass}`}>
                                 <Clock className="h-2.5 w-2.5" />
                                 <span>잔업가능</span>
@@ -1508,6 +1535,7 @@ const WeeklySchedule = () => {
                             )}
                           </div>
                         </th>
+
                       </React.Fragment>
                     );
                   })}

@@ -104,7 +104,7 @@ export function PushNotificationToggle() {
                 variant="ghost"
                 size="icon"
                 disabled={isLoading}
-                className="relative"
+                className="relative"       
               >
                 {isLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />

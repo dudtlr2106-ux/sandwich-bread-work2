@@ -555,13 +555,24 @@ export function useScheduleData(currentWeekStart?: Date) {
         setNoticeMemoIsPublicLocal(memoRes.data[0].is_public ?? true);
       }
 
-      // 주말 출근 가능 여부 처리
+      // 주말 출근 가능 여부 처리 (공석 표시자는 availability 맵에서 제외)
       if (weekendRes.data && weekendRes.data.length > 0) {
         const availability: { [workerName: string]: boolean } = {};
+        const order: Array<{ worker_name: string; is_vacancy: boolean; updated_at: string }> = [];
         weekendRes.data.forEach((row) => {
-          availability[row.worker_name] = row.is_available;
+          const vacancy = isVacancyName(row.worker_name);
+          if (!vacancy) {
+            availability[row.worker_name] = row.is_available;
+          }
+          if (row.is_available) {
+            order.push({ worker_name: row.worker_name, is_vacancy: vacancy, updated_at: row.updated_at });
+          }
         });
         setWeekendAvailabilityLocal(availability);
+        setWeekendOrder(order);
+      } else {
+        setWeekendAvailabilityLocal({});
+        setWeekendOrder([]);
       }
 
       // 시간휴가 정보 처리

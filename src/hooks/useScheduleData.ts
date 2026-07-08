@@ -160,6 +160,8 @@ export function useScheduleData(currentWeekStart?: Date) {
   const [noticeMemo, setNoticeMemoLocal] = useState("");
   const [noticeMemoIsPublic, setNoticeMemoIsPublicLocal] = useState(true);
   const [weekendAvailability, setWeekendAvailabilityLocal] = useState<{ [workerName: string]: boolean }>({});
+  // 주말 출근 순서 (체크된 사람 + 공석 표시자, updated_at 오름차순)
+  const [weekendOrder, setWeekendOrder] = useState<Array<{ worker_name: string; is_vacancy: boolean; updated_at: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   

@@ -132,6 +132,10 @@ export const initialScheduleData: ScheduleData = {
 const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
 const DEPARTMENTS = ["foreman", "equipment", "inspection", "logistics", "package"];
 
+// 주말 출근 순서에 삽입하는 "공석" 표시자 (다음 사람 순서가 당겨지지 않도록 슬롯을 소비함)
+export const VACANCY_PREFIX = '__공석__';
+export const isVacancyName = (name: string) => typeof name === 'string' && name.startsWith(VACANCY_PREFIX);
+
 // 주차 시작일을 기반으로 각 요일의 날짜 키(yyyy-MM-dd) 생성
 const getDateKeyForDay = (weekStart: Date, dayIndex: number): string => {
   return format(addDays(weekStart, dayIndex), "yyyy-MM-dd");

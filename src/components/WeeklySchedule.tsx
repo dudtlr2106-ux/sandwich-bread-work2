@@ -203,6 +203,9 @@ const WeeklySchedule = () => {
     setNoticeMemo,
     weekendAvailability,
     toggleWeekendAvailability: toggleWeekendAvailabilityDb,
+    weekendOrder,
+    addWeekendVacancy,
+    removeWeekendVacancy,
     isLoading: isDataLoading,
     regenerateFromPlaylist,
     getDateKey,
@@ -1956,10 +1959,22 @@ const WeeklySchedule = () => {
           {/* 주말 출근 가능 여부 체크란 - 컴팩트 모드에서는 숨김 */}
           {!isCompact && isSaturdayWorkday() && (
             <div className="p-4 border-t border-border bg-blue-50/50 dark:bg-blue-950/20 print-hide">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <Calendar className="h-4 w-4 text-blue-600" />
                 <span className="text-sm font-medium text-foreground">주말 출근 가능 여부</span>
                 <span className="text-xs text-muted-foreground">(체크하면 출근 가능)</span>
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="ml-auto h-7 px-2 text-xs gap-1 border-dashed border-orange-400 text-orange-700 hover:bg-orange-50 dark:text-orange-300 dark:hover:bg-orange-950/30"
+                    onClick={() => addWeekendVacancy()}
+                    title="다음 사람 순서가 당겨지지 않도록 공석 슬롯을 추가합니다"
+                  >
+                    <Plus className="h-3 w-3" />
+                    공석 추가
+                  </Button>
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
                 {getAllWorkers().map((worker) => {
@@ -1986,6 +2001,61 @@ const WeeklySchedule = () => {
                   );
                 })}
               </div>
+
+              {/* 출근 순서 미리보기 (공석 포함) */}
+              {weekendOrder && weekendOrder.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-blue-200/60 dark:border-blue-800/40">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <span className="text-xs font-medium text-muted-foreground">토요일 배치 순서</span>
+                    <span className="text-[10px] text-muted-foreground">(공석은 슬롯만 차지하고 다음 사람이 당겨지지 않음)</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {weekendOrder.map((entry, idx) => (
+                      <React.Fragment key={entry.worker_name}>
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => addWeekendVacancy(idx)}
+                            className="w-4 h-6 rounded text-orange-500 hover:bg-orange-100 dark:hover:bg-orange-950/40 text-xs flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity"
+                            title="여기에 공석 삽입"
+                          >
+                            +
+                          </button>
+                        )}
+                        {entry.is_vacancy ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-dashed border-orange-400 bg-orange-50 dark:bg-orange-950/30 text-xs text-orange-700 dark:text-orange-300">
+                            <span>{idx + 1}. 공석</span>
+                            {isAdmin && (
+                              <button
+                                type="button"
+                                onClick={() => removeWeekendVacancy(entry.worker_name)}
+                                className="hover:text-destructive"
+                                title="공석 삭제"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md border bg-background text-xs">
+                            {idx + 1}. {entry.worker_name}
+                          </span>
+                        )}
+                      </React.Fragment>
+                    ))}
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => addWeekendVacancy()}
+                        className="w-4 h-6 rounded text-orange-500 hover:bg-orange-100 dark:hover:bg-orange-950/40 text-xs flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity"
+                        title="맨 끝에 공석 추가"
+                      >
+                        +
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

@@ -439,7 +439,11 @@ export function useScheduleData(currentWeekStart?: Date) {
         saturdayDeptOrder.forEach(({ dept, capacity }) => {
           const deptWorkers: string[] = [];
           for (let i = 0; i < capacity && workerIdx < availableWorkers.length; i++) {
-            deptWorkers.push(availableWorkers[workerIdx]);
+            const name = availableWorkers[workerIdx];
+            // 공석 표시자는 슬롯만 소비하고 근무자 배열에는 넣지 않음
+            if (!isVacancyName(name)) {
+              deptWorkers.push(name);
+            }
             workerIdx++;
           }
           if (!newScheduleData[dept]) {
@@ -451,11 +455,14 @@ export function useScheduleData(currentWeekStart?: Date) {
           newScheduleData[dept]["토"] = { A: deptWorkers, B: [] };
         });
         
-        // 용량 초과 인원은 마지막 부서에 추가
+        // 용량 초과 인원은 마지막 부서에 추가 (공석은 제외)
         if (workerIdx < availableWorkers.length) {
           const lastDept = saturdayDeptOrder[saturdayDeptOrder.length - 1].dept;
           while (workerIdx < availableWorkers.length) {
-            newScheduleData[lastDept]["토"].A.push(availableWorkers[workerIdx]);
+            const name = availableWorkers[workerIdx];
+            if (!isVacancyName(name)) {
+              newScheduleData[lastDept]["토"].A.push(name);
+            }
             workerIdx++;
           }
         }

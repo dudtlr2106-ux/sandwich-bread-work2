@@ -11,9 +11,8 @@ function clearLegacyUpdateUi() {
 }
 
 function showUpdateToast() {
+  // 사용자 요청: "새 버전이 있습니다" 알림 숨김. 다음 새로고침 시 자동 적용됨.
   clearLegacyUpdateUi();
-  // 자동으로 새 버전 적용 (알림 없이 조용히 새로고침)
-  window.location.reload();
 }
 
 createRoot(document.getElementById("root")!).render(<App />);

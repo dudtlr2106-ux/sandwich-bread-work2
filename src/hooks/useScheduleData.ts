@@ -415,11 +415,19 @@ export function useScheduleData(currentWeekStart?: Date) {
         (row) => row.date_key === saturdayDateKey
       ) : [];
       
-      // 토요일에 이미 수동 저장된 데이터가 하나라도 있으면 자동 배치 스킵
-      const hasManuallySavedSaturday = saturdayDBRows.some(
-        (row) => row.workers && row.workers.length > 0
+      // weekend_availability에 체크된 인원 목록
+      const availableSet = new Set<string>(
+        (weekendRes.data || [])
+          .filter((row) => row.is_available)
+          .map((row) => row.worker_name)
       );
-      
+
+      // 토요일 schedule_data에 저장된 근무자 중 weekend_availability에 없는 사람이 있으면
+      // 진짜 수동 편집으로 간주하여 자동 배치 스킵. 그 외에는 항상 재계산.
+      const hasManuallySavedSaturday = saturdayDBRows.some(
+        (row) => Array.isArray(row.workers) && row.workers.some((w) => !availableSet.has(w))
+      );
+
       if (weekendRes.data && !hasManuallySavedSaturday) {
         // 체크된 인원만 updated_at 순서대로 (이미 정렬됨)
         const availableWorkers = weekendRes.data

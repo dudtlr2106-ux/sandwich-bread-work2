@@ -415,11 +415,19 @@ export function useScheduleData(currentWeekStart?: Date) {
         (row) => row.date_key === saturdayDateKey
       ) : [];
       
-      // 토요일에 이미 수동 저장된 데이터가 하나라도 있으면 자동 배치 스킵
-      const hasManuallySavedSaturday = saturdayDBRows.some(
-        (row) => row.workers && row.workers.length > 0
+      // weekend_availability에 체크된 인원 목록
+      const availableSet = new Set<string>(
+        (weekendRes.data || [])
+          .filter((row) => row.is_available)
+          .map((row) => row.worker_name)
       );
-      
+
+      // 토요일 schedule_data에 저장된 근무자 중 weekend_availability에 없는 사람이 있으면
+      // 진짜 수동 편집으로 간주하여 자동 배치 스킵. 그 외에는 항상 재계산.
+      const hasManuallySavedSaturday = saturdayDBRows.some(
+        (row) => Array.isArray(row.workers) && row.workers.some((w) => !availableSet.has(w))
+      );
+
       if (weekendRes.data && !hasManuallySavedSaturday) {
         // 체크된 인원만 updated_at 순서대로 (이미 정렬됨)
         const availableWorkers = weekendRes.data
@@ -499,7 +507,9 @@ export function useScheduleData(currentWeekStart?: Date) {
           Object.entries(newScheduleData).forEach(([deptId, days]) => {
             Object.entries(days).forEach(([day, shifts]) => {
               const dayIndex = DAYS.indexOf(day);
-              if (dayIndex !== -1) {
+              // 토요일은 weekend_availability를 원본으로 하므로 자동 저장에서 제외
+              // (저장하면 이후 토요일이 "수동 저장됨"으로 오인되어 체크박스 추가분이 반영되지 않음)
+              if (dayIndex !== -1 && day !== '토') {
                 const dateKey = weekDateKeys2[dayIndex];
                 autoSaveData.push({ date_key: dateKey, department: deptId, shift: 'A', workers: (shifts as ShiftData).A });
                 autoSaveData.push({ date_key: dateKey, department: deptId, shift: 'B', workers: (shifts as ShiftData).B });

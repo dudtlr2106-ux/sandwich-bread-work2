@@ -11,15 +11,8 @@ function clearLegacyUpdateUi() {
 }
 
 function showUpdateToast() {
+  // 사용자 요청: "새 버전이 있습니다" 알림 숨김. 다음 새로고침 시 자동 적용됨.
   clearLegacyUpdateUi();
-  toast.info("새 버전이 있습니다", {
-    id: UPDATE_TOAST_ID,
-    duration: Infinity,
-    action: {
-      label: "업데이트",
-      onClick: () => window.location.reload(),
-    },
-  });
 }
 
 createRoot(document.getElementById("root")!).render(<App />);

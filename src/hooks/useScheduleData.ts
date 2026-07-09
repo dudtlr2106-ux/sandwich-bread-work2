@@ -136,6 +136,90 @@ const DEPARTMENTS = ["foreman", "equipment", "inspection", "logistics", "package
 export const VACANCY_PREFIX = '__공석__';
 export const isVacancyName = (name: string) => typeof name === 'string' && name.startsWith(VACANCY_PREFIX);
 
+export type WeekendOrderEntry = {
+  worker_name: string;
+  is_vacancy: boolean;
+  updated_at: string;
+};
+
+type WeekendAvailabilityRow = {
+  worker_name: string;
+  is_available: boolean;
+  updated_at: string | null;
+};
+
+const SATURDAY_DEPARTMENT_ORDER: { dept: keyof ScheduleData; capacity: number }[] = [
+  { dept: 'foreman', capacity: 2 },
+  { dept: 'equipment', capacity: 3 },
+  { dept: 'inspection', capacity: 2 },
+  { dept: 'logistics', capacity: 1 },
+  { dept: 'package', capacity: 4 },
+];
+
+const cloneScheduleData = (data: ScheduleData): ScheduleData => JSON.parse(JSON.stringify(data));
+
+const normalizeWeekendRows = (rows: WeekendAvailabilityRow[] = []) => {
+  const availability: { [workerName: string]: boolean } = {};
+  const order: WeekendOrderEntry[] = [];
+
+  rows
+    .slice()
+    .sort((a, b) => {
+      const timeA = new Date(a.updated_at || 0).getTime();
+      const timeB = new Date(b.updated_at || 0).getTime();
+      if (timeA !== timeB) return timeA - timeB;
+      return a.worker_name.localeCompare(b.worker_name, 'ko');
+    })
+    .forEach((row) => {
+      const vacancy = isVacancyName(row.worker_name);
+      if (!vacancy) {
+        availability[row.worker_name] = row.is_available;
+      }
+
+      if (row.is_available) {
+        order.push({
+          worker_name: row.worker_name,
+          is_vacancy: vacancy,
+          updated_at: row.updated_at || new Date(0).toISOString(),
+        });
+      }
+    });
+
+  return { availability, order };
+};
+
+const buildSaturdayScheduleFromOrder = (baseData: ScheduleData, order: WeekendOrderEntry[]): ScheduleData => {
+  const nextData = cloneScheduleData(baseData);
+  let orderIndex = 0;
+
+  SATURDAY_DEPARTMENT_ORDER.forEach(({ dept, capacity }) => {
+    const deptWorkers: string[] = [];
+
+    for (let slot = 0; slot < capacity && orderIndex < order.length; slot++) {
+      const entry = order[orderIndex];
+      if (!entry.is_vacancy) {
+        deptWorkers.push(entry.worker_name);
+      }
+      orderIndex++;
+    }
+
+    if (!nextData[dept]) {
+      nextData[dept] = {};
+    }
+    nextData[dept]['토'] = { A: deptWorkers, B: [] };
+  });
+
+  while (orderIndex < order.length) {
+    const entry = order[orderIndex];
+    if (!entry.is_vacancy) {
+      nextData.package['토'].A.push(entry.worker_name);
+    }
+    orderIndex++;
+  }
+
+  return nextData;
+};
+
 // 주차 시작일을 기반으로 각 요일의 날짜 키(yyyy-MM-dd) 생성
 const getDateKeyForDay = (weekStart: Date, dayIndex: number): string => {
   return format(addDays(weekStart, dayIndex), "yyyy-MM-dd");
@@ -161,7 +245,7 @@ export function useScheduleData(currentWeekStart?: Date) {
   const [noticeMemoIsPublic, setNoticeMemoIsPublicLocal] = useState(true);
   const [weekendAvailability, setWeekendAvailabilityLocal] = useState<{ [workerName: string]: boolean }>({});
   // 주말 출근 순서 (체크된 사람 + 공석 표시자, updated_at 오름차순)
-  const [weekendOrder, setWeekendOrder] = useState<Array<{ worker_name: string; is_vacancy: boolean; updated_at: string }>>([]);
+  const [weekendOrder, setWeekendOrder] = useState<WeekendOrderEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
@@ -408,97 +492,13 @@ export function useScheduleData(currentWeekStart?: Date) {
         }
       }
       
-      // 주말 출근 가능자를 토요일에 자동 배치 (체크 순서대로 맨 위 부서부터 채움)
-      // 부서별로 DB에 근무자가 있으면 수동 데이터로 보존, 없으면 체크 순서 기반으로 자동 배치
+      // 주말 출근 체크 목록이 토요일 근무표의 기준 데이터입니다.
+      // 오래된 토요일 schedule_data가 있어도 체크 상태 + 공석 순서로 매번 다시 계산해야
+      // 체크 직후 이름이 보였다가 리얼타임 재로드 때 사라지는 문제가 생기지 않습니다.
       const saturdayDateKey = getDateKeyForDay(weekStart, 5);
-      const saturdayDBRows = scheduleRes.data ? scheduleRes.data.filter(
-        (row) => row.date_key === saturdayDateKey
-      ) : [];
+      const normalizedWeekend = normalizeWeekendRows(weekendRes.data || []);
+      newScheduleData = buildSaturdayScheduleFromOrder(newScheduleData, normalizedWeekend.order);
       
-      // weekend_availability에 체크된 인원 목록
-      const availableSet = new Set<string>(
-        (weekendRes.data || [])
-          .filter((row) => row.is_available)
-          .map((row) => row.worker_name)
-      );
-
-      // 토요일 schedule_data에 저장된 근무자 중 weekend_availability에 없는 사람이 있으면
-      // 진짜 수동 편집으로 간주하여 자동 배치 스킵. 그 외에는 항상 재계산.
-      const hasManuallySavedSaturday = saturdayDBRows.some(
-        (row) => Array.isArray(row.workers) && row.workers.some((w) => !availableSet.has(w))
-      );
-
-      if (weekendRes.data && !hasManuallySavedSaturday) {
-        // 체크된 인원만 updated_at 순서대로 (이미 정렬됨)
-        const availableWorkers = weekendRes.data
-          .filter((row) => row.is_available)
-          .map((row) => row.worker_name);
-        
-        // 부서별 토요일 슬롯 용량 (초반조만 사용)
-        const saturdayDeptOrder: { dept: string; capacity: number }[] = [
-          { dept: 'foreman', capacity: DEPARTMENT_ROTATION_SIZE.foreman.early },
-          { dept: 'equipment', capacity: DEPARTMENT_ROTATION_SIZE.equipment.early },
-          { dept: 'inspection', capacity: DEPARTMENT_ROTATION_SIZE.inspection.early },
-          { dept: 'logistics', capacity: DEPARTMENT_ROTATION_SIZE.logistics.early },
-          { dept: 'package', capacity: DEPARTMENT_ROTATION_SIZE.package.early },
-        ];
-        
-        let workerIdx = 0;
-        saturdayDeptOrder.forEach(({ dept, capacity }) => {
-          const deptWorkers: string[] = [];
-          for (let i = 0; i < capacity && workerIdx < availableWorkers.length; i++) {
-            const name = availableWorkers[workerIdx];
-            // 공석 표시자는 슬롯만 소비하고 근무자 배열에는 넣지 않음
-            if (!isVacancyName(name)) {
-              deptWorkers.push(name);
-            }
-            workerIdx++;
-          }
-          if (!newScheduleData[dept]) {
-            newScheduleData[dept] = {};
-          }
-          if (!newScheduleData[dept]["토"]) {
-            newScheduleData[dept]["토"] = { A: [], B: [] };
-          }
-          newScheduleData[dept]["토"] = { A: deptWorkers, B: [] };
-        });
-        
-        // 용량 초과 인원은 마지막 부서에 추가 (공석은 제외)
-        if (workerIdx < availableWorkers.length) {
-          const lastDept = saturdayDeptOrder[saturdayDeptOrder.length - 1].dept;
-          while (workerIdx < availableWorkers.length) {
-            const name = availableWorkers[workerIdx];
-            if (!isVacancyName(name)) {
-              newScheduleData[lastDept]["토"].A.push(name);
-            }
-            workerIdx++;
-          }
-        }
-      }
-      
-      // 토요일 출근자는 기본 잔업 상태로 설정 (DB 데이터 유무와 무관하게)
-      const allSaturdayWorkers: string[] = [];
-      DEPARTMENTS.forEach((deptId) => {
-        const satData = newScheduleData[deptId]?.["토"];
-        if (satData) {
-          allSaturdayWorkers.push(...satData.A);
-        }
-      });
-      if (allSaturdayWorkers.length > 0) {
-        const saturdayStatuses: { [worker: string]: WorkerStatus } = {};
-        allSaturdayWorkers.forEach((w) => {
-          saturdayStatuses[w] = 'overtime';
-        });
-        setWorkerStatusDataLocal((prev) => {
-          const existing = prev[saturdayDateKey] || {};
-          const merged = { ...saturdayStatuses };
-          Object.entries(existing).forEach(([worker, status]) => {
-            merged[worker] = status;
-          });
-          return { ...prev, [saturdayDateKey]: merged };
-        });
-      }
-
       // 플레이리스트에서 자동 생성된 데이터가 DB에 없으면 자동 저장
       if (!hasExistingData && isCurrentOrFutureWeek) {
         try {
@@ -532,18 +532,33 @@ export function useScheduleData(currentWeekStart?: Date) {
       setHasUnsavedChanges(false);
 
       // 근무자 상태 데이터 처리
+      const newStatusData: WorkerStatusData = {};
       if (statusRes.data && statusRes.data.length > 0) {
-        const newStatusData: WorkerStatusData = {};
         statusRes.data.forEach((row) => {
           if (!newStatusData[row.date_key]) {
             newStatusData[row.date_key] = {};
           }
           newStatusData[row.date_key][row.worker_name] = row.status as WorkerStatus;
         });
-        setWorkerStatusDataLocal(newStatusData);
-      } else {
-        setWorkerStatusDataLocal({});
       }
+
+      // 토요일 출근자는 저장된 상태가 없을 때만 기본 잔업으로 표시
+      const allSaturdayWorkers: string[] = [];
+      DEPARTMENTS.forEach((deptId) => {
+        const satData = newScheduleData[deptId]?.['토'];
+        if (satData) {
+          allSaturdayWorkers.push(...satData.A);
+        }
+      });
+      if (allSaturdayWorkers.length > 0) {
+        newStatusData[saturdayDateKey] = { ...(newStatusData[saturdayDateKey] || {}) };
+        allSaturdayWorkers.forEach((worker) => {
+          if (!newStatusData[saturdayDateKey][worker]) {
+            newStatusData[saturdayDateKey][worker] = 'overtime';
+          }
+        });
+      }
+      setWorkerStatusDataLocal(newStatusData);
 
       // 휴무일 데이터 처리
       if (dayOffRes.data && dayOffRes.data.length > 0) {
@@ -565,25 +580,9 @@ export function useScheduleData(currentWeekStart?: Date) {
         setNoticeMemoIsPublicLocal(memoRes.data[0].is_public ?? true);
       }
 
-      // 주말 출근 가능 여부 처리 (공석 표시자는 availability 맵에서 제외)
-      if (weekendRes.data && weekendRes.data.length > 0) {
-        const availability: { [workerName: string]: boolean } = {};
-        const order: Array<{ worker_name: string; is_vacancy: boolean; updated_at: string }> = [];
-        weekendRes.data.forEach((row) => {
-          const vacancy = isVacancyName(row.worker_name);
-          if (!vacancy) {
-            availability[row.worker_name] = row.is_available;
-          }
-          if (row.is_available) {
-            order.push({ worker_name: row.worker_name, is_vacancy: vacancy, updated_at: row.updated_at });
-          }
-        });
-        setWeekendAvailabilityLocal(availability);
-        setWeekendOrder(order);
-      } else {
-        setWeekendAvailabilityLocal({});
-        setWeekendOrder([]);
-      }
+      // 주말 출근 가능 여부 처리 (공석 표시자는 체크박스 맵에서 제외)
+      setWeekendAvailabilityLocal(normalizedWeekend.availability);
+      setWeekendOrder(normalizedWeekend.order);
 
       // 시간휴가 정보 처리
       if (partialVacationRes.data && partialVacationRes.data.length > 0) {
@@ -628,7 +627,7 @@ export function useScheduleData(currentWeekStart?: Date) {
     } finally {
       setIsLoading(false);
     }
-  }, [weekStart, applyMasterRules]);
+  }, [weekStart, weekStartKey, applyMasterRules, applyDepartmentPlaylist]);
 
   // 주차가 변경되면 데이터 다시 로드
   useEffect(() => {
@@ -943,35 +942,8 @@ export function useScheduleData(currentWeekStart?: Date) {
   }, []);
 
   // 주말 출근 순서 로컬 재계산 → 토요일 근무표 반영 (공석은 슬롯만 소비)
-  const rebuildSaturdayFromOrder = useCallback((order: Array<{ worker_name: string; is_vacancy: boolean }>) => {
-    setScheduleDataLocal((prev) => {
-      const newData = JSON.parse(JSON.stringify(prev));
-      const saturdayDeptOrder = [
-        { dept: 'foreman', capacity: 2 },
-        { dept: 'equipment', capacity: 3 },
-        { dept: 'inspection', capacity: 2 },
-        { dept: 'logistics', capacity: 1 },
-        { dept: 'package', capacity: 4 },
-      ];
-      let idx = 0;
-      saturdayDeptOrder.forEach(({ dept, capacity }) => {
-        const deptWorkers: string[] = [];
-        for (let i = 0; i < capacity && idx < order.length; i++) {
-          const e = order[idx];
-          if (!e.is_vacancy) deptWorkers.push(e.worker_name);
-          idx++;
-        }
-        if (!newData[dept]) newData[dept] = {};
-        if (!newData[dept]["토"]) newData[dept]["토"] = { A: [], B: [] };
-        newData[dept]["토"] = { A: deptWorkers, B: [] };
-      });
-      while (idx < order.length) {
-        const e = order[idx];
-        if (!e.is_vacancy) newData['package']["토"].A.push(e.worker_name);
-        idx++;
-      }
-      return newData;
-    });
+  const rebuildSaturdayFromOrder = useCallback((order: WeekendOrderEntry[]) => {
+    setScheduleDataLocal((prev) => buildSaturdayScheduleFromOrder(prev, order));
   }, []);
 
   // 주말 출근 가능 여부 토글
@@ -979,14 +951,12 @@ export function useScheduleData(currentWeekStart?: Date) {
     const currentAvailability = weekendAvailability[workerName] || false;
     const newAvailability = !currentAvailability;
     
-    // 즉시 로컬 상태 업데이트
-    const updatedAvailability = { ...weekendAvailability, [workerName]: newAvailability };
-    setWeekendAvailabilityLocal(updatedAvailability);
-
-    // 주말 출근 순서 갱신: 체크 해제 시 제거, 체크 시 맨 끝에 추가 (공석은 그대로 유지)
+    // 즉시 로컬 상태 업데이트: 직원 체크는 boolean 맵, 순서는 별도 배열에서 관리
     const nowIso = new Date().toISOString();
-    const newOrder = [...weekendOrder];
+    const updatedAvailability = { ...weekendAvailability, [workerName]: newAvailability };
+    const newOrder = weekendOrder.filter((entry) => entry.is_vacancy || updatedAvailability[entry.worker_name]);
     const existingIdx = newOrder.findIndex((e) => e.worker_name === workerName);
+
     if (!newAvailability && existingIdx !== -1) {
       newOrder.splice(existingIdx, 1);
     } else if (newAvailability) {
@@ -996,6 +966,8 @@ export function useScheduleData(currentWeekStart?: Date) {
         newOrder[existingIdx] = { ...newOrder[existingIdx], updated_at: nowIso };
       }
     }
+
+    setWeekendAvailabilityLocal(updatedAvailability);
     setWeekendOrder(newOrder);
     rebuildSaturdayFromOrder(newOrder);
 

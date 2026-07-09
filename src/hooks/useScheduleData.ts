@@ -499,7 +499,9 @@ export function useScheduleData(currentWeekStart?: Date) {
           Object.entries(newScheduleData).forEach(([deptId, days]) => {
             Object.entries(days).forEach(([day, shifts]) => {
               const dayIndex = DAYS.indexOf(day);
-              if (dayIndex !== -1) {
+              // 토요일은 weekend_availability를 원본으로 하므로 자동 저장에서 제외
+              // (저장하면 이후 토요일이 "수동 저장됨"으로 오인되어 체크박스 추가분이 반영되지 않음)
+              if (dayIndex !== -1 && day !== '토') {
                 const dateKey = weekDateKeys2[dayIndex];
                 autoSaveData.push({ date_key: dateKey, department: deptId, shift: 'A', workers: (shifts as ShiftData).A });
                 autoSaveData.push({ date_key: dateKey, department: deptId, shift: 'B', workers: (shifts as ShiftData).B });

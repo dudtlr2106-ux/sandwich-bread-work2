@@ -1,8 +1,26 @@
-# Welcome to your Lovable project
+# 샌드위치 빵 근무표
 
-## Project info
+## 서비스 연결 정보
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+| 구분 | 이름 / 위치 | 용도 |
+| --- | --- | --- |
+| 앱 | 샌드위치 빵 근무표 | 근무표, 생산일정, 근태 수정 요청 관리 |
+| GitHub 저장소 | [dudtlr2106-ux/sandwich-bread-work](https://github.com/dudtlr2106-ux/sandwich-bread-work) | 소스 코드와 변경 이력 |
+| Supabase 운영 프로젝트 | [sandwich-bread-work-prod](https://supabase.com/dashboard/project/eydwovgqmkzlnagmdkca) | 데이터베이스, 로그인, 권한, 웹 푸시 알림 |
+| Supabase 프로젝트 ID | `eydwovgqmkzlnagmdkca` | Supabase 프로젝트 식별용 |
+| Lovable | GitHub 저장소와 연결 | 화면 편집 및 배포 관리 |
+
+### 명명 규칙
+
+- 운영 환경: `sandwich-bread-work-prod`
+- 테스트 환경을 만들 경우: `sandwich-bread-work-dev`
+- GitHub 기본 브랜치: `main`
+
+> Supabase URL, 공개 키, VAPID 키, 비밀번호 등 실제 인증 정보는 README에 기록하지 않습니다. 로컬에서는 `.env` 파일로 관리합니다.
+
+## Google 로그인 설정
+
+Google 로그인을 사용하려면 위 운영 Supabase 프로젝트에서 **Authentication → Providers → Google**을 활성화해야 합니다. Firebase 설정값은 이 앱에서 사용하지 않습니다.
 
 ## How can I edit this code?
 

@@ -1,0 +1,2 @@
+-- Trigger the initial GitHub integration deployment for this new Supabase project.
+-- Existing migrations in this directory create the application schema.

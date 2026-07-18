@@ -144,6 +144,10 @@ const ProductionSchedulePage = () => {
     setFormData({ model_name: "", start_date: "", end_date: "", target_quantity: 0, current_quantity: 0, good_quantity: 0 });
   };
 
+  const resetQuantity = (field: "target_quantity" | "current_quantity" | "good_quantity") => {
+    setFormData((previous) => ({ ...previous, [field]: 0 }));
+  };
+
   const countWorkingDays = (fromDate: Date, toDate: Date) => {
     if (fromDate > toDate) return 0;
     const days = eachDayOfInterval({ start: fromDate, end: toDate });
@@ -281,16 +285,25 @@ const ProductionSchedulePage = () => {
                 </div>
               </div>
               <div>
-                <Label>목표 생산 수량</Label>
+                <div className="mb-2 flex items-center justify-between">
+                  <Label>목표 생산 수량</Label>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => resetQuantity("target_quantity")}>초기화</Button>
+                </div>
                 <Input type="number" value={formData.target_quantity} onChange={(e) => setFormData(p => ({ ...p, target_quantity: Number(e.target.value) }))} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>현재 생산 수량</Label>
+                  <div className="mb-2 flex items-center justify-between">
+                    <Label>현재 생산 수량</Label>
+                    <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => resetQuantity("current_quantity")}>초기화</Button>
+                  </div>
                   <Input type="number" value={formData.current_quantity} onChange={(e) => setFormData(p => ({ ...p, current_quantity: Number(e.target.value) }))} />
                 </div>
                 <div>
-                  <Label>양품 수량</Label>
+                  <div className="mb-2 flex items-center justify-between">
+                    <Label>양품 수량</Label>
+                    <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => resetQuantity("good_quantity")}>초기화</Button>
+                  </div>
                   <Input type="number" value={formData.good_quantity} onChange={(e) => setFormData(p => ({ ...p, good_quantity: Number(e.target.value) }))} />
                 </div>
               </div>

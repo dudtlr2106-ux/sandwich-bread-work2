@@ -30,6 +30,14 @@ interface ProductionSchedule {
   good_quantity: number;
 }
 
+type QuantityField = "target_quantity" | "current_quantity" | "good_quantity";
+
+type ProductionScheduleForm = Omit<ProductionSchedule, "id" | QuantityField> & {
+  target_quantity: number | "";
+  current_quantity: number | "";
+  good_quantity: number | "";
+};
+
 const ProductionSchedulePage = () => {
   const { user, isAdmin } = useAuth();
   const [schedules, setSchedules] = useState<ProductionSchedule[]>([]);
@@ -40,7 +48,7 @@ const ProductionSchedulePage = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProductionScheduleForm>({
     model_name: "",
     start_date: "",
     end_date: "",
@@ -98,17 +106,24 @@ const ProductionSchedulePage = () => {
       return;
     }
 
+    const scheduleData = {
+      ...formData,
+      target_quantity: formData.target_quantity || 0,
+      current_quantity: formData.current_quantity || 0,
+      good_quantity: formData.good_quantity || 0,
+    };
+
     if (editingId) {
       const { error } = await supabase
         .from("production_schedules")
-        .update({ ...formData, updated_at: new Date().toISOString() })
+        .update({ ...scheduleData, updated_at: new Date().toISOString() })
         .eq("id", editingId);
       if (error) { toast.error("수정 실패"); return; }
       toast.success("수정되었습니다");
     } else {
       const { error } = await supabase
         .from("production_schedules")
-        .insert({ ...formData, created_by: user?.id });
+        .insert({ ...scheduleData, created_by: user?.id });
       if (error) { toast.error("등록 실패"); return; }
       toast.success("등록되었습니다");
     }
@@ -144,8 +159,12 @@ const ProductionSchedulePage = () => {
     setFormData({ model_name: "", start_date: "", end_date: "", target_quantity: 0, current_quantity: 0, good_quantity: 0 });
   };
 
-  const resetQuantity = (field: "target_quantity" | "current_quantity" | "good_quantity") => {
-    setFormData((previous) => ({ ...previous, [field]: 0 }));
+  const resetQuantity = (field: QuantityField) => {
+    setFormData((previous) => ({ ...previous, [field]: "" }));
+  };
+
+  const updateQuantity = (field: QuantityField, value: string) => {
+    setFormData((previous) => ({ ...previous, [field]: value === "" ? "" : Number(value) }));
   };
 
   const countWorkingDays = (fromDate: Date, toDate: Date) => {
@@ -289,7 +308,7 @@ const ProductionSchedulePage = () => {
                   <Label>목표 생산 수량</Label>
                   <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => resetQuantity("target_quantity")}>초기화</Button>
                 </div>
-                <Input type="number" value={formData.target_quantity} onChange={(e) => setFormData(p => ({ ...p, target_quantity: Number(e.target.value) }))} />
+                <Input type="number" value={formData.target_quantity} onChange={(e) => updateQuantity("target_quantity", e.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -297,14 +316,14 @@ const ProductionSchedulePage = () => {
                     <Label>현재 생산 수량</Label>
                     <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => resetQuantity("current_quantity")}>초기화</Button>
                   </div>
-                  <Input type="number" value={formData.current_quantity} onChange={(e) => setFormData(p => ({ ...p, current_quantity: Number(e.target.value) }))} />
+                  <Input type="number" value={formData.current_quantity} onChange={(e) => updateQuantity("current_quantity", e.target.value)} />
                 </div>
                 <div>
                   <div className="mb-2 flex items-center justify-between">
                     <Label>양품 수량</Label>
                     <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => resetQuantity("good_quantity")}>초기화</Button>
                   </div>
-                  <Input type="number" value={formData.good_quantity} onChange={(e) => setFormData(p => ({ ...p, good_quantity: Number(e.target.value) }))} />
+                  <Input type="number" value={formData.good_quantity} onChange={(e) => updateQuantity("good_quantity", e.target.value)} />
                 </div>
               </div>
             </div>

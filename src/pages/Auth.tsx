@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Lock, Mail, User } from "lucide-react";
+import { Lock, Mail, MessageCircle, User } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -16,7 +16,7 @@ const passwordSchema = z.string().min(6, "비밀번호는 최소 6자 이상이�
 const nameSchema = z.string().min(1, "이름을 입력해주세요").max(50, "이름은 50자 이하로 입력해주세요");
 
 const Auth = () => {
-  const { user, signIn, signUp, signInWithGoogle, isLoading } = useAuth();
+  const { user, signIn, signUp, signInWithGoogle, signInWithKakao, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -163,6 +163,19 @@ const Auth = () => {
     }
   };
 
+  const handleKakaoSignIn = async () => {
+    setIsSubmitting(true);
+    const { error } = await signInWithKakao();
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "카카오 로그인 실패",
+        description: "잠시 후 다시 시도해주세요.",
+      });
+      setIsSubmitting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -187,6 +200,10 @@ const Auth = () => {
           <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isSubmitting}>
             <span className="mr-2 text-base font-semibold text-red-500">G</span>
             Google로 계속하기
+          </Button>
+          <Button type="button" className="mt-3 w-full bg-[#FEE500] text-[#191919] hover:bg-[#FDD835]" onClick={handleKakaoSignIn} disabled={isSubmitting}>
+            <MessageCircle className="mr-2 h-4 w-4 fill-current" />
+            카카오로 계속하기
           </Button>
           <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">
             또는 이메일로 로그인

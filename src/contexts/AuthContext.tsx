@@ -9,6 +9,7 @@ interface AuthContextType {
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null; data: { user: User | null } }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -150,6 +151,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return { error, data: { user: data.user } };
   };
 
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/select-worker`,
+      },
+    });
+    return { error };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -166,6 +177,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         isLoading,
         signIn,
         signUp,
+        signInWithGoogle,
         signOut,
       }}
     >

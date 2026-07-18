@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 // Lazy load pages to reduce initial bundle size
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
+const SelectWorker = lazy(() => import("./pages/SelectWorker"));
 const PatternManagement = lazy(() => import("./pages/PatternManagement"));
 const ProductionSchedule = lazy(() => import("./pages/ProductionSchedule"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -33,6 +34,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/select-worker" element={<SelectWorker />} />
               <Route path="/pattern-management" element={<PatternManagement />} />
               <Route path="/production-schedule" element={<ProductionSchedule />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

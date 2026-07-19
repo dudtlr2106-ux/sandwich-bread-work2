@@ -347,6 +347,24 @@ export type Database = {
         }
         Relationships: []
       }
+      rotation_settings: {
+        Row: {
+          id: boolean
+          mode: string
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          mode?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          mode?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

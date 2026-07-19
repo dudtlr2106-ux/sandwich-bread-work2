@@ -205,6 +205,8 @@ const WeeklySchedule = () => {
     removeWeekendVacancy,
     isLoading: isDataLoading,
     regenerateFromPlaylist,
+    rotationMode,
+    setRotationMode,
     getDateKey,
   } = useScheduleData(currentWeekStart);
 
@@ -1194,6 +1196,19 @@ const WeeklySchedule = () => {
                 </Button>
               )}
 
+              {isAdmin && (
+                <Button
+                  variant={rotationMode === 'team_swap' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setRotationMode(rotationMode === 'team_swap' ? 'fixed' : 'team_swap')}
+                  className={isLandscapeMode ? 'h-7 px-2 text-[10px]' : 'h-9'}
+                  title="팀 교대 방식 전환"
+                >
+                  <ArrowRightLeft className={isLandscapeMode ? 'mr-1 h-3.5 w-3.5' : 'mr-1.5 h-4 w-4'} />
+                  팀 교대
+                </Button>
+              )}
+
 
               {/* 근무표 인쇄 버튼 - 관리자만 표시 */}
               {isAdmin && (
@@ -1216,7 +1231,7 @@ const WeeklySchedule = () => {
                     size="icon"
                     onClick={() => setRegenerateConfirmOpen(true)}
                     className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'}
-                    title="플레이리스트 기준 재생성"
+                    title={rotationMode === 'team_swap' ? '팀 교대 방식으로 재생성' : '기존 방식으로 재생성'}
                   >
                     <RefreshCw className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
                   </Button>
@@ -1225,7 +1240,7 @@ const WeeklySchedule = () => {
                       <AlertDialogHeader>
                         <AlertDialogTitle>근무표 재생성</AlertDialogTitle>
                         <AlertDialogDescription>
-                          현재 주차({format(currentWeekStart, "M/d")})의 근무표를 삭제하고 로테이션 플레이리스트 기준으로 다시 생성합니다. 수동으로 변경한 내용이 모두 초기화됩니다. 계속하시겠습니까?
+                          현재 주차({format(currentWeekStart, "M/d")})의 근무표를 삭제하고 {rotationMode === 'team_swap' ? '팀 교대 방식' : '기존 방식'}으로 다시 생성합니다. 수동으로 변경한 내용이 모두 초기화됩니다. 계속하시겠습니까?
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

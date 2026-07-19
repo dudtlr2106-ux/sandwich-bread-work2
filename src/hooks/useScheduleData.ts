@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { format, addDays, startOfWeek, isBefore, startOfDay, getISOWeek, getDay, getHours } from 'date-fns';
+import { format, addDays, startOfWeek, isBefore, startOfDay, getISOWeek, getDay, getHours, differenceInCalendarWeeks } from 'date-fns';
 import { PatternRule } from '@/hooks/usePatternRules';
 import { waitForRealtimeReady } from '@/lib/realtimeUtils';
 
@@ -51,6 +51,8 @@ export type ScheduleData = {
     [day: string]: ShiftData;
   };
 };
+
+export type RotationMode = 'fixed' | 'team_swap';
 
 // 조별 근무자 구조
 // A조: 반장 김영식/이준희, 1조 (김광시, 서민성, 백승빈), 2조 (장영광, 연명옥, 이상민)
@@ -131,6 +133,7 @@ export const initialScheduleData: ScheduleData = {
 
 const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
 const DEPARTMENTS = ["foreman", "equipment", "inspection", "logistics", "package"];
+const TEAM_SWAP_START = new Date(2026, 6, 20);
 
 // 주말 출근 순서에 삽입하는 "공석" 표시자 (다음 사람 순서가 당겨지지 않도록 슬롯을 소비함)
 export const VACANCY_PREFIX = '__공석__';
@@ -248,6 +251,7 @@ export function useScheduleData(currentWeekStart?: Date) {
   const [weekendOrder, setWeekendOrder] = useState<WeekendOrderEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [rotationMode, setRotationModeLocal] = useState<RotationMode>('fixed');
   
   // 이전 주차 키를 추적하여 주차 변경 감지
   const prevWeekStartKeyRef = useRef<string>(weekStartKey);
@@ -358,6 +362,24 @@ export function useScheduleData(currentWeekStart?: Date) {
     return result;
   }, []);
 
+  const applyTeamSwapSchedule = useCallback((baseData: ScheduleData, targetWeekStart: Date): ScheduleData => {
+    const result: ScheduleData = JSON.parse(JSON.stringify(baseData));
+    const weekOffset = differenceInCalendarWeeks(targetWeekStart, TEAM_SWAP_START, { weekStartsOn: 1 });
+    const shouldSwapTeams = Math.abs(weekOffset) % 2 === 0;
+
+    if (!shouldSwapTeams) return result;
+
+    ["월", "화", "수", "목", "금"].forEach((day) => {
+      DEPARTMENTS.forEach((department) => {
+        const shifts = result[department]?.[day];
+        if (!shifts) return;
+        result[department][day] = { A: [...shifts.B], B: [...shifts.A] };
+      });
+    });
+
+    return result;
+  }, []);
+
   // 데이터베이스에서 현재 주차 데이터 로드
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -380,7 +402,7 @@ export function useScheduleData(currentWeekStart?: Date) {
       const weekOffset = getISOWeek(weekStart);
       
       // 병렬로 모든 데이터 로드
-      const [scheduleRes, statusRes, dayOffRes, specialWorkdayRes, memoRes, weekendRes, patternRes, partialVacationRes, partialOvertimeRes, logisticsPlaylistRes, equipmentPlaylistRes, inspectionPlaylistRes, foremanPlaylistRes, packagePlaylistRes] = await Promise.all([
+      const [scheduleRes, statusRes, dayOffRes, specialWorkdayRes, memoRes, weekendRes, patternRes, partialVacationRes, partialOvertimeRes, logisticsPlaylistRes, equipmentPlaylistRes, inspectionPlaylistRes, foremanPlaylistRes, packagePlaylistRes, rotationSettingsRes] = await Promise.all([
         supabase.from('schedule_data').select('*').in('date_key', weekDateKeys),
         supabase.from('worker_statuses').select('*').in('date_key', weekDateKeys),
         supabase.from('day_offs').select('*').in('date_key', weekDateKeys),
@@ -423,7 +445,11 @@ export function useScheduleData(currentWeekStart?: Date) {
         isCurrentOrFutureWeek
           ? supabase.from('package_rotation_playlist').select('*').order('position', { ascending: true })
           : Promise.resolve({ data: [] }),
+        supabase.from('rotation_settings').select('mode').eq('id', true).maybeSingle(),
       ]);
+
+      const activeRotationMode: RotationMode = rotationSettingsRes.data?.mode === 'team_swap' ? 'team_swap' : 'fixed';
+      setRotationModeLocal(activeRotationMode);
 
       // 스케줄 데이터 처리 - 해당 주차 데이터가 있으면 로드, 없으면 초기 데이터 사용
       let newScheduleData: ScheduleData = JSON.parse(JSON.stringify(initialScheduleData));
@@ -446,31 +472,25 @@ export function useScheduleData(currentWeekStart?: Date) {
           }
         });
       } else if (isCurrentOrFutureWeek) {
-        // 미래 주차이고 기존 데이터가 없으면 각 부서 플레이리스트 + 마스터 룰 적용
-        
-        // 0. 반장 로테이션 플레이리스트 적용
-        if (foremanPlaylistRes.data && foremanPlaylistRes.data.length >= 2) {
-          newScheduleData = applyDepartmentPlaylist(newScheduleData, foremanPlaylistRes.data, weekOffset, 'foreman');
-        }
-        
-        // 1. 물류 로테이션 플레이리스트 적용
-        if (logisticsPlaylistRes.data && logisticsPlaylistRes.data.length >= 2) {
-          newScheduleData = applyDepartmentPlaylist(newScheduleData, logisticsPlaylistRes.data, weekOffset, 'logistics');
-        }
-        
-        // 2. 설비 로테이션 플레이리스트 적용
-        if (equipmentPlaylistRes.data && equipmentPlaylistRes.data.length >= 2) {
-          newScheduleData = applyDepartmentPlaylist(newScheduleData, equipmentPlaylistRes.data, weekOffset, 'equipment');
-        }
-        
-        // 3. 검사 로테이션 플레이리스트 적용
-        if (inspectionPlaylistRes.data && inspectionPlaylistRes.data.length >= 2) {
-          newScheduleData = applyDepartmentPlaylist(newScheduleData, inspectionPlaylistRes.data, weekOffset, 'inspection');
-        }
-        
-        // 4. 패키지 로테이션 플레이리스트 적용 (3조 전용)
-        if (packagePlaylistRes.data && packagePlaylistRes.data.length >= 2) {
-          newScheduleData = applyDepartmentPlaylist(newScheduleData, packagePlaylistRes.data, weekOffset, 'package');
+        // 미래 주차이고 기존 데이터가 없으면 선택한 방식으로 기본 근무표 생성
+        if (activeRotationMode === 'team_swap') {
+          newScheduleData = applyTeamSwapSchedule(newScheduleData, weekStart);
+        } else {
+          if (foremanPlaylistRes.data && foremanPlaylistRes.data.length >= 2) {
+            newScheduleData = applyDepartmentPlaylist(newScheduleData, foremanPlaylistRes.data, weekOffset, 'foreman');
+          }
+          if (logisticsPlaylistRes.data && logisticsPlaylistRes.data.length >= 2) {
+            newScheduleData = applyDepartmentPlaylist(newScheduleData, logisticsPlaylistRes.data, weekOffset, 'logistics');
+          }
+          if (equipmentPlaylistRes.data && equipmentPlaylistRes.data.length >= 2) {
+            newScheduleData = applyDepartmentPlaylist(newScheduleData, equipmentPlaylistRes.data, weekOffset, 'equipment');
+          }
+          if (inspectionPlaylistRes.data && inspectionPlaylistRes.data.length >= 2) {
+            newScheduleData = applyDepartmentPlaylist(newScheduleData, inspectionPlaylistRes.data, weekOffset, 'inspection');
+          }
+          if (packagePlaylistRes.data && packagePlaylistRes.data.length >= 2) {
+            newScheduleData = applyDepartmentPlaylist(newScheduleData, packagePlaylistRes.data, weekOffset, 'package');
+          }
         }
         
         // 5. 마스터 룰 적용 (플레이리스트 적용 후)
@@ -1089,8 +1109,25 @@ export function useScheduleData(currentWeekStart?: Date) {
     
     // 2. 데이터 다시 로드 (DB에 데이터가 없으므로 플레이리스트 기준으로 자동 생성됨)
     await loadData();
-    toast.success('플레이리스트 기준으로 근무표가 재생성되었습니다');
-  }, [weekStart, loadData]);
+    toast.success(rotationMode === 'team_swap' ? '팀 교대 방식으로 근무표가 재생성되었습니다' : '기존 방식으로 근무표가 재생성되었습니다');
+  }, [weekStart, loadData, rotationMode]);
+
+  const setRotationMode = useCallback(async (mode: RotationMode) => {
+    const { error } = await supabase
+      .from('rotation_settings')
+      .update({ mode, updated_at: new Date().toISOString() })
+      .eq('id', true);
+
+    if (error) {
+      console.error('Failed to update rotation mode:', error);
+      toast.error('로테이션 방식 변경에 실패했습니다');
+      return false;
+    }
+
+    setRotationModeLocal(mode);
+    toast.success(mode === 'team_swap' ? '팀 교대 방식이 켜졌습니다. 재생성 버튼을 누르면 적용됩니다.' : '기존 방식으로 변경되었습니다. 재생성 버튼을 누르면 적용됩니다.');
+    return true;
+  }, []);
 
   return {
     scheduleData,
@@ -1117,6 +1154,8 @@ export function useScheduleData(currentWeekStart?: Date) {
     addWeekendVacancy,
     removeWeekendVacancy,
     isLoading,
+    rotationMode,
+    setRotationMode,
     refreshData: loadData,
     regenerateFromPlaylist,
     getDateKey,

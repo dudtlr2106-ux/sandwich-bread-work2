@@ -129,10 +129,19 @@ export const initialScheduleData: ScheduleData = {
     토: { A: [], B: [] },
     일: { A: [], B: [] },
   },
+  azs: {
+    월: { A: [], B: [] },
+    화: { A: [], B: [] },
+    수: { A: [], B: [] },
+    목: { A: [], B: [] },
+    금: { A: [], B: [] },
+    토: { A: [], B: [] },
+    일: { A: [], B: [] },
+  },
 };
 
 const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
-const DEPARTMENTS = ["foreman", "equipment", "inspection", "logistics", "package"];
+const DEPARTMENTS = ["foreman", "equipment", "inspection", "logistics", "package", "azs"];
 const TEAM_SWAP_START = new Date(2026, 6, 20);
 
 // 주말 출근 순서에 삽입하는 "공석" 표시자 (다음 사람 순서가 당겨지지 않도록 슬롯을 소비함)
@@ -362,18 +371,33 @@ export function useScheduleData(currentWeekStart?: Date) {
     return result;
   }, []);
 
-  const applyTeamSwapSchedule = useCallback((baseData: ScheduleData, targetWeekStart: Date): ScheduleData => {
+  const applyTeamSwapSchedule = useCallback((baseData: ScheduleData, targetWeekStart: Date, members: { team: string; role: string; worker_name: string; display_order: number }[]): ScheduleData => {
     const result: ScheduleData = JSON.parse(JSON.stringify(baseData));
     const weekOffset = differenceInCalendarWeeks(targetWeekStart, TEAM_SWAP_START, { weekStartsOn: 1 });
-    const shouldSwapTeams = Math.abs(weekOffset) % 2 === 0;
-
-    if (!shouldSwapTeams) return result;
+    const aTeamIsMid = Math.abs(weekOffset) % 2 === 0;
+    const roleOrder: Record<string, number> = { '반장': 0, '1조': 1, '2조': 2, '3조': 3 };
+    const getTeamMembers = (team: string) => members
+      .filter((member) => member.team === team)
+      .sort((left, right) => (roleOrder[left.role] - roleOrder[right.role]) || (left.display_order - right.display_order));
+    const categorize = (team: string) => {
+      const teamMembers = getTeamMembers(team);
+      return {
+        foreman: teamMembers.filter((member) => member.role === '반장').map((member) => member.worker_name),
+        azs: teamMembers.filter((member) => member.role === '1조' || member.role === '2조').map((member) => member.worker_name),
+        package: teamMembers.filter((member) => member.role === '3조').map((member) => member.worker_name),
+      };
+    };
+    const aTeam = categorize('A조');
+    const bTeam = categorize('B조');
+    const earlyTeam = aTeamIsMid ? bTeam : aTeam;
+    const midTeam = aTeamIsMid ? aTeam : bTeam;
 
     ["월", "화", "수", "목", "금"].forEach((day) => {
-      DEPARTMENTS.forEach((department) => {
-        const shifts = result[department]?.[day];
-        if (!shifts) return;
-        result[department][day] = { A: [...shifts.B], B: [...shifts.A] };
+      ['foreman', 'azs', 'package'].forEach((department) => {
+        result[department][day] = {
+          A: [...earlyTeam[department as keyof typeof earlyTeam]],
+          B: [...midTeam[department as keyof typeof midTeam]],
+        };
       });
     });
 
@@ -402,7 +426,7 @@ export function useScheduleData(currentWeekStart?: Date) {
       const weekOffset = getISOWeek(weekStart);
       
       // 병렬로 모든 데이터 로드
-      const [scheduleRes, statusRes, dayOffRes, specialWorkdayRes, memoRes, weekendRes, patternRes, partialVacationRes, partialOvertimeRes, logisticsPlaylistRes, equipmentPlaylistRes, inspectionPlaylistRes, foremanPlaylistRes, packagePlaylistRes, rotationSettingsRes] = await Promise.all([
+      const [scheduleRes, statusRes, dayOffRes, specialWorkdayRes, memoRes, weekendRes, patternRes, partialVacationRes, partialOvertimeRes, logisticsPlaylistRes, equipmentPlaylistRes, inspectionPlaylistRes, foremanPlaylistRes, packagePlaylistRes, rotationSettingsRes, teamMembersRes] = await Promise.all([
         supabase.from('schedule_data').select('*').in('date_key', weekDateKeys),
         supabase.from('worker_statuses').select('*').in('date_key', weekDateKeys),
         supabase.from('day_offs').select('*').in('date_key', weekDateKeys),
@@ -446,6 +470,7 @@ export function useScheduleData(currentWeekStart?: Date) {
           ? supabase.from('package_rotation_playlist').select('*').order('position', { ascending: true })
           : Promise.resolve({ data: [] }),
         supabase.from('rotation_settings').select('mode').eq('id', true).maybeSingle(),
+        supabase.from('team_members').select('team, role, worker_name, display_order').order('display_order', { ascending: true }),
       ]);
 
       const activeRotationMode: RotationMode = rotationSettingsRes.data?.mode === 'team_swap' ? 'team_swap' : 'fixed';
@@ -474,7 +499,7 @@ export function useScheduleData(currentWeekStart?: Date) {
       } else if (isCurrentOrFutureWeek) {
         // 미래 주차이고 기존 데이터가 없으면 선택한 방식으로 기본 근무표 생성
         if (activeRotationMode === 'team_swap') {
-          newScheduleData = applyTeamSwapSchedule(newScheduleData, weekStart);
+          newScheduleData = applyTeamSwapSchedule(newScheduleData, weekStart, teamMembersRes.data || []);
         } else {
           if (foremanPlaylistRes.data && foremanPlaylistRes.data.length >= 2) {
             newScheduleData = applyDepartmentPlaylist(newScheduleData, foremanPlaylistRes.data, weekOffset, 'foreman');
@@ -494,7 +519,7 @@ export function useScheduleData(currentWeekStart?: Date) {
         }
         
         // 5. 마스터 룰 적용 (플레이리스트 적용 후)
-        if (patternRes.data && patternRes.data.length > 0) {
+        if (activeRotationMode === 'fixed' && patternRes.data && patternRes.data.length > 0) {
           const masterRules: PatternRule[] = patternRes.data.map((row) => ({
             id: row.id,
             command: row.command,

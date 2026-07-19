@@ -147,6 +147,14 @@ const departments: Department[] = [
     colorClass: "department-package",
     badgeClass: "bg-amber-500 text-white",
   },
+  {
+    id: "azs",
+    name: "AZS",
+    count: 6,
+    icon: <Users className="h-4 w-4" />,
+    colorClass: "department-equipment",
+    badgeClass: "bg-slate-600 text-white",
+  },
 ];
 
 const WeeklySchedule = () => {
@@ -209,6 +217,9 @@ const WeeklySchedule = () => {
     setRotationMode,
     getDateKey,
   } = useScheduleData(currentWeekStart);
+  const activeDepartments = rotationMode === 'team_swap'
+    ? departments.filter((department) => ['foreman', 'azs', 'package'].includes(department.id))
+    : departments.filter((department) => department.id !== 'azs');
 
   // 관리자 이름 가져오기
   const [adminDisplayName, setAdminDisplayName] = useState<string>("");
@@ -1414,7 +1425,7 @@ const WeeklySchedule = () => {
                     let hasSecondShiftOtherVacation = false;
                     
                     if (!isDayOffDate) {
-                      departments.forEach((dept) => {
+                      activeDepartments.forEach((dept) => {
                         const workersA = getWorkers(dept.id, day, "A");
                         const workersB = getWorkers(dept.id, day, "B");
                         const firstVacations = workersA.filter(w => getWorkerStatus(w, dateKey, day) === "vacation");
@@ -1435,7 +1446,7 @@ const WeeklySchedule = () => {
                     let firstShiftOvertimeCount = 0;
                     let secondShiftOvertimeCount = 0;
                     if (!isDayOffDate) {
-                      departments.forEach((dept) => {
+                      activeDepartments.forEach((dept) => {
                         const wA = getWorkers(dept.id, day, "A");
                         const wB = getWorkers(dept.id, day, "B");
                         wA.forEach(w => {
@@ -1529,7 +1540,7 @@ const WeeklySchedule = () => {
                 </tr>
               </thead>
               <tbody>
-                {departments.map((dept, deptIndex) => (
+                {activeDepartments.map((dept, deptIndex) => (
                   <tr key={dept.id} className="hover:bg-muted/30 transition-colors">
                     <td className={`border-b border-r border-border text-center whitespace-nowrap ${dept.colorClass} ${isLandscapeMode ? 'px-0.5 py-0' : 'px-1 py-1'}`}>
                       <span className={`font-medium text-foreground ${isLandscapeMode ? 'text-[8px]' : 'text-xs'}`}>
@@ -1821,7 +1832,7 @@ const WeeklySchedule = () => {
                     let totalSecondShift = 0;
                     
                     if (!isOff) {
-                      departments.forEach(dept => {
+                      activeDepartments.forEach(dept => {
                         const workersA = getWorkers(dept.id, day, "A");
                         const workersB = getWorkers(dept.id, day, "B");
                         
@@ -1889,7 +1900,7 @@ const WeeklySchedule = () => {
                     let overtimeSecondShift = 0;
                     
                     if (!isOff) {
-                      departments.forEach(dept => {
+                      activeDepartments.forEach(dept => {
                         const workersA = getWorkers(dept.id, day, "A");
                         const workersB = getWorkers(dept.id, day, "B");
                         
@@ -2229,7 +2240,7 @@ const WeeklySchedule = () => {
             <div className="space-y-3">
               <p className="text-sm font-medium">이동할 위치를 선택하세요:</p>
               <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
-                {departments.flatMap((dept) =>
+                {activeDepartments.flatMap((dept) =>
                   DAYS.filter(day => day !== "일").flatMap((day) =>
                     (["A", "B"] as const).map((shiftKey) => {
                       const isCurrent = movingWorker?.fromDeptId === dept.id && 

@@ -56,6 +56,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Initialize session from storage first
     const initializeAuth = async () => {
       try {
+        const kakaoIdToken = new URLSearchParams(window.location.hash.slice(1)).get("kakao_id_token");
+        if (kakaoIdToken) {
+          const { error } = await supabase.auth.signInWithIdToken({
+            provider: "kakao",
+            token: kakaoIdToken,
+          });
+
+          window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+
+          if (error) {
+            console.error("Kakao ID token sign-in error:", error);
+          }
+        }
+
         const { data: { session: existingSession }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -163,14 +177,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const signInWithKakao = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "kakao",
-      options: {
-        redirectTo: `${window.location.origin}/select-worker`,
-        scopes: "profile_nickname profile_image",
-      },
-    });
-    return { error };
+    window.location.assign("/api/auth/kakao/login");
+    return { error: null };
   };
 
   const signOut = async () => {

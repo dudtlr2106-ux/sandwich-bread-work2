@@ -1090,11 +1090,6 @@ const WeeklySchedule = () => {
                 <div className="h-9 w-20 bg-muted animate-pulse rounded" />
               ) : user ? (
                 <div className="flex items-center gap-1">
-                  {!isLandscapeMode && (
-                    <span className="hidden sm:inline text-xs font-medium text-muted-foreground whitespace-nowrap">
-                      {adminDisplayName || "로그인됨"}{isAdmin ? " · 관리자" : ""}
-                    </span>
-                  )}
                   <Link to="/production-schedule">
                     <Button variant="outline" size="icon" className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'} title="생산일정">
                       <Factory className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
@@ -1102,7 +1097,7 @@ const WeeklySchedule = () => {
                   </Link>
                 
                 
-                  <Button variant="outline" size="icon" onClick={signOut} className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'} title="로그아웃">
+                  <Button size="icon" onClick={signOut} className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'} title="로그아웃">
                     <LogOut className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
                   </Button>
                 </div>

@@ -167,6 +167,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       provider: "kakao",
       options: {
         redirectTo: `${window.location.origin}/select-worker`,
+        scopes: "profile_nickname profile_image",
       },
     });
     return { error };

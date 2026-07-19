@@ -141,7 +141,7 @@ const departments: Department[] = [
   },
   {
     id: "package",
-    name: "패키지",
+    name: "PKG",
     count: 4,
     icon: <Package className="h-4 w-4" />,
     colorClass: "department-package",
@@ -218,7 +218,7 @@ const WeeklySchedule = () => {
     getDateKey,
   } = useScheduleData(currentWeekStart);
   const activeDepartments = rotationMode === 'team_swap'
-    ? departments.filter((department) => ['foreman', 'azs', 'package'].includes(department.id))
+    ? ['foreman', 'azs', 'package'].map((id) => departments.find((department) => department.id === id)!)
     : departments.filter((department) => department.id !== 'azs');
 
   // 관리자 이름 가져오기

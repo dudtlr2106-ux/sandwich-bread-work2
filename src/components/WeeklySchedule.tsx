@@ -72,7 +72,7 @@ import {
   RefreshCw,
   Factory,
 } from "lucide-react";
-import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
+import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay, isWeekend, parseISO } from "date-fns";
 import { ko } from "date-fns/locale";
 import AttendanceRequestForm from "@/components/AttendanceRequestForm";
 import EnvironmentSettings from "@/components/EnvironmentSettings";
@@ -416,9 +416,10 @@ const WeeklySchedule = () => {
     toggleSpecialWorkdayDb(dateKey);
   };
 
-  // 휴무일 체크
+  // 토·일은 기본 휴무이며, 관리자가 요일을 눌러 특근일로 지정하면 근무일로 전환된다.
+  // 평일 휴무는 기존처럼 day_offs 데이터로 관리한다.
   const isDayOff = (dateKey: string) => {
-    return dayOffDates.has(dateKey);
+    return dayOffDates.has(dateKey) || (isWeekend(parseISO(dateKey)) && !specialWorkdays.has(dateKey));
   };
 
   // 가로모드에서 일요일과 휴무일 숨김

@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/select";
 import { Plus, Trash2, Edit2, ArrowLeft, Users } from "lucide-react";
 import { waitForRealtimeReady } from "@/lib/realtimeUtils";
-import UserRoleManagement from "@/components/UserRoleManagement";
 
 type TeamMember = {
   id: string;
@@ -293,9 +292,6 @@ const TeamManagement = ({ onClose }: TeamManagementProps) => {
             <TeamCard team="B조" data={groupedMembers.B조} />
           </div>
         )}
-        
-        {/* 사용자 권한 관리 */}
-        <UserRoleManagement />
       </div>
 
       {/* 팀원 추가 다이얼로그 */}

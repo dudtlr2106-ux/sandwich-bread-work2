@@ -68,7 +68,6 @@ import {
   LogOut,
   Shield,
   Settings,
-  Sparkles,
   Printer,
   RefreshCw,
   Factory,
@@ -76,7 +75,7 @@ import {
 import { format, addWeeks, subWeeks, startOfWeek, addDays, differenceInWeeks, isSameDay } from "date-fns";
 import { ko } from "date-fns/locale";
 import AttendanceRequestForm from "@/components/AttendanceRequestForm";
-import TeamManagement from "@/components/TeamManagement";
+import EnvironmentSettings from "@/components/EnvironmentSettings";
 
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 // 주차 전환 시점: 일요일 13시 이후면 다음 주로 간주
@@ -268,7 +267,7 @@ const WeeklySchedule = () => {
   } | null>(null);
 
   // 팀 관리 화면 상태
-  const [showTeamManagement, setShowTeamManagement] = useState(false);
+  const [showEnvironmentSettings, setShowEnvironmentSettings] = useState(false);
   const [regenerateConfirmOpen, setRegenerateConfirmOpen] = useState(false);
 
   // 관리자 시간잔업/시간휴가 시간 입력 다이얼로그 상태
@@ -1049,8 +1048,8 @@ const WeeklySchedule = () => {
   };
 
   // 팀 관리 화면을 보여주는 경우
-  if (showTeamManagement) {
-    return <TeamManagement onClose={() => setShowTeamManagement(false)} />;
+  if (showEnvironmentSettings) {
+    return <EnvironmentSettings onClose={() => setShowEnvironmentSettings(false)} />;
   }
 
   return (
@@ -1182,33 +1181,19 @@ const WeeklySchedule = () => {
                 </Sheet>
               )}
 
-              {/* 팀 관리 버튼 - 관리자만 표시 */}
+              {/* 환경 설정 버튼 - 관리자만 표시 */}
               {isAdmin && (
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setShowTeamManagement(true)}
+                  onClick={() => setShowEnvironmentSettings(true)}
                   className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'}
-                  title="팀 관리"
+                  title="환경 설정"
                 >
                   <Settings className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
                 </Button>
               )}
 
-
-              {/* 패턴 관리 버튼 - 관리자만 표시 */}
-              {isAdmin && (
-                <Link to="/pattern-management">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'}
-                    title="패턴 관리"
-                  >
-                    <Sparkles className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
-                  </Button>
-                </Link>
-              )}
 
               {/* 근무표 인쇄 버튼 - 관리자만 표시 */}
               {isAdmin && (

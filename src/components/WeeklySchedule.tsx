@@ -1474,7 +1474,7 @@ const WeeklySchedule = () => {
                           : hasSecondShiftPackageVacation
                             ? "bg-sky-100 dark:bg-sky-950/50"
                             : "bg-orange-100 dark:bg-orange-950/50")
-                      : "";
+                      : "bg-sky-100/80 dark:bg-sky-950/35";
                     const firstShiftBgStyle = !isCompact && showFirstShiftHint && hasSecondShiftPackageVacation && hasSecondShiftOtherVacation
                       ? { background: 'linear-gradient(to right, #fed7aa 50%, #bae6fd 50%)' }
                       : undefined;
@@ -1495,7 +1495,7 @@ const WeeklySchedule = () => {
                           : hasFirstShiftPackageVacation
                             ? "bg-sky-100 dark:bg-sky-950/50"
                             : "bg-orange-100 dark:bg-orange-950/50")
-                      : "";
+                      : "bg-orange-100/80 dark:bg-orange-950/35";
                     const secondShiftBgStyle = !isCompact && showSecondShiftHint && hasFirstShiftPackageVacation && hasFirstShiftOtherVacation
                       ? { background: 'linear-gradient(to right, #fed7aa 50%, #bae6fd 50%)' }
                       : undefined;
@@ -1596,10 +1596,10 @@ const WeeklySchedule = () => {
                         <React.Fragment key={`${dept.id}-${day}`}>
                           {/* 초반 셀 */}
                           <td
-                            className={`schedule-cell border-b border-r border-border ${isCompact ? 'p-0.5 min-h-0' : 'p-1'} cursor-pointer group hover:bg-primary/5 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${isSundayCell ? "print-hide-sunday" : ""}`}
+                            className={`schedule-cell border-b border-r border-border ${isCompact ? 'p-0.5 min-h-0' : 'p-1.5'} cursor-pointer group bg-sky-50/70 hover:bg-sky-100/80 dark:bg-sky-950/20 dark:hover:bg-sky-950/35 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${isSundayCell ? "print-hide-sunday" : ""}`}
                             onClick={() => isSaturday ? openSaturdaySelectDialog(dept.id, firstShiftKey) : openEditDialog(dept.id, day, firstShiftKey)}
                           >
-                            <div className={`flex flex-wrap justify-center ${isCompact ? 'gap-x-0.5 gap-y-0.5' : 'gap-x-1 gap-y-1.5'}`}>
+                            <div className={`flex flex-wrap justify-center ${isCompact ? 'gap-x-0.5 gap-y-0.5' : 'gap-x-2 gap-y-2'}`}>
                                 {firstShiftWorkers.length > 0 ? (
                                   firstShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
@@ -1625,12 +1625,12 @@ const WeeklySchedule = () => {
                                         key={idx}
                                         trigger={
                                           <div
-                                            className="flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 rounded px-0.5"
+                                            className="flex items-center gap-1 cursor-pointer hover:bg-sky-200/70 dark:hover:bg-sky-900/50 rounded-md px-1 py-0.5"
                                             onClick={(e) => e.stopPropagation()}
                                           >
                                             {renderTime(times.start, times.startMin, `text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`)}
                                             {statusStyle.icon}
-                                            <span className={`text-sm font-semibold whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
+                                            <span className={`font-bold whitespace-nowrap ${isLandscapeMode ? 'text-xs' : 'text-[15px]'} ${statusStyle.className || "text-foreground"}`}>
                                               {worker}
                                             </span>
                                             {renderTime(times.end, times.endMin, `text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`)}
@@ -1705,10 +1705,10 @@ const WeeklySchedule = () => {
                           </td>
                           {/* 중반 셀 */}
                           <td
-                            className={`schedule-cell border-b border-r border-border ${isCompact ? 'p-0.5 min-h-0' : 'p-1'} cursor-pointer group hover:bg-secondary/50 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${isSundayCell ? "print-hide-sunday" : ""}`}
+                            className={`schedule-cell border-b border-r border-border ${isCompact ? 'p-0.5 min-h-0' : 'p-1.5'} cursor-pointer group bg-orange-50/70 hover:bg-orange-100/80 dark:bg-orange-950/20 dark:hover:bg-orange-950/35 transition-colors ${isWeekend ? "bg-muted/30" : ""} ${isSundayCell ? "print-hide-sunday" : ""}`}
                             onClick={() => isSaturday ? openSaturdaySelectDialog(dept.id, secondShiftKey) : openEditDialog(dept.id, day, secondShiftKey)}
                           >
-                            <div className={`flex flex-wrap justify-center ${isCompact ? 'gap-x-0.5 gap-y-0.5' : 'gap-x-1 gap-y-1.5'}`}>
+                            <div className={`flex flex-wrap justify-center ${isCompact ? 'gap-x-0.5 gap-y-0.5' : 'gap-x-2 gap-y-2'}`}>
                               {secondShiftWorkers.length > 0 ? (
                                   secondShiftWorkers.map((worker, idx) => {
                                     const status = getWorkerStatus(worker, dateKey, day);
@@ -1734,12 +1734,12 @@ const WeeklySchedule = () => {
                                         key={idx}
                                         trigger={
                                           <div
-                                            className="flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 rounded px-0.5"
+                                            className="flex items-center gap-1 cursor-pointer hover:bg-orange-200/70 dark:hover:bg-orange-900/50 rounded-md px-1 py-0.5"
                                             onClick={(e) => e.stopPropagation()}
                                           >
                                             {renderTime(times.start, times.startMin, `text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`)}
                                             {statusStyle.icon}
-                                            <span className={`text-sm font-semibold whitespace-nowrap ${statusStyle.className || "text-foreground"}`}>
+                                            <span className={`font-bold whitespace-nowrap ${isLandscapeMode ? 'text-xs' : 'text-[15px]'} ${statusStyle.className || "text-foreground"}`}>
                                               {worker}
                                             </span>
                                             {renderTime(times.end, times.endMin, `text-[10px] ${statusStyle.timeClassName || "text-muted-foreground"}`)}

@@ -70,8 +70,6 @@ import {
   Settings,
   Sparkles,
   Printer,
-  Minimize2,
-  Maximize2,
   RefreshCw,
   Factory,
 } from "lucide-react";
@@ -285,14 +283,7 @@ const WeeklySchedule = () => {
   const [partialEndTime, setPartialEndTime] = useState("");
   const partialStartTimeRef = React.useRef<HTMLInputElement>(null);
   const partialEndTimeRef = React.useRef<HTMLInputElement>(null);
-  const [isCompact, setIsCompact] = useState(() => {
-    const saved = localStorage.getItem('scheduleCompactMode');
-    return saved === 'true';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('scheduleCompactMode', String(isCompact));
-  }, [isCompact]);
+  const isCompact = false;
 
   // 근태 수정 요청 다이얼로그 열기
   const openRequestDialog = (workerName: string, dateKey: string, day: string, currentStatus: string, shift: "A" | "B") => {
@@ -1271,16 +1262,6 @@ const WeeklySchedule = () => {
                 </>
               )}
 
-              <Button
-                variant={isCompact ? "default" : "outline"}
-                size="icon"
-                onClick={() => setIsCompact(!isCompact)}
-                className={isLandscapeMode ? 'h-7 w-7' : 'h-9 w-9'}
-                title={isCompact ? "일반 보기" : "컴팩트 보기"}
-              >
-                {isCompact ? <Maximize2 className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} /> : <Minimize2 className={isLandscapeMode ? 'h-3.5 w-3.5' : 'h-4 w-4'} />}
-              </Button>
-              
               <Button
                 variant="outline"
                 size="icon"

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 // VAPID public key for push notifications
-const VAPID_PUBLIC_KEY = 'BN0o1zl9J07LhU7DnChn5ZjuBDiquB_yXNNcuuf6inzZ-omA9iZ2aTYiFNX7Undz6IqLJPHCxnHvJzdVhFN-E5o';
+const VAPID_PUBLIC_KEY = 'BItJXD2Q8B5DAauQIsbCAIyymiy_HcpZ98J01ABpagmEYV1nO7MdSx-mb_QOAwkfpSrOhU0Qih_sMB1dMjyTrXs';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -390,10 +390,33 @@ export function usePushNotifications() {
 
       // Subscribe to push notifications
       const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-      const subscription = await currentReg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
-      });
+      let subscription = await currentReg.pushManager.getSubscription();
+      const existingKey = subscription?.options.applicationServerKey;
+      const keyMatches = existingKey
+        ? (() => {
+            const existingBytes = new Uint8Array(existingKey);
+            return existingBytes.length === applicationServerKey.length &&
+              existingBytes.every((value, index) => value === applicationServerKey[index]);
+          })()
+        : false;
+
+      if (subscription && !keyMatches) {
+        const staleEndpoint = subscription.endpoint;
+        await subscription.unsubscribe();
+        await supabase
+          .from('push_subscriptions')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('endpoint', staleEndpoint);
+        subscription = null;
+      }
+
+      if (!subscription) {
+        subscription = await currentReg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
+        });
+      }
 
       console.log('Push subscription created:', subscription);
 

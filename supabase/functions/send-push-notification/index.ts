@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
+import { sendWebPush } from "./webPush.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -152,7 +153,7 @@ async function generateVapidJWT(
 }
 
 // Send push notification using Web Push protocol with web-push library approach
-async function sendWebPush(
+async function sendWebPushLegacy(
   subscription: { endpoint: string; p256dh: string; auth: string },
   payload: PushPayload,
   vapidPublicKey: string,
@@ -342,7 +343,9 @@ serve(async (req) => {
         console.error("Failed to parse SUPABASE_SECRET_KEYS:", parseError);
       }
     }
-    const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
+    const vapidPublicKey =
+      Deno.env.get("VAPID_PUBLIC_KEY") ??
+      "BItJXD2Q8B5DAauQIsbCAIyymiy_HcpZ98J01ABpagmEYV1nO7MdSx-mb_QOAwkfpSrOhU0Qih_sMB1dMjyTrXs";
     const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
 
     const missingConfig = [
@@ -353,7 +356,18 @@ serve(async (req) => {
     ].filter(Boolean);
 
     if (missingConfig.length > 0) {
-      throw new Error(`Missing function configuration: ${missingConfig.join(", ")}`);
+      const isVapidConfigurationMissing =
+        !vapidPublicKey || !vapidPrivateKey;
+      console.error(
+        `Missing function configuration: ${missingConfig.join(", ")}`,
+      );
+      return new Response(
+        JSON.stringify({ error: "Function configuration is incomplete" }),
+        {
+          status: isVapidConfigurationMissing ? 424 : 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const isModernSecretKey = supabaseServiceKey.startsWith("sb_secret_");
@@ -549,37 +563,48 @@ serve(async (req) => {
 
     // Send to all subscriptions
     let sentCount = 0;
-    const failedSubscriptions: string[] = [];
+    const expiredSubscriptions: string[] = [];
+    let failedCount = 0;
 
     for (const sub of subscriptions) {
-      const success = await sendWebPush(
+      const result = await sendWebPush(
         { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
         payload,
         vapidPublicKey,
         vapidPrivateKey
       );
       
-      if (success) {
+      if (result.success) {
         sentCount++;
       } else {
-        failedSubscriptions.push(sub.id);
+        failedCount++;
+        if (result.expired) {
+          expiredSubscriptions.push(sub.id);
+        }
       }
     }
 
-    // Clean up failed subscriptions (they might be expired)
-    if (failedSubscriptions.length > 0) {
-      console.log(`Cleaning up ${failedSubscriptions.length} failed subscriptions`);
+    // Only remove subscriptions the push service explicitly reports as expired.
+    if (expiredSubscriptions.length > 0) {
+      console.log(`Cleaning up ${expiredSubscriptions.length} expired subscriptions`);
       await supabase
         .from("push_subscriptions")
         .delete()
-        .in("id", failedSubscriptions);
+        .in("id", expiredSubscriptions);
     }
 
-    console.log(`Successfully sent ${sentCount} push notifications`);
+    console.log(`Push delivery result: ${sentCount} sent, ${failedCount} failed`);
+
+    const allDeliveriesFailed = sentCount === 0 && failedCount > 0;
 
     return new Response(
-      JSON.stringify({ success: true, sent: sentCount }),
+      JSON.stringify({
+        success: !allDeliveriesFailed,
+        sent: sentCount,
+        failed: failedCount,
+      }),
       {
+        status: allDeliveriesFailed ? 502 : 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );

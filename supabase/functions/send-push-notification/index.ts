@@ -356,7 +356,27 @@ serve(async (req) => {
       throw new Error(`Missing function configuration: ${missingConfig.join(", ")}`);
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const isModernSecretKey = supabaseServiceKey.startsWith("sb_secret_");
+    const adminFetch: typeof fetch = async (input, init = {}) => {
+      const headers = new Headers(init.headers);
+
+      // Modern Supabase secret keys are API keys, not JWTs. supabase-js adds the
+      // project key as a Bearer token by default, so remove only that generated
+      // header while keeping the required `apikey` header intact.
+      if (
+        isModernSecretKey &&
+        headers.get("Authorization") === `Bearer ${supabaseServiceKey}`
+      ) {
+        headers.delete("Authorization");
+      }
+
+      return fetch(input, { ...init, headers });
+    };
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      global: { fetch: adminFetch },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
 
     const body = await req.json();
     const { type, requesterName, workerName, dateKey, requestedStatus, content, resultStatus, newAvailability, startTime, endTime, adminName, previousStatus } = body;

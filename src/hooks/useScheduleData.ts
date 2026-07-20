@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { format, addDays, startOfWeek, isBefore, startOfDay, getISOWeek, getDay, getHours, differenceInCalendarWeeks } from 'date-fns';
 import { PatternRule } from '@/hooks/usePatternRules';
 import { waitForRealtimeReady } from '@/lib/realtimeUtils';
+import { invokePushNotification } from '@/lib/pushNotifications';
 
 // 잔업/휴가/휴무 상태 타입
 export type WorkerStatus = "normal" | "overtime" | "vacation" | "partial_vacation" | "partial_overtime" | "dayoff";
@@ -973,11 +974,9 @@ export function useScheduleData(currentWeekStart?: Date) {
       } else {
         // 공지사항 수정 시 푸시 알림 발송
         try {
-          await supabase.functions.invoke('send-push-notification', {
-            body: {
+          await invokePushNotification({
               type: 'notice_update',
               content: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
-            },
           });
         } catch (pushError) {
           console.error('Failed to send push notification:', pushError);
@@ -1040,12 +1039,10 @@ export function useScheduleData(currentWeekStart?: Date) {
       toast.error('주말 출근 가능 여부 저장에 실패했습니다');
     } else if (!isAdmin) {
       try {
-        await supabase.functions.invoke('send-push-notification', {
-          body: {
+        await invokePushNotification({
             type: 'weekend_availability',
             workerName,
             newAvailability,
-          },
         });
       } catch (pushError) {
         console.error('Failed to send push notification:', pushError);

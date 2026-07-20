@@ -1,7 +1,15 @@
 import { createRoot } from "react-dom/client";
+import * as Sentry from "@sentry/react";
 import { toast } from "sonner";
 import App from "./App.tsx";
 import "./index.css";
+
+Sentry.init({
+  dsn: "https://9a8cf56d3e52251db1d8e3fdd1fffd23@o4511754820190208.ingest.us.sentry.io/4511764824522752",
+  environment: import.meta.env.MODE,
+  sendDefaultPii: false,
+  tracesSampleRate: 0.1,
+});
 
 const UPDATE_TOAST_ID = "sw-update-toast";
 

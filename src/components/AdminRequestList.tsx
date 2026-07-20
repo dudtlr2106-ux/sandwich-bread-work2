@@ -12,6 +12,7 @@ import { Check, X, Clock, FileText, RefreshCw, History, Undo2 } from "lucide-rea
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { waitForRealtimeReady } from "@/lib/realtimeUtils";
+import { invokePushNotification } from "@/lib/pushNotifications";
 
 interface AttendanceRequest {
   id: string;
@@ -141,8 +142,7 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
     }
 
     // 요청자에게 승인 알림 발송
-    supabase.functions.invoke('send-push-notification', {
-      body: {
+    invokePushNotification({
         type: 'request_result',
         requesterName: request.requester_name,
         workerName: request.worker_name,
@@ -151,7 +151,6 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
         resultStatus: 'approved',
         startTime: request.start_time,
         endTime: request.end_time,
-      },
     }).catch(err => console.error('승인 알림 발송 실패:', err));
 
     // 2. 시간휴가(partial_vacation)는 기존 상태를 유지하고, 
@@ -236,8 +235,7 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
       });
     } else {
       // 요청자에게 반려 알림 발송
-      supabase.functions.invoke('send-push-notification', {
-        body: {
+      invokePushNotification({
           type: 'request_result',
           requesterName: request.requester_name,
           workerName: request.worker_name,
@@ -246,7 +244,6 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
           resultStatus: 'rejected',
           startTime: request.start_time,
           endTime: request.end_time,
-        },
       }).catch(err => console.error('반려 알림 발송 실패:', err));
 
       toast({

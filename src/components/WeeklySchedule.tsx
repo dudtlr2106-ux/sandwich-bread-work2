@@ -6,6 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
+import { invokePushNotification } from "@/lib/pushNotifications";
 import { useScheduleData, WorkerStatus, WorkerStatusData, ScheduleData, initialScheduleData, SORTED_ALL_WORKERS, PartialVacationData, PartialOvertimeData } from "@/hooks/useScheduleData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -558,15 +559,13 @@ const WeeklySchedule = () => {
     // 관리자가 변경한 경우 알림 발송
     if (isAdmin && user) {
       try {
-        await supabase.functions.invoke('send-push-notification', {
-          body: {
+        await invokePushNotification({
             type: 'admin_status_change',
             adminName: adminDisplayName || '관리자',
             workerName: worker,
             dateKey,
             requestedStatus: status,
             previousStatus,
-          },
         });
       } catch (e) {
         console.error('Failed to send admin status change notification:', e);
@@ -696,8 +695,7 @@ const WeeklySchedule = () => {
 
     // 관리자 변경 알림 발송
     try {
-      await supabase.functions.invoke('send-push-notification', {
-        body: {
+      await invokePushNotification({
           type: 'admin_status_change',
           adminName: adminDisplayName || '관리자',
           workerName: worker,
@@ -706,7 +704,6 @@ const WeeklySchedule = () => {
           previousStatus: currentStatus,
           startTime: partialStartTime,
           endTime: partialEndTime,
-        },
       });
     } catch (e) {
       console.error('Failed to send admin status change notification:', e);

@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Send, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { invokePushNotification } from "@/lib/pushNotifications";
 
 interface AttendanceRequestFormProps {
   open: boolean;
@@ -182,15 +183,13 @@ const AttendanceRequestForm = ({
       // Send push notification to admins
       try {
         const needsTimeInput = requestedStatus === "partial_vacation" || requestedStatus === "partial_overtime";
-        await supabase.functions.invoke('send-push-notification', {
-          body: {
+        await invokePushNotification({
             requesterName: userDisplayName || workerName,
             workerName,
             dateKey,
             requestedStatus,
             startTime: needsTimeInput ? startTime : null,
             endTime: needsTimeInput ? endTime : null,
-          },
         });
       } catch (pushError) {
         console.error('Failed to send push notification:', pushError);

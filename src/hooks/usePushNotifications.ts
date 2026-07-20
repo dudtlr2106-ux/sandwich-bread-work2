@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 // VAPID public key for push notifications
-const VAPID_PUBLIC_KEY = 'BDPMP8DMFBU2R2IResmQfPSHnnZjfBnE_4AOIAJnB_rY9CL0N33ejX3YZ62OWsjuPheg_f9p2LNkEZwBK3mS7vo';
+const VAPID_PUBLIC_KEY = 'BN0o1zl9J07LhU7DnChn5ZjuBDiquB_yXNNcuuf6inzZ-omA9iZ2aTYiFNX7Undz6IqLJPHCxnHvJzdVhFN-E5o';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);

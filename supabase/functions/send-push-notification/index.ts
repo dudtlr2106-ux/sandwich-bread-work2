@@ -330,16 +330,30 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const legacyServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const secretKeysJson = Deno.env.get("SUPABASE_SECRET_KEYS");
+    let supabaseServiceKey = legacyServiceKey;
+
+    if (!supabaseServiceKey && secretKeysJson) {
+      try {
+        const secretKeys = JSON.parse(secretKeysJson) as Record<string, string>;
+        supabaseServiceKey = secretKeys.default ?? Object.values(secretKeys)[0];
+      } catch (parseError) {
+        console.error("Failed to parse SUPABASE_SECRET_KEYS:", parseError);
+      }
+    }
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
     const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
 
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Missing Supabase configuration");
-    }
+    const missingConfig = [
+      !supabaseUrl && "SUPABASE_URL",
+      !supabaseServiceKey && "SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEYS",
+      !vapidPublicKey && "VAPID_PUBLIC_KEY",
+      !vapidPrivateKey && "VAPID_PRIVATE_KEY",
+    ].filter(Boolean);
 
-    if (!vapidPublicKey || !vapidPrivateKey) {
-      throw new Error("Missing VAPID keys configuration");
+    if (missingConfig.length > 0) {
+      throw new Error(`Missing function configuration: ${missingConfig.join(", ")}`);
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

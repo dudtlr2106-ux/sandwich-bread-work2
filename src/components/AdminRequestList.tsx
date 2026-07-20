@@ -156,6 +156,7 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
     // 2. 시간휴가(partial_vacation)는 기존 상태를 유지하고, 
     //    attendance_requests 테이블만 참조하여 표시하므로 worker_statuses를 변경하지 않음
     if (request.requested_status === "partial_vacation") {
+      onStatusChange?.(request.worker_name, request.date_key, request.requested_status);
       toast({
         title: "승인 완료",
         description: `${request.worker_name}님의 시간휴가(${request.start_time} ~ ${request.end_time})가 승인되었습니다`,
@@ -165,6 +166,7 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
 
     // 3. 시간잔업(partial_overtime)도 동일하게 처리
     if (request.requested_status === "partial_overtime") {
+      onStatusChange?.(request.worker_name, request.date_key, request.requested_status);
       toast({
         title: "승인 완료",
         description: `${request.worker_name}님의 시간잔업(${request.start_time} ~ ${request.end_time})이 승인되었습니다`,
@@ -210,6 +212,7 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
         description: "요청은 승인되었지만 근태 상태 변경에 실패했습니다",
       });
     } else {
+      onStatusChange?.(request.worker_name, request.date_key, request.requested_status);
       toast({
         title: "승인 완료",
         description: `${request.worker_name}님의 근태가 ${statusLabels[request.requested_status]}(으)로 변경되었습니다`,

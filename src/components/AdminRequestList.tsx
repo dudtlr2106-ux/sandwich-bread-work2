@@ -327,6 +327,12 @@ const AdminRequestList = ({ onStatusChange }: AdminRequestListProps) => {
           description: error.message,
         });
       } else {
+        // 취소 처리 후 근무표가 복원된 DB 상태를 즉시 다시 읽도록 한다.
+        onStatusChange?.(
+          selectedRequest.worker_name,
+          selectedRequest.date_key,
+          selectedRequest.current_status || "normal"
+        );
         toast({
           title: "취소 완료",
           description: `${selectedRequest.worker_name}님의 근태가 ${statusLabels[selectedRequest.current_status || "normal"]}(으)로 되돌려졌습니다`,
